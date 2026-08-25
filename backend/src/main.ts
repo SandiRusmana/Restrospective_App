@@ -6,6 +6,9 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Set Prefix Global API (/api/...)
+  app.setGlobalPrefix('api');
+
   // Setup Global Validation Pipe (class-validator)
   app.useGlobalPipes(
     new ValidationPipe({
@@ -22,6 +25,6 @@ async function bootstrap() {
   const port = configService.get<number>('PORT', 3000);
 
   await app.listen(port);
-  console.log(`Backend NestJS berjalan di port ${port}`);
+  console.log(`Backend NestJS berjalan di port ${port} dengan prefix /api`);
 }
 bootstrap();

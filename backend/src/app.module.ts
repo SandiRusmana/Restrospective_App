@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PusherModule } from './pusher/pusher.module';
 
@@ -17,7 +18,7 @@ import { PusherModule } from './pusher/pusher.module';
       global: true,
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'supersecretkey'),
+        secret: configService.get<string>('JWT_SECRET', 'retrospective_jwt_secret_dev_key'),
         signOptions: {
           expiresIn: configService.get<any>('JWT_EXPIRES_IN', '1d'),
         },
@@ -28,6 +29,8 @@ import { PusherModule } from './pusher/pusher.module';
     PrismaModule,
     // Modul Pusher untuk Realtime Broadcast
     PusherModule,
+    // Modul Autentikasi User
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
