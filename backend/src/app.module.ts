@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PusherModule } from './pusher/pusher.module';
+import { WorkspaceModule } from './workspace/workspace.module';
 
 @Module({
   imports: [
@@ -31,6 +32,8 @@ import { PusherModule } from './pusher/pusher.module';
     PusherModule,
     // Modul Autentikasi User
     AuthModule,
+    // Modul Manajemen Workspace
+    WorkspaceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
