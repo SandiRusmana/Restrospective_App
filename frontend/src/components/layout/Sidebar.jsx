@@ -6,7 +6,7 @@ import {
   Clock, 
   FileText, 
   Settings, 
-  ChevronDown 
+  LogOut 
 } from 'lucide-react';
 
 const iconMap = {
@@ -24,7 +24,8 @@ export default function Sidebar({
   recentWorkspaces, 
   activeWorkspaceId, 
   onSelectWorkspace,
-  currentUser 
+  currentUser,
+  onLogout 
 }) {
   return (
     <aside className="sidebar">
@@ -80,8 +81,8 @@ export default function Sidebar({
 
       {/* Bottom User Profile */}
       <div className="sidebar-footer">
-        <div className="user-card">
-          <div className="user-info-wrapper">
+        <div className="user-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="user-info-wrapper" style={{ flex: 1, minWidth: 0 }}>
             <div className="user-avatar-container">
               <img 
                 src={currentUser.avatarUrl} 
@@ -90,14 +91,36 @@ export default function Sidebar({
               />
               <span className="user-status-dot" />
             </div>
-            <div className="user-details">
-              <span className="user-name">{currentUser.name}</span>
-              <span className="user-email">{currentUser.email}</span>
+            <div className="user-details" style={{ minWidth: 0 }}>
+              <span className="user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser.name}</span>
+              <span className="user-email" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser.email}</span>
             </div>
           </div>
-          <div className="user-dropdown-arrow">
-            <ChevronDown size={16} />
-          </div>
+          {onLogout && (
+            <button 
+              type="button"
+              className="user-logout-btn" 
+              onClick={onLogout}
+              title="Keluar (Logout)"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#ef4444',
+                padding: '6px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s',
+                marginLeft: '8px',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <LogOut size={18} />
+            </button>
+          )}
         </div>
       </div>
     </aside>

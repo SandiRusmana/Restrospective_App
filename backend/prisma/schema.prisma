@@ -18,6 +18,7 @@ model User {
 
   workspaceMembers WorkspaceMember[]
   cards            Card[]
+  createdInvites   WorkspaceInvite[]
 }
 
 model Workspace {
@@ -28,6 +29,7 @@ model Workspace {
 
   members WorkspaceMember[]
   boards  Board[]
+  invites WorkspaceInvite[]
 }
 
 model WorkspaceMember {
@@ -78,4 +80,17 @@ model Card {
   board  Board       @relation(fields: [boardId], references: [id])
   column BoardColumn @relation(fields: [columnId], references: [id])
   author User        @relation(fields: [authorId], references: [id])
+}
+
+model WorkspaceInvite {
+  id          String   @id @default(uuid())
+  workspaceId String
+  token       String   @unique
+  isActive    Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
 }

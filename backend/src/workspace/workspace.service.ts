@@ -127,4 +127,42 @@ export class WorkspaceService {
 
     return workspace;
   }
+
+  /**
+   * Menghapus Workspace (Hanya Pembuat/Owner)
+   */
+  async deleteWorkspace(userId: string, workspaceId: string) {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      include: {
+        members: {
+          where: { userId },
+        },
+      },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace tidak ditemukan');
+    }
+
+    const member = workspace.members[0];
+    const isOwner = workspace.ownerId === userId || (member && member.role === 'owner');
+
+    if (!isOwner) {
+      throw new ForbiddenException('Hanya owner workspace yang dapat menghapus workspace ini');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.workspaceInvite.deleteMany({ where: { workspaceId } }),
+      this.prisma.workspaceMember.deleteMany({ where: { workspaceId } }),
+      this.prisma.card.deleteMany({ where: { board: { workspaceId } } }),
+      this.prisma.boardColumn.deleteMany({ where: { board: { workspaceId } } }),
+      this.prisma.board.deleteMany({ where: { workspaceId } }),
+      this.prisma.workspace.delete({ where: { id: workspaceId } }),
+    ]);
+
+    return {
+      message: 'Workspace berhasil dihapus',
+    };
+  }
 }

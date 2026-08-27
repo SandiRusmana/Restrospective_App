@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { InviteModule } from './invite/invite.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PusherModule } from './pusher/pusher.module';
 import { WorkspaceModule } from './workspace/workspace.module';
@@ -34,6 +35,8 @@ import { WorkspaceModule } from './workspace/workspace.module';
     AuthModule,
     // Modul Manajemen Workspace
     WorkspaceModule,
+    // Modul Invite Workspace
+    InviteModule,
   ],
   controllers: [AppController],
   providers: [AppService],
