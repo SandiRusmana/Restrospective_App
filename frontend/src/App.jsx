@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { LayoutGrid, List } from 'lucide-react';
+import { api } from './services/api';
 
 // Data
 import { 
   currentUser as defaultUser, 
-  initialWorkspaces, 
   sidebarNavItems 
 } from './data/dummyData';
 
@@ -27,14 +27,57 @@ import CreateWorkspaceModal from './components/modals/CreateWorkspaceModal';
 import InviteMemberModal from './components/modals/InviteMemberModal';
 import Toast from './components/common/Toast';
 
+const colorPresets = ['gradient-blue', 'gradient-orange', 'gradient-purple', 'gradient-green', 'gradient-pink'];
+
+function formatBackendWorkspace(ws, currentUserId) {
+  const userMember = ws.members?.find((m) => m.userId === currentUserId || m.user?.id === currentUserId);
+  const role = userMember ? (userMember.role === 'owner' ? 'Owner' : 'Member') : 'Member';
+  const name = ws.name || 'Workspace';
+  const initial = name.substring(0, 2).toUpperCase();
+
+  const formattedMembers = (ws.members || []).map((m) => ({
+    id: m.id || m.userId,
+    name: m.user?.name || m.user?.email?.split('@')[0] || 'Member',
+    role: m.role === 'owner' ? 'Owner' : 'Member',
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user?.email || m.userId}`,
+    isOnline: true,
+  }));
+
+  const formattedBoards = (ws.boards || []).map((b, idx) => ({
+    id: b.id,
+    title: b.name,
+    columnsCount: 3,
+    cardsCount: 0,
+    timeText: b.createdAt ? new Date(b.createdAt).toLocaleDateString('id-ID') : 'Baru saja',
+    color: colorPresets[idx % colorPresets.length],
+  }));
+
+  const colorIndex = Math.abs((ws.id || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colorPresets.length;
+
+  return {
+    id: ws.id,
+    name: ws.name,
+    initial,
+    color: colorPresets[colorIndex],
+    role,
+    description: `Workspace untuk ${ws.name}`,
+    longDescription: `Workspace untuk ${ws.name}. Semua retrospective dan diskusi tim dilakukan di sini`,
+    memberCount: formattedMembers.length,
+    dateText: ws.joinedAt ? `Bergabung ${new Date(ws.joinedAt).toLocaleDateString('id-ID')}` : 'Active',
+    isRecent: true,
+    members: formattedMembers,
+    recentBoards: formattedBoards,
+  };
+}
+
 export default function App() {
   // Page Routing State: 'login' | 'register' | 'dashboard'
   const [currentPage, setCurrentPage] = useState('login');
   const [user, setUser] = useState(defaultUser);
 
   // Dashboard States
-  const [workspaces, setWorkspaces] = useState(initialWorkspaces);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState(initialWorkspaces[0].id);
+  const [workspaces, setWorkspaces] = useState([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(null);
   const [activeNav, setActiveNav] = useState('workspace');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,8 +88,95 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [isToastVisible, setIsToastVisible] = useState(false);
 
+  // Trigger Toast Notification
+  const showToast = useCallback((message) => {
+    setToastMessage(message);
+    setIsToastVisible(true);
+    setTimeout(() => {
+      setIsToastVisible(false);
+    }, 3000);
+  }, []);
+
+  // Fetch Workspaces from Backend API
+  const fetchWorkspaces = useCallback(async (currentUserId) => {
+    try {
+      const data = await api.getWorkspaces();
+      const formatted = (data || []).map((ws) => formatBackendWorkspace(ws, currentUserId));
+      setWorkspaces(formatted);
+      if (formatted.length > 0) {
+        setActiveWorkspaceId((prev) => {
+          if (prev && formatted.some((w) => w.id === prev)) return prev;
+          return formatted[0].id;
+        });
+      } else {
+        setActiveWorkspaceId(null);
+      }
+      return formatted;
+    } catch (err) {
+      console.error('Failed to fetch workspaces:', err);
+      return [];
+    }
+  }, []);
+
+  // Process Pending Invite Join from SessionStorage
+  const checkAndProcessPendingInvite = useCallback(async (userData) => {
+    const pendingToken = sessionStorage.getItem('pending_invite_token');
+    if (pendingToken) {
+      try {
+        const res = await api.joinWorkspace(pendingToken);
+        showToast(res.message || 'Berhasil bergabung ke workspace!');
+        sessionStorage.removeItem('pending_invite_token');
+        await fetchWorkspaces(userData.id);
+      } catch (err) {
+        showToast(err.message || 'Gagal bergabung ke workspace via link invite');
+        sessionStorage.removeItem('pending_invite_token');
+      }
+    }
+  }, [fetchWorkspaces, showToast]);
+
+  // Handle URL Query Params for Invite Links (?invite=TOKEN)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get('invite');
+    if (inviteToken) {
+      sessionStorage.setItem('pending_invite_token', inviteToken);
+      // Clean query parameter from URL bar
+      const newUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+      showToast('Link invite terdeteksi! Silakan masuk atau mendaftar untuk bergabung.');
+    }
+  }, [showToast]);
+
+  // Initial Auth Check on Mount
+  useEffect(() => {
+    async function checkAuth() {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        try {
+          const userData = await api.getMe();
+          const formattedUser = {
+            id: userData.id,
+            name: userData.name || userData.email.split('@')[0],
+            fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
+            email: userData.email,
+            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`
+          };
+          setUser(formattedUser);
+          setCurrentPage('dashboard');
+          await fetchWorkspaces(userData.id);
+          await checkAndProcessPendingInvite(formattedUser);
+        } catch {
+          api.logout();
+          setCurrentPage('login');
+        }
+      }
+    }
+    checkAuth();
+  }, [fetchWorkspaces, checkAndProcessPendingInvite]);
+
   // Active Workspace Object
   const activeWorkspace = useMemo(() => {
+    if (!workspaces || workspaces.length === 0) return null;
     return workspaces.find((ws) => ws.id === activeWorkspaceId) || workspaces[0];
   }, [workspaces, activeWorkspaceId]);
 
@@ -64,124 +194,75 @@ export default function App() {
     );
   }, [workspaces, searchQuery]);
 
-  // Trigger Toast Notification
-  const showToast = (message) => {
-    setToastMessage(message);
-    setIsToastVisible(true);
-    setTimeout(() => {
-      setIsToastVisible(false);
-    }, 3000);
-  };
-
   // Auth Handlers
-  const handleLoginSuccess = (loginData) => {
-    if (loginData.email) {
-      const namePart = loginData.email.split('@')[0];
-      const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-      setUser((prev) => ({
-        ...prev,
-        name: formattedName,
-        fullName: `${formattedName} (Anda)`,
-        email: loginData.email
-      }));
-    }
+  const handleLoginSuccess = async (userData) => {
+    const formattedUser = {
+      id: userData.id,
+      name: userData.name || userData.email.split('@')[0],
+      fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
+      email: userData.email,
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`
+    };
+    setUser(formattedUser);
     showToast("Berhasil masuk! Mengarahkan ke Dashboard...");
     setCurrentPage('dashboard');
+    await fetchWorkspaces(userData.id);
+    await checkAndProcessPendingInvite(formattedUser);
   };
 
-  const handleRegisterSuccess = (regData) => {
-    setUser((prev) => ({
-      ...prev,
-      name: regData.name,
-      fullName: `${regData.name} (Anda)`,
-      email: regData.email
-    }));
-    showToast(`Akun "${regData.name}" berhasil dibuat!`);
+  const handleRegisterSuccess = async (userData) => {
+    const formattedUser = {
+      id: userData.id,
+      name: userData.name || userData.email.split('@')[0],
+      fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
+      email: userData.email,
+      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`
+    };
+    setUser(formattedUser);
+    showToast(`Akun "${formattedUser.name}" berhasil dibuat!`);
     setCurrentPage('dashboard');
+    await fetchWorkspaces(userData.id);
+    await checkAndProcessPendingInvite(formattedUser);
+  };
+
+  const handleLogout = () => {
+    api.logout();
+    setUser(defaultUser);
+    setWorkspaces([]);
+    setActiveWorkspaceId(null);
+    setCurrentPage('login');
+    showToast('Berhasil keluar dari akun');
   };
 
   // Handler: Create Workspace
-  const handleCreateWorkspace = (newWsData) => {
-    const newId = `ws_${Math.random().toString(36).substring(2, 9).toUpperCase()}H8J2KX6PYZQ4`;
-    const newWs = {
-      id: newId,
-      name: newWsData.name,
-      initial: newWsData.initial,
-      color: newWsData.color,
-      role: 'Owner',
-      description: newWsData.description,
-      longDescription: `Workspace untuk ${newWsData.name}. Semua retrospective dan diskusi tim dilakukan di sini`,
-      memberCount: 1,
-      dateText: 'Dibuat Hari ini',
-      isRecent: true,
-      members: [
-        {
-          id: 'm1',
-          name: user.fullName,
-          role: 'Owner',
-          avatar: user.avatarUrl,
-          isOnline: true
-        }
-      ],
-      recentBoards: []
-    };
-
-    setWorkspaces((prev) => [newWs, ...prev]);
-    setActiveWorkspaceId(newId);
-    showToast(`Workspace "${newWsData.name}" berhasil dibuat!`);
+  const handleCreateWorkspace = async (newWsData) => {
+    try {
+      const res = await api.createWorkspace(newWsData.name);
+      showToast(`Workspace "${newWsData.name}" berhasil dibuat!`);
+      const updatedList = await fetchWorkspaces(user.id);
+      if (res.workspace?.id) {
+        setActiveWorkspaceId(res.workspace.id);
+      } else if (updatedList.length > 0) {
+        setActiveWorkspaceId(updatedList[0].id);
+      }
+    } catch (err) {
+      showToast(err.message || 'Gagal membuat workspace');
+    }
   };
 
-  // Handler: Invite Member
-  const handleInviteMember = (inviteData) => {
-    setWorkspaces((prev) => 
-      prev.map((ws) => {
-        if (ws.id === activeWorkspace.id) {
-          const updatedMembers = [
-            ...ws.members,
-            {
-              id: `m_${Date.now()}`,
-              name: inviteData.email.split('@')[0],
-              role: inviteData.role,
-              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${inviteData.email}`,
-              isOnline: false
-            }
-          ];
-          return {
-            ...ws,
-            memberCount: (ws.memberCount || ws.members.length) + 1,
-            members: updatedMembers
-          };
-        }
-        return ws;
-      })
-    );
-    showToast(`Undangan terkirim ke ${inviteData.email}!`);
+  // Handler: Delete Workspace
+  const handleDeleteWorkspace = async (workspaceId, workspaceName) => {
+    try {
+      await api.deleteWorkspace(workspaceId);
+      showToast(`Workspace "${workspaceName || ''}" berhasil dihapus`);
+      await fetchWorkspaces(user.id);
+    } catch (err) {
+      showToast(err.message || 'Gagal menghapus workspace');
+    }
   };
 
   return (
     <>
-      {/* Demo Top Navigation Bar to easily preview all 3 screens */}
-      <nav className="auth-demo-nav">
-        <button 
-          className={`auth-demo-btn ${currentPage === 'login' ? 'active' : ''}`}
-          onClick={() => setCurrentPage('login')}
-        >
-          Halaman Login
-        </button>
-        <button 
-          className={`auth-demo-btn ${currentPage === 'register' ? 'active' : ''}`}
-          onClick={() => setCurrentPage('register')}
-        >
-          Halaman Register
-        </button>
-        <button 
-          className={`auth-demo-btn ${currentPage === 'dashboard' ? 'active' : ''}`}
-          onClick={() => setCurrentPage('dashboard')}
-        >
-          Dashboard
-        </button>
-      </nav>
-
       {/* Conditional Rendering of Pages */}
       {currentPage === 'login' && (
         <LoginPage 
@@ -208,6 +289,7 @@ export default function App() {
             activeWorkspaceId={activeWorkspaceId}
             onSelectWorkspace={setActiveWorkspaceId}
             currentUser={user}
+            onLogout={handleLogout}
           />
 
           {/* 2. Central Main Content */}
@@ -246,6 +328,7 @@ export default function App() {
                     workspace={workspace}
                     isSelected={workspace.id === activeWorkspaceId}
                     onSelect={setActiveWorkspaceId}
+                    onDeleteWorkspace={handleDeleteWorkspace}
                     viewMode={viewMode}
                   />
                 ))}
@@ -258,35 +341,40 @@ export default function App() {
             </section>
 
             {/* Section: Berpindah Workspace / Switcher & Search */}
-            <WorkspaceSwitcher 
-              workspaces={workspaces}
-              activeWorkspace={activeWorkspace}
-              onSelectWorkspace={setActiveWorkspaceId}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onCreateWorkspace={() => setIsCreateModalOpen(true)}
-            />
+            {activeWorkspace && (
+              <WorkspaceSwitcher 
+                workspaces={workspaces}
+                activeWorkspace={activeWorkspace}
+                onSelectWorkspace={setActiveWorkspaceId}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onCreateWorkspace={() => setIsCreateModalOpen(true)}
+              />
+            )}
           </main>
 
           {/* 3. Right Sidebar Detail Panels */}
-          <aside className="dashboard-right-sidebar">
-            <ActiveWorkspaceCard 
-              workspace={activeWorkspace} 
-              onShowToast={showToast}
-            />
+          {activeWorkspace && (
+            <aside className="dashboard-right-sidebar">
+              <ActiveWorkspaceCard 
+                workspace={activeWorkspace} 
+                onShowToast={showToast}
+                onDeleteWorkspace={handleDeleteWorkspace}
+              />
 
-            <MembersListCard 
-              workspace={activeWorkspace}
-              onInviteClick={() => setIsInviteModalOpen(true)}
-              onViewAllMembers={() => alert(`Menampilkan semua anggota ${activeWorkspace.name}`)}
-            />
+              <MembersListCard 
+                workspace={activeWorkspace}
+                onInviteClick={() => setIsInviteModalOpen(true)}
+                onViewAllMembers={() => alert(`Menampilkan semua anggota ${activeWorkspace.name}`)}
+              />
 
-            <RecentBoardsCard 
-              workspace={activeWorkspace}
-              onViewAllBoards={() => alert(`Menampilkan semua board di ${activeWorkspace.name}`)}
-              onOpenBoard={(board) => showToast(`Membuka board: ${board.title}`)}
-            />
-          </aside>
+              <RecentBoardsCard 
+                workspace={activeWorkspace}
+                onViewAllBoards={() => alert(`Menampilkan semua board di ${activeWorkspace.name}`)}
+                onOpenBoard={(board) => showToast(`Membuka board: ${board.title}`)}
+              />
+            </aside>
+          )}
 
           {/* Modals */}
           <CreateWorkspaceModal 
@@ -295,12 +383,15 @@ export default function App() {
             onCreate={handleCreateWorkspace}
           />
 
-          <InviteMemberModal 
-            isOpen={isInviteModalOpen}
-            onClose={() => setIsInviteModalOpen(false)}
-            onInvite={handleInviteMember}
-            workspaceName={activeWorkspace.name}
-          />
+          {activeWorkspace && (
+            <InviteMemberModal 
+              isOpen={isInviteModalOpen}
+              onClose={() => setIsInviteModalOpen(false)}
+              workspaceId={activeWorkspace.id}
+              workspaceName={activeWorkspace.name}
+              onShowToast={showToast}
+            />
+          )}
         </div>
       )}
 

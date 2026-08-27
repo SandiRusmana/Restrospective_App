@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import AuthHero from './AuthHero';
 
+import { api } from '../../services/api';
+
 export default function RegisterPage({ onRegisterSuccess, onNavigateLogin }) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -11,24 +13,28 @@ export default function RegisterPage({ onRegisterSuccess, onNavigateLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!fullName.trim() || !email.trim() || !password.trim()) return;
 
     if (password !== confirmPassword) {
-      alert("Password dan konfirmasi password tidak cocok!");
+      setErrorMessage("Password dan konfirmasi password tidak cocok!");
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
+    setErrorMessage('');
+
+    try {
+      const res = await api.register(email.trim(), password.trim(), fullName.trim());
+      onRegisterSuccess(res.user);
+    } catch (err) {
+      setErrorMessage(err.message || 'Registrasi gagal. Silakan coba lagi.');
+    } finally {
       setIsLoading(false);
-      onRegisterSuccess({
-        name: fullName.trim(),
-        email: email.trim()
-      });
-    }, 800);
+    }
   };
 
   return (
@@ -41,9 +47,11 @@ export default function RegisterPage({ onRegisterSuccess, onNavigateLogin }) {
         <div className="auth-form-panel">
           <div className="auth-form-badge">Workspace</div>
           <h1 className="auth-form-title">Buat akun baru</h1>
-          <p className="auth-form-subtitle">
-            Mulai mengelola retrospective dan workspace tim kamu.
-          </p>
+          {errorMessage && (
+            <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
+              {errorMessage}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="auth-form">
             {/* Field: Nama Lengkap */}

@@ -1,5 +1,5 @@
-import React from 'react';
-import { MoreVertical, User, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { MoreVertical, User, Calendar, Trash2 } from 'lucide-react';
 import Badge from '../common/Badge';
 import Avatar from '../common/Avatar';
 
@@ -7,14 +7,27 @@ export default function WorkspaceCard({
   workspace, 
   isSelected, 
   onSelect, 
+  onDeleteWorkspace,
   viewMode = 'grid' 
 }) {
+  const [showDropdown, setShowDropdown] = useState(false);
   const isListView = viewMode === 'list';
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    setShowDropdown(false);
+    if (window.confirm(`Apakah Anda yakin ingin menghapus workspace "${workspace.name}"?`)) {
+      if (onDeleteWorkspace) {
+        onDeleteWorkspace(workspace.id, workspace.name);
+      }
+    }
+  };
 
   return (
     <div 
       className={`workspace-card ${isSelected ? 'selected' : ''} ${isListView ? 'list-view' : ''}`}
       onClick={() => onSelect(workspace.id)}
+      style={{ position: 'relative' }}
     >
       <div className="card-header-top">
         <div className="card-identity">
@@ -35,16 +48,61 @@ export default function WorkspaceCard({
             )}
           </div>
         </div>
-        <button 
-          className="btn-ghost-icon"
-          onClick={(e) => {
-            e.stopPropagation();
-            alert(`Menu opsi untuk workspace ${workspace.name}`);
-          }}
-          title="Opsi lainnya"
-        >
-          <MoreVertical size={18} />
-        </button>
+
+        {workspace.role === 'Owner' && onDeleteWorkspace && (
+          <div style={{ position: 'relative' }}>
+            <button 
+              className="btn-ghost-icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDropdown(!showDropdown);
+              }}
+              title="Opsi workspace"
+            >
+              <MoreVertical size={18} />
+            </button>
+
+            {showDropdown && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '28px',
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  borderRadius: '8px',
+                  padding: '4px',
+                  zIndex: 20,
+                  minWidth: '140px',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: 'none',
+                    background: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    fontSize: '13px',
+                    borderRadius: '6px',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#fee2e2'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <Trash2 size={15} />
+                  <span>Hapus Workspace</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {!isListView && (

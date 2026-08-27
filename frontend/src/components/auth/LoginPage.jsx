@@ -2,22 +2,30 @@ import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import AuthHero from './AuthHero';
 
+import { api } from '../../services/api';
+
 export default function LoginPage({ onLoginSuccess, onNavigateRegister }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) return;
 
     setIsLoading(true);
-    // Simulate verification
-    setTimeout(() => {
+    setErrorMessage('');
+
+    try {
+      const res = await api.login(email.trim(), password.trim());
+      onLoginSuccess(res.user);
+    } catch (err) {
+      setErrorMessage(err.message || 'Login gagal. Periksa kembali email dan password Anda.');
+    } finally {
       setIsLoading(false);
-      onLoginSuccess({ email });
-    }, 800);
+    }
   };
 
   return (
@@ -30,9 +38,11 @@ export default function LoginPage({ onLoginSuccess, onNavigateRegister }) {
         <div className="auth-form-panel">
           <div className="auth-form-badge">Workspace</div>
           <h1 className="auth-form-title">Masuk ke akun Anda</h1>
-          <p className="auth-form-subtitle">
-            Silakan masuk untuk melanjutkan retrospective tim kamu.
-          </p>
+          {errorMessage && (
+            <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
+              {errorMessage}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="auth-form">
             {/* Field: Email */}

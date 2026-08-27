@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Copy, Check, Settings } from 'lucide-react';
+import { Copy, Check, Trash2 } from 'lucide-react';
 import Avatar from '../common/Avatar';
 import Badge from '../common/Badge';
 
-export default function ActiveWorkspaceCard({ workspace, onShowToast }) {
+export default function ActiveWorkspaceCard({ workspace, onShowToast, onDeleteWorkspace }) {
   const [copied, setCopied] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleCopyId = () => {
     if (navigator?.clipboard) {
@@ -17,6 +18,17 @@ export default function ActiveWorkspaceCard({ workspace, onShowToast }) {
     setTimeout(() => {
       setCopied(false);
     }, 2000);
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus workspace "${workspace.name}"? Tindakan ini tidak dapat dibatalkan.`)) {
+      setIsDeleting(true);
+      try {
+        await onDeleteWorkspace(workspace.id, workspace.name);
+      } finally {
+        setIsDeleting(false);
+      }
+    }
   };
 
   return (
@@ -63,14 +75,26 @@ export default function ActiveWorkspaceCard({ workspace, onShowToast }) {
         </p>
       </div>
 
-      <button 
-        type="button"
-        className="btn btn-outline-primary btn-full-width"
-        onClick={() => alert(`Buka Pengaturan Workspace untuk ${workspace.name}`)}
-      >
-        <Settings size={16} />
-        <span>Pengaturan Workspace</span>
-      </button>
+      {workspace.role === 'Owner' && onDeleteWorkspace && (
+        <button 
+          type="button"
+          className="btn btn-outline btn-full-width"
+          onClick={handleDelete}
+          disabled={isDeleting}
+          style={{
+            borderColor: '#fca5a5',
+            color: '#ef4444',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            marginTop: '8px',
+          }}
+        >
+          <Trash2 size={16} />
+          <span>{isDeleting ? 'Menghapus...' : 'Hapus Workspace'}</span>
+        </button>
+      )}
     </div>
   );
 }
