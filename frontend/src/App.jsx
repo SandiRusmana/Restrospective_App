@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Search } from 'lucide-react';
 import { api } from './services/api';
 
 // Data
@@ -15,6 +15,7 @@ import RegisterPage from './components/auth/RegisterPage';
 // Layout & Workspace Components
 import Sidebar from './components/layout/Sidebar';
 import WorkspaceHeader from './components/workspace/WorkspaceHeader';
+import WorkspaceList from './components/workspace/WorkspaceList';
 import WorkspaceCard from './components/workspace/WorkspaceCard';
 import CreateWorkspaceCard from './components/workspace/CreateWorkspaceCard';
 import WorkspaceSwitcher from './components/workspace/WorkspaceSwitcher';
@@ -300,57 +301,52 @@ export default function App() {
 
             {/* Section: Semua Workspace */}
             <section className="workspaces-section">
-              <div className="section-header-row">
-                <h2 className="section-title">Semua Workspace</h2>
-                <div className="view-mode-toggle">
-                  <button
-                    className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                    onClick={() => setViewMode('grid')}
-                    title="Tampilan Grid"
-                  >
-                    <LayoutGrid size={16} />
-                  </button>
-                  <button
-                    className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
-                    onClick={() => setViewMode('list')}
-                    title="Tampilan Daftar"
-                  >
-                    <List size={16} />
-                  </button>
+              <div className="section-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                <h2 className="section-title" style={{ margin: 0 }}>Semua Workspace</h2>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'flex-end', maxWidth: '450px' }}>
+                  {/* Search Bar */}
+                  <div className="switcher-search-container" style={{ flex: 1, margin: 0 }}>
+                    <Search size={16} className="switcher-search-icon" />
+                    <input 
+                      type="text"
+                      className="switcher-search-input"
+                      placeholder="Cari workspace..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+
+                  {/* View Mode Toggle */}
+                  <div className="view-mode-toggle">
+                    <button
+                      className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                      onClick={() => setViewMode('grid')}
+                      title="Tampilan Grid"
+                    >
+                      <LayoutGrid size={16} />
+                    </button>
+                    <button
+                      className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
+                      onClick={() => setViewMode('list')}
+                      title="Tampilan Daftar"
+                    >
+                      <List size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Cards Grid / List */}
-              <div className={viewMode === 'grid' ? 'workspaces-grid' : 'workspace-list-container'}>
-                {filteredWorkspaces.map((workspace) => (
-                  <WorkspaceCard 
-                    key={workspace.id}
-                    workspace={workspace}
-                    isSelected={workspace.id === activeWorkspaceId}
-                    onSelect={setActiveWorkspaceId}
-                    onDeleteWorkspace={handleDeleteWorkspace}
-                    viewMode={viewMode}
-                  />
-                ))}
-
-                {/* Buat Workspace Baru Card (Dashed) */}
-                <CreateWorkspaceCard 
-                  onClick={() => setIsCreateModalOpen(true)} 
-                />
-              </div>
-            </section>
-
-            {/* Section: Berpindah Workspace / Switcher & Search */}
-            {activeWorkspace && (
-              <WorkspaceSwitcher 
-                workspaces={workspaces}
-                activeWorkspace={activeWorkspace}
+              <WorkspaceList 
+                workspaces={filteredWorkspaces}
+                activeWorkspaceId={activeWorkspaceId}
                 onSelectWorkspace={setActiveWorkspaceId}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
+                onDeleteWorkspace={handleDeleteWorkspace}
                 onCreateWorkspace={() => setIsCreateModalOpen(true)}
+                viewMode={viewMode}
               />
-            )}
+            </section>
           </main>
 
           {/* 3. Right Sidebar Detail Panels */}
