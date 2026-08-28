@@ -1,16 +1,18 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { getAllTemplates, getTemplateColumns } from './constants/retro-templates';
 import { CreateBoardDto } from './dto/create-board.dto';
-
-const DEFAULT_COLUMNS = [
-  { name: 'What Went Well', order: 1 },
-  { name: 'What Could Be Improved', order: 2 },
-  { name: 'Action Items', order: 3 },
-];
 
 @Injectable()
 export class BoardService {
   constructor(private prisma: PrismaService) {}
+
+  /**
+   * Mengambil Semua Template Retrospective yang Tersedia
+   */
+  getTemplates() {
+    return getAllTemplates();
+  }
 
   /**
    * Pengecekan Keanggotaan User di Workspace
@@ -33,15 +35,30 @@ export class BoardService {
   }
 
   /**
-   * Membuat Board Baru dalam Workspace
+   * Membuat Board Baru dalam Workspace Berdasarkan Template
    */
   async createBoard(userId: string, workspaceId: string, createBoardDto: CreateBoardDto) {
     // 1. Pastikan user adalah anggota workspace
     await this.checkWorkspaceMembership(userId, workspaceId);
 
-    const { name, template = 'start-stop-continue', isAnonymous = false, voteLimit } = createBoardDto;
+    const { name, template = 'start-stop-continue', customColumns, isAnonymous = false, voteLimit } = createBoardDto;
 
-    // 2. Buat Board dan Kolom-Kolom Default
+    // 2. Tentukan struktur kolom (Kustom dari user ATAU dari Template)
+    let columnsToCreate: { name: string; order: number }[] = [];
+
+    if (customColumns && Array.isArray(customColumns) && customColumns.length > 0) {
+      columnsToCreate = customColumns.map((colName, idx) => ({
+        name: colName.trim(),
+        order: idx + 1,
+      }));
+    } else {
+      columnsToCreate = getTemplateColumns(template).map((col) => ({
+        name: col.name,
+        order: col.order,
+      }));
+    }
+
+    // 3. Buat Board dan Kolom-Kolom
     const board = await this.prisma.board.create({
       data: {
         name,
@@ -50,7 +67,7 @@ export class BoardService {
         isAnonymous,
         voteLimit,
         columns: {
-          create: DEFAULT_COLUMNS,
+          create: columnsToCreate,
         },
       },
       include: {

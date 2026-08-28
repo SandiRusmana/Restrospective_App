@@ -26,6 +26,11 @@ export class BoardController {
     return this.boardService.getWorkspaceBoards(userId, workspaceId);
   }
 
+  @Get('boards/templates')
+  async getTemplates() {
+    return this.boardService.getTemplates();
+  }
+
   @Get('boards/:id')
   async getBoardById(
     @GetUser('id') userId: string,
