@@ -62,21 +62,27 @@ export default function Sidebar({
 
       {/* Recent Workspaces List */}
       <div className="sidebar-recent-list">
-        {recentWorkspaces.map((ws) => (
-          <button
-            key={ws.id}
-            className={`recent-item ${activeWorkspaceId === ws.id ? 'active' : ''}`}
-            onClick={() => onSelectWorkspace(ws.id)}
-          >
-            <div 
-              className="recent-badge"
-              style={{ backgroundColor: ws.color }}
+        {recentWorkspaces.map((ws) => {
+          const isLight = !ws.color || ws.color.toLowerCase() === '#ffffff' || ws.color.toLowerCase() === '#fff';
+          return (
+            <button
+              key={ws.id}
+              className={`recent-item ${activeWorkspaceId === ws.id ? 'active' : ''}`}
+              onClick={() => onSelectWorkspace(ws.id)}
             >
-              {ws.initial}
-            </div>
-            <span className="recent-name">{ws.name}</span>
-          </button>
-        ))}
+              <div 
+                className="recent-badge"
+                style={{ 
+                  backgroundColor: ws.color || '#5b52f9',
+                  color: isLight ? '#0f172a' : '#ffffff' 
+                }}
+              >
+                {ws.initial}
+              </div>
+              <span className="recent-name">{ws.name}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Bottom User Profile */}

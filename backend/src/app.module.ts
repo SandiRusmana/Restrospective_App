@@ -4,6 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { BoardModule } from './board/board.module';
 import { InviteModule } from './invite/invite.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PusherModule } from './pusher/pusher.module';
@@ -37,6 +38,8 @@ import { WorkspaceModule } from './workspace/workspace.module';
     WorkspaceModule,
     // Modul Invite Workspace
     InviteModule,
+    // Modul Retrospective Board
+    BoardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
