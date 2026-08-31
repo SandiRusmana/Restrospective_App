@@ -1,9 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-<<<<<<< HEAD
-import { LayoutGrid, List, Search } from 'lucide-react';
-=======
-import { LayoutGrid, List, ArrowLeft, Plus } from 'lucide-react';
->>>>>>> 3e52db1 (fitur template)
+import { LayoutGrid, List, Search, ArrowLeft, Plus } from 'lucide-react';
 import { api } from './services/api';
 
 // Sidebar Navigation Items
@@ -549,44 +545,7 @@ export default function App() {
             />
           )}
 
-<<<<<<< HEAD
-            {/* Section: Semua Workspace */}
-            <section className="workspaces-section">
-              <div className="section-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                <h2 className="section-title" style={{ margin: 0 }}>Semua Workspace</h2>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'flex-end', maxWidth: '450px' }}>
-                  {/* Search Bar */}
-                  <div className="switcher-search-container" style={{ flex: 1, margin: 0 }}>
-                    <Search size={16} className="switcher-search-icon" />
-                    <input 
-                      type="text"
-                      className="switcher-search-input"
-                      placeholder="Cari workspace..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-
-                  {/* View Mode Toggle */}
-                  <div className="view-mode-toggle">
-                    <button
-                      className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                      onClick={() => setViewMode('grid')}
-                      title="Tampilan Grid"
-                    >
-                      <LayoutGrid size={16} />
-                    </button>
-                    <button
-                      className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
-                      onClick={() => setViewMode('list')}
-                      title="Tampilan Daftar"
-                    >
-                      <List size={16} />
-                    </button>
-                  </div>
-=======
-          {/* Workspace Boards View (Pixel-perfect matching user UI screenshot) */}
+          {/* Workspace Boards View */}
           {dashboardView === 'workspace-detail' && activeWorkspace && (
             <WorkspaceBoardsView 
               workspace={activeWorkspace}
@@ -617,47 +576,46 @@ export default function App() {
                     <ArrowLeft size={16} />
                     <span>Kembali ke {activeWorkspace?.name || 'Workspace'}</span>
                   </button>
->>>>>>> 3e52db1 (fitur template)
                 </div>
 
-<<<<<<< HEAD
-              {/* Cards Grid / List */}
-              <WorkspaceList 
-                workspaces={filteredWorkspaces}
-                activeWorkspaceId={activeWorkspaceId}
-                onSelectWorkspace={setActiveWorkspaceId}
-                onDeleteWorkspace={handleDeleteWorkspace}
-                onCreateWorkspace={() => setIsCreateModalOpen(true)}
-                viewMode={viewMode}
-              />
-            </section>
-          </main>
-=======
                 <WorkspaceHeader 
                   onCreateWorkspace={() => setIsCreateModalOpen(true)} 
                 />
 
                 <section className="workspaces-section">
-                  <div className="section-header-row">
-                    <h2 className="section-title">Semua Workspace</h2>
-                    <div className="view-mode-toggle">
-                      <button
-                        className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                        onClick={() => setViewMode('grid')}
-                        title="Tampilan Grid"
-                      >
-                        <LayoutGrid size={16} />
-                      </button>
-                      <button
-                        className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
-                        onClick={() => setViewMode('list')}
-                        title="Tampilan Daftar"
-                      >
-                        <List size={16} />
-                      </button>
+                  <div className="section-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                    <h2 className="section-title" style={{ margin: 0 }}>Semua Workspace</h2>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'flex-end', maxWidth: '450px' }}>
+                      <div className="switcher-search-container" style={{ flex: 1, margin: 0 }}>
+                        <Search size={16} className="switcher-search-icon" />
+                        <input 
+                          type="text"
+                          className="switcher-search-input"
+                          placeholder="Cari workspace..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="view-mode-toggle">
+                        <button
+                          className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                          onClick={() => setViewMode('grid')}
+                          title="Tampilan Grid"
+                        >
+                          <LayoutGrid size={16} />
+                        </button>
+                        <button
+                          className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
+                          onClick={() => setViewMode('list')}
+                          title="Tampilan Daftar"
+                        >
+                          <List size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
->>>>>>> 3e52db1 (fitur template)
 
                   <div className={viewMode === 'grid' ? 'workspaces-grid' : 'workspace-list-container'}>
                     {filteredWorkspaces.map((workspace) => (
