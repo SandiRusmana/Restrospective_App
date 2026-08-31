@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { BoardModule } from './board/board.module';
+import { CardModule } from './card/card.module';
 import { InviteModule } from './invite/invite.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PusherModule } from './pusher/pusher.module';
@@ -42,6 +43,8 @@ import { WorkspaceModule } from './workspace/workspace.module';
     InviteModule,
     // Modul Retrospective Board
     BoardModule,
+    // Modul Card / Sticky Notes
+    CardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

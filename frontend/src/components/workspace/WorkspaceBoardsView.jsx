@@ -33,6 +33,7 @@ export default function WorkspaceBoardsView({
   onCreateWorkspaceModalOpen,
   onInviteModalOpen,
   onDeleteWorkspace,
+  onUpdateWorkspace,
   onShowToast,
   currentUser,
   onNavigateAllWorkspaces
@@ -40,6 +41,37 @@ export default function WorkspaceBoardsView({
   const [activeTab, setActiveTab] = useState('board'); // 'overview' | 'anggota' | 'board' | 'pengaturan'
   const [copied, setCopied] = useState(false);
   const [activeDropdownBoardId, setActiveDropdownBoardId] = useState(null);
+
+  // Settings tab form states
+  const [editWsName, setEditWsName] = useState(workspace?.name || '');
+  const [editWsDesc, setEditWsDesc] = useState(workspace?.description || workspace?.longDescription || '');
+  const [isUpdatingWs, setIsUpdatingWs] = useState(false);
+
+  React.useEffect(() => {
+    if (workspace) {
+      setEditWsName(workspace.name || '');
+      setEditWsDesc(workspace.description || workspace.longDescription || '');
+    }
+  }, [workspace]);
+
+  const handleSaveSettings = async (e) => {
+    if (e) e.preventDefault();
+    if (!editWsName.trim()) {
+      if (onShowToast) onShowToast('Nama workspace tidak boleh kosong');
+      return;
+    }
+    setIsUpdatingWs(true);
+    try {
+      if (onUpdateWorkspace) {
+        await onUpdateWorkspace(workspace.id, {
+          name: editWsName.trim(),
+          description: editWsDesc.trim(),
+        });
+      }
+    } finally {
+      setIsUpdatingWs(false);
+    }
+  };
 
   // Copy ID Workspace Handler
   const handleCopyId = () => {
@@ -57,8 +89,20 @@ export default function WorkspaceBoardsView({
   };
 
   const boards = workspace?.boards || workspace?.recentBoards || [];
-  const members = workspace?.members || [];
-  const memberCount = workspace?.memberCount || members.length || 8;
+  
+  // Real members from workspace data or logged in user (no fake fallback users)
+  const realMembers = (workspace?.members && workspace.members.length > 0)
+    ? workspace.members
+    : (currentUser ? [{
+        id: currentUser.id || 'current-user',
+        name: currentUser.fullName || currentUser.name || 'User',
+        role: workspace?.role || 'Owner',
+        avatar: currentUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.email || 'user'}`,
+        isOnline: true,
+      }] : []);
+
+  const memberCount = realMembers.length;
+  const totalCardsCount = boards.reduce((sum, b) => sum + (b.cardsCount || (b.cards ? b.cards.length : 0)), 0);
 
   return (
     <div className="workspace-boards-layout">
@@ -275,11 +319,15 @@ export default function WorkspaceBoardsView({
                     <div className="retro-card-meta">
                       <div className="meta-item">
                         <User size={14} />
-                        <span>{board.membersCount || 8} anggota</span>
+                        <span>{memberCount} anggota</span>
                       </div>
                       <div className="meta-item">
                         <Calendar size={14} />
-                        <span>{board.dateText || 'Dibuat 20 Jun 2026'}</span>
+                        <span>
+                          {board.createdAt 
+                            ? `Dibuat ${new Date(board.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` 
+                            : 'Baru saja'}
+                        </span>
                       </div>
                     </div>
 
@@ -344,8 +392,8 @@ export default function WorkspaceBoardsView({
                   <CheckCircle2 size={20} />
                 </div>
                 <div>
-                  <div className="stat-value">18</div>
-                  <div className="stat-label">Action Items Selesai</div>
+                  <div className="stat-value">{totalCardsCount}</div>
+                  <div className="stat-label">Total Catatan / Cards</div>
                 </div>
               </div>
 
@@ -354,8 +402,8 @@ export default function WorkspaceBoardsView({
                   <Activity size={20} />
                 </div>
                 <div>
-                  <div className="stat-value">94%</div>
-                  <div className="stat-label">Tingkat Partisipasi</div>
+                  <div className="stat-value">Aktif</div>
+                  <div className="stat-label">Status Workspace</div>
                 </div>
               </div>
             </div>
@@ -363,27 +411,21 @@ export default function WorkspaceBoardsView({
             <div className="overview-activity-box">
               <h3 className="overview-subhead">Aktivitas Terakhir di {workspace?.name}</h3>
               <div className="activity-timeline">
-                <div className="activity-item">
-                  <div className="activity-bullet"></div>
-                  <div className="activity-text">
-                    <strong>Afrizal</strong> membuat board <em>Sprint 15 Retrospective</em>
-                    <span className="activity-time">2 jam lalu</span>
-                  </div>
-                </div>
-                <div className="activity-item">
-                  <div className="activity-bullet"></div>
-                  <div className="activity-text">
-                    <strong>Sarah Wijaya</strong> menambahkan 4 catatan pada <em>Quarter 2 Review</em>
-                    <span className="activity-time">1 hari lalu</span>
-                  </div>
-                </div>
-                <div className="activity-item">
-                  <div className="activity-bullet"></div>
-                  <div className="activity-text">
-                    <strong>Budi Santoso</strong> menyelesaikan action item <em>Setup Cypress/Playwright</em>
-                    <span className="activity-time">3 hari lalu</span>
-                  </div>
-                </div>
+                {boards.length > 0 ? (
+                  boards.map((b, idx) => (
+                    <div key={b.id || idx} className="activity-item">
+                      <div className="activity-bullet"></div>
+                      <div className="activity-text">
+                        <strong>{currentUser?.name || 'Anggota'}</strong> membuat board <em>{b.name || b.title}</em>
+                        <span className="activity-time">{b.timeText || b.dateText || 'Baru saja'}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p style={{ color: '#64748b', fontSize: '14px', margin: 0 }}>
+                    Belum ada aktivitas board di workspace ini. Klik 'Buat Workspace' atau 'Buat Board' untuk memulainya.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -394,7 +436,7 @@ export default function WorkspaceBoardsView({
           <div className="ws-members-tab-content">
             <div className="members-tab-header">
               <div>
-                <h2 className="board-section-title">Daftar Anggota Tim ({members.length || 8})</h2>
+                <h2 className="board-section-title">Daftar Anggota Tim ({memberCount})</h2>
                 <p className="board-section-subtitle">Kelola anggota yang memiliki akses ke workspace ini</p>
               </div>
               <button 
@@ -418,14 +460,14 @@ export default function WorkspaceBoardsView({
                   </tr>
                 </thead>
                 <tbody>
-                  {members.map((member) => (
+                  {realMembers.map((member) => (
                     <tr key={member.id}>
                       <td>
                         <div className="member-table-user">
                           <img src={member.avatar} alt={member.name} className="member-avatar-img" />
                           <div>
                             <div className="member-name">{member.name}</div>
-                            <div className="member-email-small">{member.name.toLowerCase().replace(/\s+/g, '')}@gmail.com</div>
+                            <div className="member-email-small">{member.email || `${member.name.toLowerCase().replace(/\s+/g, '')}@gmail.com`}</div>
                           </div>
                         </div>
                       </td>
@@ -460,13 +502,16 @@ export default function WorkspaceBoardsView({
             <h2 className="board-section-title">Pengaturan Workspace</h2>
             <p className="board-section-subtitle">Perbarui informasi dan konfigurasi umum workspace</p>
 
-            <div className="settings-form-card">
+            <form className="settings-form-card" onSubmit={handleSaveSettings}>
               <div className="form-group">
                 <label className="form-label">Nama Workspace</label>
                 <input 
                   type="text" 
                   className="form-input" 
-                  defaultValue={workspace?.name} 
+                  value={editWsName}
+                  onChange={(e) => setEditWsName(e.target.value)}
+                  placeholder="Masukkan nama workspace..."
+                  required
                 />
               </div>
 
@@ -475,8 +520,25 @@ export default function WorkspaceBoardsView({
                 <textarea 
                   className="form-textarea" 
                   rows={3} 
-                  defaultValue={workspace?.longDescription || workspace?.description} 
+                  value={editWsDesc}
+                  onChange={(e) => setEditWsDesc(e.target.value)}
+                  placeholder="Masukkan deskripsi workspace..."
                 />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '24px' }}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isUpdatingWs || !editWsName.trim()}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontWeight: 600 }}
+                >
+                  {isUpdatingWs ? (
+                    <span>Menyimpan...</span>
+                  ) : (
+                    <span>Simpan Perubahan</span>
+                  )}
+                </button>
               </div>
 
               <div className="settings-danger-zone">
@@ -498,7 +560,7 @@ export default function WorkspaceBoardsView({
                   <span>Hapus Workspace Ini</span>
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         )}
       </div>
@@ -574,7 +636,7 @@ export default function WorkspaceBoardsView({
           </div>
 
           <div className="members-list">
-            {members.slice(0, 4).map((member) => (
+            {realMembers.slice(0, 4).map((member) => (
               <div key={member.id} className="member-item">
                 <div className="member-info">
                   <div className="member-avatar-wrapper">
@@ -633,7 +695,11 @@ export default function WorkspaceBoardsView({
                     <div className="board-title" title={board.title}>
                       {board.title}
                     </div>
-                    <div className="board-updated">{board.updatedText || `Diperbarui ${board.dateText || '20 Jun 2024'}`}</div>
+                    <div className="board-updated">
+                      {board.createdAt 
+                        ? `Diperbarui ${new Date(board.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` 
+                        : 'Baru saja'}
+                    </div>
                   </div>
                 </div>
                 <button 

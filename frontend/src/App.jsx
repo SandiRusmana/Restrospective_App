@@ -1,9 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-<<<<<<< HEAD
-import { LayoutGrid, List, Search } from 'lucide-react';
-=======
-import { LayoutGrid, List, ArrowLeft, Plus } from 'lucide-react';
->>>>>>> 3e52db1 (fitur template)
+import { LayoutGrid, List, Search, ArrowLeft, Plus } from 'lucide-react';
 import { api } from './services/api';
 
 // Sidebar Navigation Items
@@ -199,21 +195,21 @@ export default function App() {
   // Page Routing State: 'login' | 'register' | 'dashboard'
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [user, setUser] = useState({
-    id: 'user_afrizal',
-    name: 'Afrizal',
-    fullName: 'Afrizal (Anda)',
-    email: 'afrizal@gmail.com',
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=afrizal@gmail.com',
+    id: 'user_test',
+    name: 'test',
+    fullName: 'test (Anda)',
+    email: 'test@example.com',
+    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=test@example.com',
     isOnline: true
   });
 
-  // Main Dashboard View State: 'workspace-detail' (matching screenshot) | 'all-workspaces' | 'board-detail'
+  // Main Dashboard View State: 'workspace-detail' | 'all-workspaces' | 'board-detail'
   const [dashboardView, setDashboardView] = useState('workspace-detail');
   const [activeBoard, setActiveBoard] = useState(null);
 
   // Dashboard States
-  const [workspaces, setWorkspaces] = useState(INITIAL_WORKSPACES);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState('ws_01H8J2KX6PYZQ4M5N2R7D3E1F');
+  const [workspaces, setWorkspaces] = useState([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState('');
   const [activeNav, setActiveNav] = useState('workspace');
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -234,47 +230,93 @@ export default function App() {
     }, 3000);
   }, []);
 
-  // Fetch Workspaces from Backend API (if available) with fallback to initial data
-  const fetchWorkspaces = useCallback(async (currentUserId) => {
+  // Fetch Workspaces from Backend API with real members and real boards
+  const fetchWorkspaces = useCallback(async (currentUserObj) => {
     try {
       const data = await api.getWorkspaces();
       if (data && Array.isArray(data) && data.length > 0) {
-        setWorkspaces((prev) => {
-          // Merge backend workspaces with local boards structure
-          return data.map((ws, idx) => {
-            const existing = prev.find((p) => p.id === ws.id);
-            if (existing) return existing;
+        const fullWorkspaces = await Promise.all(
+          data.map(async (ws, idx) => {
+            let boards = [];
+            try {
+              const res = await api.getBoards(ws.id);
+              if (Array.isArray(res)) {
+                boards = res.map((b) => ({
+                  id: b.id,
+                  title: b.name || b.title,
+                  name: b.name || b.title,
+                  template: b.template,
+                  isAnonymous: b.isAnonymous,
+                  voteLimit: b.voteLimit,
+                  cardsCount: b.cardsCount || (b._count ? b._count.cards : 0) || 0,
+                  createdAt: b.createdAt,
+                  theme: { bg: '#f3f0ff', color: '#7c3aed' },
+                }));
+              }
+            } catch {
+              boards = [];
+            }
+
             const initial = (ws.name || 'W').substring(0, 1).toUpperCase();
+            
+            // Real members formatting from backend
+            let members = [];
+            if (ws.members && Array.isArray(ws.members) && ws.members.length > 0) {
+              members = ws.members.map((m) => {
+                const u = m.user || m;
+                const uEmail = u.email || '';
+                const uName = u.name || (uEmail ? uEmail.split('@')[0] : 'Anggota');
+                const isMe = currentUserObj && (u.id === currentUserObj.id || m.userId === currentUserObj.id);
+                return {
+                  id: m.userId || m.id || u.id,
+                  name: isMe ? `${uName} (Anda)` : uName,
+                  role: m.role || (m.userId === ws.ownerId || u.id === ws.ownerId ? 'Owner' : 'Member'),
+                  email: uEmail,
+                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${uEmail || uName}`,
+                  isOnline: true,
+                };
+              });
+            }
+
+            // If members array empty from API, default to current user as Owner
+            if (members.length === 0 && currentUserObj) {
+              members = [{
+                id: currentUserObj.id || 'owner',
+                name: currentUserObj.fullName || `${currentUserObj.name} (Anda)`,
+                role: 'Owner',
+                email: currentUserObj.email,
+                avatar: currentUserObj.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUserObj.email}`,
+                isOnline: true,
+              }];
+            }
+
             return {
               id: ws.id,
               name: ws.name,
               initial,
               color: idx === 0 ? '#5956e9' : idx === 1 ? '#2563eb' : '#10b981',
-              role: 'Owner',
+              role: ws.ownerId === currentUserObj?.id ? 'Owner' : 'Owner',
               description: `Workspace untuk ${ws.name}`,
               longDescription: `Workspace untuk tim ${ws.name}. Semua retrospective dan diskusi tim dilakukan di sini`,
-              memberCount: ws.members?.length || 1,
+              memberCount: members.length,
               dateText: 'Dibuat baru saja',
               isRecent: true,
-              members: DEFAULT_MEMBERS,
-              boards: [
-                {
-                  id: `board_${ws.id}_1`,
-                  title: `Sprint 1 Retrospective`,
-                  description: `Evaluasi awal sprint tim ${ws.name}.`,
-                  membersCount: 1,
-                  dateText: 'Dibuat baru saja',
-                  updatedText: 'Baru saja',
-                  theme: { bg: '#f3f0ff', color: '#7c3aed' },
-                  color: '#7c3aed',
-                }
-              ]
+              members,
+              boards,
             };
+          })
+        );
+        
+        setWorkspaces(fullWorkspaces);
+        if (fullWorkspaces.length > 0) {
+          setActiveWorkspaceId((prev) => {
+            const exists = fullWorkspaces.some((w) => w.id === prev);
+            return exists ? prev : fullWorkspaces[0].id;
           });
-        });
+        }
       }
-    } catch {
-      // Backend not running, use local state
+    } catch (err) {
+      console.warn('Gagal fetch workspaces:', err);
     }
   }, []);
 
@@ -295,9 +337,9 @@ export default function App() {
           };
           setUser(formattedUser);
           setCurrentPage('dashboard');
-          await fetchWorkspaces(userData.id);
+          await fetchWorkspaces(formattedUser);
         } catch {
-          // Keep local user session
+          // Token invalid
         }
       }
     }
@@ -338,7 +380,7 @@ export default function App() {
     showToast("Berhasil masuk! Mengarahkan ke Dashboard...");
     setCurrentPage('dashboard');
     setDashboardView('workspace-detail');
-    await fetchWorkspaces(userData.id);
+    await fetchWorkspaces(formattedUser);
   };
 
   const handleRegisterSuccess = async (userData) => {
@@ -354,7 +396,7 @@ export default function App() {
     showToast(`Akun "${formattedUser.name}" berhasil dibuat!`);
     setCurrentPage('dashboard');
     setDashboardView('workspace-detail');
-    await fetchWorkspaces(userData.id);
+    await fetchWorkspaces(formattedUser);
   };
 
   const handleLogout = () => {
@@ -363,58 +405,45 @@ export default function App() {
     showToast('Berhasil keluar dari akun');
   };
 
-  // Handler: Create Workspace (e.g. "menypage")
+  // Handler: Create Workspace
   const handleCreateWorkspace = async (newWsData) => {
     const wsName = newWsData.name.trim();
-    const wsId = `ws_${Date.now()}`;
     const initial = wsName.charAt(0).toUpperCase();
 
-    // Default boards for the newly created workspace
-    const defaultNewBoards = [
-      {
-        id: `board_${Date.now()}_1`,
-        title: `Sprint 1 Retrospective`,
-        description: `Evaluasi dan refleksi sprint perdana tim ${wsName}.`,
-        membersCount: 1,
-        dateText: `Dibuat ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`,
-        updatedText: `Baru saja`,
-        theme: { bg: '#f3f0ff', color: '#7c3aed' },
-        color: newWsData.color || '#5956e9',
-      }
-    ];
-
-    const newWorkspaceObj = {
-      id: wsId,
-      name: wsName,
-      initial,
-      color: newWsData.color || '#5956e9',
+    const currentOwner = {
+      id: user.id || 'user_owner',
+      name: user.fullName || `${user.name} (Anda)`,
       role: 'Owner',
-      description: newWsData.description || `Workspace untuk tim ${wsName}`,
-      longDescription: `Workspace untuk tim ${wsName}. Semua retrospective dan diskusi tim dilakukan di sini`,
-      memberCount: 1,
-      dateText: `Dibuat ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`,
-      isRecent: true,
-      members: [
-        {
-          id: user.id || 'user_owner',
-          name: `${user.name} (Anda)`,
-          role: 'Owner',
-          avatar: user.avatarUrl,
-          isOnline: true
-        }
-      ],
-      boards: defaultNewBoards
+      email: user.email,
+      avatar: user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
+      isOnline: true,
     };
 
-    setWorkspaces((prev) => [newWorkspaceObj, ...prev]);
-    setActiveWorkspaceId(wsId);
-    setDashboardView('workspace-detail');
-    showToast(`Workspace "${wsName}" berhasil dibuat! Membuka boards...`);
-
     try {
-      await api.createWorkspace(wsName);
-    } catch {
-      // Local state is already updated
+      const res = await api.createWorkspace(wsName);
+      const wsId = res.workspace?.id || res.id || `ws_${Date.now()}`;
+
+      const newWorkspaceObj = {
+        id: wsId,
+        name: wsName,
+        initial,
+        color: newWsData.color || '#5956e9',
+        role: 'Owner',
+        description: newWsData.description || `Workspace untuk tim ${wsName}`,
+        longDescription: `Workspace untuk tim ${wsName}. Semua retrospective dan diskusi tim dilakukan di sini`,
+        memberCount: 1,
+        dateText: `Dibuat baru saja`,
+        isRecent: true,
+        members: [currentOwner],
+        boards: [], // Clean empty boards for newly created workspace
+      };
+
+      setWorkspaces((prev) => [newWorkspaceObj, ...prev]);
+      setActiveWorkspaceId(wsId);
+      setDashboardView('workspace-detail');
+      showToast(`Workspace "${wsName}" berhasil dibuat!`);
+    } catch (err) {
+      showToast(err.message || 'Gagal membuat workspace');
     }
   };
 
@@ -466,7 +495,31 @@ export default function App() {
   const handleOpenBoard = (board) => {
     setActiveBoard(board);
     setDashboardView('board-detail');
-    showToast(`Membuka sesi: ${board.title}`);
+    setActiveNav('my-boards');
+    showToast(`Membuka sesi: ${board.title || board.name}`);
+  };
+
+  // Handler: Update Workspace Info
+  const handleUpdateWorkspace = async (workspaceId, updateData) => {
+    try {
+      await api.updateWorkspace(workspaceId, updateData);
+      setWorkspaces((prev) =>
+        prev.map((w) =>
+          w.id === workspaceId
+            ? {
+                ...w,
+                name: updateData.name || w.name,
+                initial: (updateData.name || w.name).substring(0, 1).toUpperCase(),
+                description: updateData.description || w.description,
+                longDescription: updateData.description || w.longDescription,
+              }
+            : w
+        )
+      );
+      showToast(`Workspace "${updateData.name}" berhasil diperbarui!`);
+    } catch (err) {
+      showToast(err.message || 'Gagal memperbarui workspace');
+    }
   };
 
   // Handler: Delete Workspace
@@ -490,6 +543,7 @@ export default function App() {
   const handleSelectWorkspace = (wsId) => {
     setActiveWorkspaceId(wsId);
     setDashboardView('workspace-detail');
+    setActiveNav('workspace');
   };
 
   return (
@@ -518,17 +572,20 @@ export default function App() {
             navItems={sidebarNavItems}
             activeNav={activeNav}
             onSelectNav={(navId) => {
-              setActiveNav(navId);
               if (navId === 'workspace') {
+                setActiveNav('workspace');
                 setDashboardView('workspace-detail');
               } else if (navId === 'my-boards') {
-                if (activeWorkspace?.boards?.[0]) {
+                if (activeWorkspace?.boards && activeWorkspace.boards.length > 0) {
+                  setActiveNav('my-boards');
                   handleOpenBoard(activeWorkspace.boards[0]);
                 } else {
-                  showToast('Belum ada board aktif.');
+                  showToast('Belum ada board aktif di workspace ini. Silakan buat board terlebih dahulu.');
+                  setActiveNav('workspace');
+                  setDashboardView('workspace-detail');
                 }
               } else {
-                showToast(`Menu ${navId} aktif`);
+                showToast(`Menu ${navId} akan hadir pada update berikutnya`);
               }
             }}
             recentWorkspaces={recentWorkspaces}
@@ -544,49 +601,16 @@ export default function App() {
               workspace={activeWorkspace}
               board={activeBoard}
               currentUser={user}
-              onBack={() => setDashboardView('workspace-detail')}
+              onBack={() => {
+                setDashboardView('workspace-detail');
+                setActiveNav('workspace');
+              }}
+              onSwitchBoard={handleOpenBoard}
               onShowToast={showToast}
             />
           )}
 
-<<<<<<< HEAD
-            {/* Section: Semua Workspace */}
-            <section className="workspaces-section">
-              <div className="section-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-                <h2 className="section-title" style={{ margin: 0 }}>Semua Workspace</h2>
-                
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'flex-end', maxWidth: '450px' }}>
-                  {/* Search Bar */}
-                  <div className="switcher-search-container" style={{ flex: 1, margin: 0 }}>
-                    <Search size={16} className="switcher-search-icon" />
-                    <input 
-                      type="text"
-                      className="switcher-search-input"
-                      placeholder="Cari workspace..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-
-                  {/* View Mode Toggle */}
-                  <div className="view-mode-toggle">
-                    <button
-                      className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                      onClick={() => setViewMode('grid')}
-                      title="Tampilan Grid"
-                    >
-                      <LayoutGrid size={16} />
-                    </button>
-                    <button
-                      className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
-                      onClick={() => setViewMode('list')}
-                      title="Tampilan Daftar"
-                    >
-                      <List size={16} />
-                    </button>
-                  </div>
-=======
-          {/* Workspace Boards View (Pixel-perfect matching user UI screenshot) */}
+          {/* Workspace Boards View */}
           {dashboardView === 'workspace-detail' && activeWorkspace && (
             <WorkspaceBoardsView 
               workspace={activeWorkspace}
@@ -598,6 +622,7 @@ export default function App() {
               onCreateWorkspaceModalOpen={() => setIsCreateModalOpen(true)}
               onInviteModalOpen={() => setIsInviteModalOpen(true)}
               onDeleteWorkspace={handleDeleteWorkspace}
+              onUpdateWorkspace={handleUpdateWorkspace}
               onShowToast={showToast}
               onNavigateAllWorkspaces={() => setDashboardView('all-workspaces')}
             />
@@ -607,57 +632,56 @@ export default function App() {
           {dashboardView === 'all-workspaces' && (
             <div style={{ display: 'flex', width: '100%' }}>
               <main className="dashboard-main-content">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                  <button 
-                    type="button" 
-                    className="btn btn-outline" 
-                    onClick={() => setDashboardView('workspace-detail')}
-                    style={{ padding: '6px 12px', fontSize: '13px' }}
-                  >
-                    <ArrowLeft size={16} />
-                    <span>Kembali ke {activeWorkspace?.name || 'Workspace'}</span>
-                  </button>
->>>>>>> 3e52db1 (fitur template)
-                </div>
-
-<<<<<<< HEAD
-              {/* Cards Grid / List */}
-              <WorkspaceList 
-                workspaces={filteredWorkspaces}
-                activeWorkspaceId={activeWorkspaceId}
-                onSelectWorkspace={setActiveWorkspaceId}
-                onDeleteWorkspace={handleDeleteWorkspace}
-                onCreateWorkspace={() => setIsCreateModalOpen(true)}
-                viewMode={viewMode}
-              />
-            </section>
-          </main>
-=======
                 <WorkspaceHeader 
                   onCreateWorkspace={() => setIsCreateModalOpen(true)} 
                 />
 
                 <section className="workspaces-section">
-                  <div className="section-header-row">
-                    <h2 className="section-title">Semua Workspace</h2>
-                    <div className="view-mode-toggle">
-                      <button
-                        className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                        onClick={() => setViewMode('grid')}
-                        title="Tampilan Grid"
+                  <div className="section-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <button 
+                        type="button" 
+                        className="btn btn-outline" 
+                        onClick={() => setDashboardView('workspace-detail')}
+                        style={{ padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        title={`Kembali ke ${activeWorkspace?.name || 'Workspace'}`}
                       >
-                        <LayoutGrid size={16} />
+                        <ArrowLeft size={16} />
+                        <span>Kembali ke {activeWorkspace?.name || 'Workspace'}</span>
                       </button>
-                      <button
-                        className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
-                        onClick={() => setViewMode('list')}
-                        title="Tampilan Daftar"
-                      >
-                        <List size={16} />
-                      </button>
+                      <h2 className="section-title" style={{ margin: 0 }}>Semua Workspace</h2>
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'flex-end', maxWidth: '450px' }}>
+                      <div className="switcher-search-container" style={{ flex: 1, margin: 0 }}>
+                        <Search size={16} className="switcher-search-icon" />
+                        <input 
+                          type="text"
+                          className="switcher-search-input"
+                          placeholder="Cari workspace..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="view-mode-toggle">
+                        <button
+                          className={`view-mode-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                          onClick={() => setViewMode('grid')}
+                          title="Tampilan Grid"
+                        >
+                          <LayoutGrid size={16} />
+                        </button>
+                        <button
+                          className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
+                          onClick={() => setViewMode('list')}
+                          title="Tampilan Daftar"
+                        >
+                          <List size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
->>>>>>> 3e52db1 (fitur template)
 
                   <div className={viewMode === 'grid' ? 'workspaces-grid' : 'workspace-list-container'}>
                     {filteredWorkspaces.map((workspace) => (

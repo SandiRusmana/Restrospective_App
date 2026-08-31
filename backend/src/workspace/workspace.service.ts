@@ -165,4 +165,41 @@ export class WorkspaceService {
       message: 'Workspace berhasil dihapus',
     };
   }
+
+  /**
+   * Mengubah Informasi Workspace (Hanya Owner)
+   */
+  async updateWorkspace(userId: string, workspaceId: string, updateData: { name?: string }) {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      include: {
+        members: {
+          where: { userId },
+        },
+      },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace tidak ditemukan');
+    }
+
+    const member = workspace.members[0];
+    const isOwner = workspace.ownerId === userId || (member && member.role === 'owner');
+
+    if (!isOwner) {
+      throw new ForbiddenException('Hanya owner workspace yang dapat mengubah informasi workspace');
+    }
+
+    const updatedWorkspace = await this.prisma.workspace.update({
+      where: { id: workspaceId },
+      data: {
+        ...(updateData.name ? { name: updateData.name.trim() } : {}),
+      },
+    });
+
+    return {
+      message: 'Workspace berhasil diperbarui',
+      workspace: updatedWorkspace,
+    };
+  }
 }
