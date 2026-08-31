@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BoardService } from './board.service';
@@ -37,5 +37,13 @@ export class BoardController {
     @Param('id') boardId: string,
   ) {
     return this.boardService.getBoardById(userId, boardId);
+  }
+
+  @Delete('boards/:id')
+  async deleteBoard(
+    @GetUser('id') userId: string,
+    @Param('id') boardId: string,
+  ) {
+    return this.boardService.deleteBoard(userId, boardId);
   }
 }

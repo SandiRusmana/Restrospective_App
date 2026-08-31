@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateBoardDto {
   @IsString({ message: 'Nama board harus berupa string' })
@@ -19,6 +19,7 @@ export class CreateBoardDto {
   isAnonymous?: boolean;
 
   @IsInt({ message: 'voteLimit harus berupa angka' })
+  @Min(0, { message: 'voteLimit tidak boleh negatif' })
   @IsOptional()
   voteLimit?: number;
 }

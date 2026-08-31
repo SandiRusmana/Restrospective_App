@@ -120,4 +120,40 @@ export const api = {
       method: 'POST',
     });
   },
+
+  // Board API
+  async getBoards(workspaceId) {
+    return request(`/workspaces/${workspaceId}/boards`, { method: 'GET' });
+  },
+
+  async getBoardById(workspaceId, boardId) {
+    return request(`/workspaces/${workspaceId}/boards/${boardId}`, { method: 'GET' });
+  },
+
+  async createBoard(workspaceId, boardData) {
+    return request(`/workspaces/${workspaceId}/boards`, {
+      method: 'POST',
+      body: JSON.stringify(boardData),
+    });
+  },
+
+  async deleteBoard(workspaceId, boardId) {
+    return request(`/workspaces/${workspaceId}/boards/${boardId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Card API
+  async createCard(workspaceId, boardId, cardData) {
+    return request(`/workspaces/${workspaceId}/boards/${boardId}/cards`, {
+      method: 'POST',
+      body: JSON.stringify(cardData),
+    });
+  },
+
+  async deleteCard(workspaceId, boardId, cardId) {
+    return request(`/workspaces/${workspaceId}/boards/${boardId}/cards/${cardId}`, {
+      method: 'DELETE',
+    });
+  },
 };
