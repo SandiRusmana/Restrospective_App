@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateBoardDto {
@@ -15,5 +16,24 @@ export class CreateBoardDto {
 
   @IsInt({ message: 'voteLimit harus berupa angka' })
   @IsOptional()
+=======
+import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
+
+export class CreateBoardDto {
+  @IsString()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  template?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+>>>>>>> 3e52db1 (fitur template)
   voteLimit?: number;
 }

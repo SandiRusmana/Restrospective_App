@@ -36,6 +36,8 @@ import { WorkspaceModule } from './workspace/workspace.module';
     AuthModule,
     // Modul Manajemen Workspace
     WorkspaceModule,
+    // Modul Board & Card Retrospective
+    BoardModule,
     // Modul Invite Workspace
     InviteModule,
     // Modul Retrospective Board
