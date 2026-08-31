@@ -78,6 +78,13 @@ export const api = {
     });
   },
 
+  async updateWorkspace(id, data) {
+    return request(`/workspaces/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
   async deleteWorkspace(id) {
     return request(`/workspaces/${id}`, {
       method: 'DELETE',
@@ -126,8 +133,8 @@ export const api = {
     return request(`/workspaces/${workspaceId}/boards`, { method: 'GET' });
   },
 
-  async getBoardById(workspaceId, boardId) {
-    return request(`/workspaces/${workspaceId}/boards/${boardId}`, { method: 'GET' });
+  async getBoardById(boardId) {
+    return request(`/boards/${boardId}`, { method: 'GET' });
   },
 
   async createBoard(workspaceId, boardData) {
@@ -137,22 +144,33 @@ export const api = {
     });
   },
 
-  async deleteBoard(workspaceId, boardId) {
-    return request(`/workspaces/${workspaceId}/boards/${boardId}`, {
+  async deleteBoard(boardId) {
+    return request(`/boards/${boardId}`, {
       method: 'DELETE',
     });
   },
 
   // Card API
-  async createCard(workspaceId, boardId, cardData) {
-    return request(`/workspaces/${workspaceId}/boards/${boardId}/cards`, {
+  async getCards(boardId) {
+    return request(`/boards/${boardId}/cards`, { method: 'GET' });
+  },
+
+  async createCard(boardId, columnId, content) {
+    return request(`/boards/${boardId}/cards`, {
       method: 'POST',
-      body: JSON.stringify(cardData),
+      body: JSON.stringify({ columnId, content }),
     });
   },
 
-  async deleteCard(workspaceId, boardId, cardId) {
-    return request(`/workspaces/${workspaceId}/boards/${boardId}/cards/${cardId}`, {
+  async updateCard(cardId, content) {
+    return request(`/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+  },
+
+  async deleteCard(cardId) {
+    return request(`/cards/${cardId}`, {
       method: 'DELETE',
     });
   },

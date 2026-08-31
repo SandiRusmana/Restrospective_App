@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { PusherService } from '../pusher/pusher.service';
 import { CreateCardDto } from './dto/create-card.dto';
+import { UpdateCardDto } from './dto/update-card.dto';
 
 @Injectable()
 export class CardService {
@@ -118,5 +119,103 @@ export class CardService {
     });
 
     return cards;
+  }
+
+  /**
+   * Mengubah Isi Card (Hanya Pembuat/Author Card)
+   */
+  async updateCard(userId: string, cardId: string, updateCardDto: UpdateCardDto) {
+    // 1. Cari Card
+    const card = await this.prisma.card.findUnique({
+      where: { id: cardId },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!card) {
+      throw new NotFoundException('Card tidak ditemukan');
+    }
+
+    // 2. Ownership Check: Memastikan user adalah author dari card ini
+    if (card.authorId !== userId) {
+      throw new ForbiddenException('Anda hanya dapat mengubah card milik Anda sendiri');
+    }
+
+    // 3. Update Card di Database
+    const updatedCard = await this.prisma.card.update({
+      where: { id: cardId },
+      data: {
+        content: updateCardDto.content.trim(),
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // 4. Trigger Realtime Broadcast via Pusher
+    const channelName = `board-${card.boardId}`;
+    try {
+      await this.pusher.trigger(channelName, 'card.updated', updatedCard);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal mengirim broadcast card.updated ke channel ${channelName}:`, err.message);
+    }
+
+    return {
+      message: 'Card berhasil diperbarui',
+      card: updatedCard,
+    };
+  }
+
+  /**
+   * Menghapus Card (Hanya Pembuat/Author Card)
+   */
+  async deleteCard(userId: string, cardId: string) {
+    // 1. Cari Card
+    const card = await this.prisma.card.findUnique({
+      where: { id: cardId },
+    });
+
+    if (!card) {
+      throw new NotFoundException('Card tidak ditemukan');
+    }
+
+    // 2. Ownership Check: Memastikan user adalah author dari card ini
+    if (card.authorId !== userId) {
+      throw new ForbiddenException('Anda hanya dapat menghapus card milik Anda sendiri');
+    }
+
+    // 3. Hapus Card dari Database
+    await this.prisma.card.delete({
+      where: { id: cardId },
+    });
+
+    // 4. Trigger Realtime Broadcast via Pusher
+    const channelName = `board-${card.boardId}`;
+    try {
+      await this.pusher.trigger(channelName, 'card.deleted', {
+        id: card.id,
+        boardId: card.boardId,
+        columnId: card.columnId,
+      });
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal mengirim broadcast card.deleted ke channel ${channelName}:`, err.message);
+    }
+
+    return {
+      message: 'Card berhasil dihapus',
+    };
   }
 }
