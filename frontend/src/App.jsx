@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { LayoutGrid, List, Search, ArrowLeft, Plus } from 'lucide-react';
+import { LayoutGrid, List, Search, ArrowLeft } from 'lucide-react';
 import { api } from './services/api';
 
 // Sidebar Navigation Items
@@ -18,7 +18,6 @@ import RegisterPage from './components/auth/RegisterPage';
 // Layout & Workspace Components
 import Sidebar from './components/layout/Sidebar';
 import WorkspaceHeader from './components/workspace/WorkspaceHeader';
-import WorkspaceList from './components/workspace/WorkspaceList';
 import WorkspaceCard from './components/workspace/WorkspaceCard';
 import CreateWorkspaceCard from './components/workspace/CreateWorkspaceCard';
 import WorkspaceSwitcher from './components/workspace/WorkspaceSwitcher';
@@ -108,34 +107,40 @@ const INITIAL_WORKSPACES = [
     members: DEFAULT_MEMBERS,
     boards: [
       {
+        id: 'board_sprint16',
+        title: 'Sprint 16 Retrospective',
+        name: 'Sprint 16 Retrospective',
+        description: 'Evaluasi sprint aplikasi mobile periode 16.',
+        membersCount: 8,
+        dateText: 'Dibuat 30 Jun 2026',
+        updatedText: 'Diperbarui 30 Jun 2026',
+        template: 'start-stop-continue',
+        theme: { bg: '#f3f0ff', color: '#7c3aed' },
+        color: '#7c3aed',
+      },
+      {
         id: 'board_sprint15',
         title: 'Sprint 15 Retrospective',
+        name: 'Sprint 15 Retrospective',
         description: 'Evaluasi sprint aplikasi mobile periode 15.',
         membersCount: 8,
         dateText: 'Dibuat 20 Jun 2026',
         updatedText: 'Diperbarui 20 Jun 2024',
+        template: 'start-stop-continue',
         theme: { bg: '#f3f0ff', color: '#7c3aed' },
         color: '#7c3aed',
       },
       {
         id: 'board_q2_review',
         title: 'Quarter 2 Review',
+        name: 'Quarter 2 Review',
         description: 'Evaluasi dan refleksi kerja tim pada Q2.',
         membersCount: 12,
         dateText: 'Dibuat 30 Jun 2026',
         updatedText: 'Diperbarui 30 Jun 2024',
+        template: 'start-stop-continue',
         theme: { bg: '#eff6ff', color: '#2563eb' },
         color: '#2563eb',
-      },
-      {
-        id: 'board_sprint14',
-        title: 'Sprint 14 Retrospective',
-        description: 'Evaluasi sprint sebelumnya untuk perbaikan.',
-        membersCount: 7,
-        dateText: 'Dibuat 6 Jun 2026',
-        updatedText: 'Diperbarui 6 Jun 2024',
-        theme: { bg: '#f0fdf4', color: '#16a34a' },
-        color: '#16a34a',
       }
     ]
   },
@@ -155,10 +160,12 @@ const INITIAL_WORKSPACES = [
       {
         id: 'board_web_s1',
         title: 'Website Redesign Retro',
+        name: 'Website Redesign Retro',
         description: 'Refleksi rilis UI homepage dan flow pendaftaran baru.',
         membersCount: 6,
         dateText: 'Dibuat 15 Mei 2026',
         updatedText: 'Diperbarui 15 Mei 2024',
+        template: 'start-stop-continue',
         theme: { bg: '#eff6ff', color: '#2563eb' },
         color: '#2563eb',
       }
@@ -180,10 +187,12 @@ const INITIAL_WORKSPACES = [
       {
         id: 'board_qa_s1',
         title: 'Automation Testing Sync',
+        name: 'Automation Testing Sync',
         description: 'Evaluasi coverage unit test dan integrasi CI/CD pipeline.',
         membersCount: 4,
         dateText: 'Dibuat 2 Mei 2026',
         updatedText: 'Diperbarui 2 Mei 2024',
+        template: 'start-stop-continue',
         theme: { bg: '#f0fdf4', color: '#16a34a' },
         color: '#16a34a',
       }
@@ -195,11 +204,11 @@ export default function App() {
   // Page Routing State: 'login' | 'register' | 'dashboard'
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [user, setUser] = useState({
-    id: 'user_test',
-    name: 'test',
-    fullName: 'test (Anda)',
-    email: 'test@example.com',
-    avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=test@example.com',
+    id: 'user_afrizal',
+    name: 'Afrizal',
+    fullName: 'Afrizal (Anda)',
+    email: 'afrizal@gmail.com',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
     isOnline: true
   });
 
@@ -208,8 +217,8 @@ export default function App() {
   const [activeBoard, setActiveBoard] = useState(null);
 
   // Dashboard States
-  const [workspaces, setWorkspaces] = useState([]);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState('');
+  const [workspaces, setWorkspaces] = useState(INITIAL_WORKSPACES);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(INITIAL_WORKSPACES[0].id);
   const [activeNav, setActiveNav] = useState('workspace');
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');

@@ -2410,257 +2410,512 @@
   border-radius: 2px 2px 0 0;
 }
 
-/* ── Retro Sections Stack (Vertical Layout) ── */
-.retro-sections-stack {
+/* ── Retro Board Columns Canvas (3 Columns Horizontal Layout) ── */
+.retro-board-columns-container {
+  padding: 24px 28px 48px 28px;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: #ffffff;
+  min-height: calc(100vh - 145px);
+}
+
+.retro-board-columns-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  align-items: flex-start;
+}
+
+@media (max-width: 960px) {
+  .retro-board-columns-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Column Box (START, STOP, CONTINUE) ── */
+.retro-board-column {
+  border-radius: 14px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 20px 28px 40px 28px;
   gap: 14px;
+  min-height: 520px;
+  box-sizing: border-box;
 }
 
-.retro-section-row {
-  border: 1px solid;
-  border-radius: 12px;
-  padding: 18px 20px 16px 20px;
-  transition: box-shadow 0.15s ease;
+/* Column Themes */
+.retro-column-start {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
 }
 
-.retro-section-row:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+.retro-column-stop {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
 }
 
-/* Section Header */
-.retro-section-header {
+.retro-column-continue {
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+/* ── Column Header ── */
+.retro-column-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
 }
 
-.retro-section-header-left {
+.retro-column-header-title {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
 }
 
-.retro-section-emoji {
-  font-size: 26px;
-  line-height: 1;
+.retro-col-icon-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  margin-top: 2px;
 }
 
-.retro-section-title {
-  font-size: 14px;
+.retro-icon-start {
+  background-color: #22c55e;
+  color: #ffffff;
+}
+
+.retro-icon-stop {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.retro-icon-continue {
+  background-color: #3b82f6;
+  color: #ffffff;
+}
+
+.retro-column-name {
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: 0.5px;
-  margin: 0 0 2px 0;
+  margin: 0;
   text-transform: uppercase;
 }
 
-.retro-section-subtitle {
-  font-size: 12.5px;
-  color: #64748b;
-  margin: 0;
+.retro-column-start .retro-column-name {
+  color: #15803d;
 }
 
-/* Tambah Catatan Button */
-.btn-tambah-catatan {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
+.retro-column-stop .retro-column-name {
+  color: #b91c1c;
+}
+
+.retro-column-continue .retro-column-name {
+  color: #1d4ed8;
+}
+
+.retro-column-count-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 9999px;
+  line-height: 1.2;
+}
+
+.retro-column-start .retro-column-count-badge {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.retro-column-stop .retro-column-count-badge {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.retro-column-continue .retro-column-count-badge {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* ── "+ Tambah Catatan" Button ── */
+.btn-column-add-note {
+  width: 100%;
+  padding: 10px 16px;
   background-color: #ffffff;
-  border: 1px solid;
-  border-radius: 7px;
-  font-size: 12.5px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
-}
-
-.btn-tambah-catatan:hover {
-  opacity: 0.8;
-}
-
-/* Section Empty State */
-.retro-section-empty {
-  padding: 22px 16px;
   text-align: center;
-  color: #94a3b8;
-  font-size: 13px;
-  font-style: italic;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-/* Add Card Form (Inline) */
-.retro-add-card-form {
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px;
-  margin-top: 10px;
-  margin-bottom: 10px;
+.retro-column-start .btn-column-add-note {
+  border: 1.5px solid #bbf7d0;
+  color: #16a34a;
 }
 
-.retro-add-card-textarea {
+.retro-column-start .btn-column-add-note:hover {
+  background-color: #f0fdf4;
+  border-color: #86efac;
+}
+
+.retro-column-stop .btn-column-add-note {
+  border: 1.5px solid #fecaca;
+  color: #dc2626;
+}
+
+.retro-column-stop .btn-column-add-note:hover {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.retro-column-continue .btn-column-add-note {
+  border: 1.5px solid #bfdbfe;
+  color: #2563eb;
+}
+
+.retro-column-continue .btn-column-add-note:hover {
+  background-color: #eff6ff;
+  border-color: #93c5fd;
+}
+
+/* ── Active Inline Card Creation Box (Screenshot 2) ── */
+.retro-card-input-box {
+  background-color: #ffffff;
+  border: 1.5px solid #5956e9;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(89, 86, 233, 0.08);
+}
+
+.retro-card-input-textarea {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: inherit;
-  resize: vertical;
+  border: none;
   outline: none;
+  resize: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+  font-family: inherit;
+  line-height: 1.45;
+  padding: 0;
+  background: transparent;
   box-sizing: border-box;
-  background: #ffffff;
 }
 
-.retro-add-card-textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 2px rgba(89, 86, 233, 0.1);
-}
-
-.retro-add-card-actions {
+.retro-card-input-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 8px;
 }
 
-.btn-add-cancel {
-  background: none;
-  border: none;
+.btn-retro-input-cancel {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
   color: #64748b;
-  font-size: 12.5px;
-  cursor: pointer;
-  padding: 4px 8px;
-}
-
-.btn-add-submit {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 14px;
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.btn-add-submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Cards in Section */
-.retro-cards-in-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.retro-inline-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.07);
-  border-radius: 9px;
-  padding: 12px 14px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.retro-inline-card-text {
-  font-size: 13.5px;
-  color: #1e293b;
-  line-height: 1.5;
-  margin: 0 0 10px 0;
-  word-break: break-word;
-}
-
-.retro-inline-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 8px;
-}
-
-.retro-inline-card-author {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.retro-inline-avatar {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.retro-inline-author-name {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #334155;
-}
-
-.retro-inline-card-time {
-  font-size: 10.5px;
-  color: #94a3b8;
-}
-
-.retro-inline-card-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn-vote-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  background: #f8fafc;
+  background-color: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #475569;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.btn-vote-inline:hover,
-.btn-vote-inline.voted {
-  background-color: #eeedfe;
-  border-color: var(--primary);
-  color: var(--primary);
+.btn-retro-input-cancel:hover {
+  background-color: #f8fafc;
+  color: #334155;
 }
 
-.btn-delete-inline {
+.btn-retro-input-submit {
+  padding: 6px 18px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+  background-color: #5956e9;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn-retro-input-submit:hover {
+  opacity: 0.9;
+}
+
+.btn-retro-input-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Cards List in Column ── */
+.retro-column-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Sticky Note Card (Screenshot 3) ── */
+.retro-sticky-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.retro-sticky-card:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.retro-card-body {
+  flex: 1;
+}
+
+.retro-card-text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.retro-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.retro-card-author-info {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.retro-card-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.retro-card-author-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.retro-card-author-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.retro-card-time {
+  font-size: 10.5px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* Card 3-Dots Dropdown Menu */
+.retro-card-actions-wrapper {
+  position: relative;
+}
+
+.btn-retro-card-menu {
   background: none;
   border: none;
   color: #94a3b8;
   cursor: pointer;
   padding: 4px;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
+  justify-content: center;
   transition: all 0.15s ease;
 }
 
-.btn-delete-inline:hover {
-  color: #ef4444;
-  background-color: #fee2e2;
+.btn-retro-card-menu:hover {
+  color: #334155;
+  background-color: #f1f5f9;
 }
 
-/* Placeholder tabs */
+.retro-card-menu-dropdown {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  z-index: 30;
+  min-width: 140px;
+}
+
+.retro-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.retro-menu-item:hover {
+  background-color: #f8fafc;
+  color: #5956e9;
+}
+
+.retro-menu-item-delete {
+  color: #ef4444;
+}
+
+.retro-menu-item-delete:hover {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+/* Card Editing Mode */
+.retro-card-editing {
+  border-color: #5956e9;
+}
+
+.retro-card-edit-textarea {
+  width: 100%;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.retro-card-edit-textarea:focus {
+  border-color: #5956e9;
+}
+
+.retro-card-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* ── Empty State in Column ── */
+.retro-column-empty-state {
+  padding: 40px 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.retro-column-empty-state p {
+  margin: 0;
+}
+
+/* ── Board Switcher Dropdown in Breadcrumb ── */
+.retro-board-switcher-container {
+  position: relative;
+  display: inline-block;
+}
+
+.retro-crumb-active-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.retro-board-dropdown-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  background-color: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 6px;
+  z-index: 50;
+  min-width: 220px;
+  border: 1px solid #e2e8f0;
+}
+
+.retro-board-dropdown-header {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+
+.retro-board-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #334155;
+  font-weight: 500;
+  background-color: transparent;
+  border-radius: 6px;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.retro-board-dropdown-item:hover {
+  background-color: #f1f5f9;
+}
+
+.retro-board-dropdown-item.active {
+  color: #5956e9;
+  font-weight: 700;
+  background-color: #f1f5f9;
+}
+
+/* ── Placeholder tabs ── */
 .retro-tab-placeholder {
   display: flex;
   flex-direction: column;
@@ -2677,6 +2932,12 @@
   font-weight: 700;
   color: #64748b;
   margin: 0;
+}
+
+.retro-tab-placeholder p {
+  font-size: 13.5px;
+  margin: 0;
+  max-width: 320px;
 }
 
 .retro-tab-placeholder p {
