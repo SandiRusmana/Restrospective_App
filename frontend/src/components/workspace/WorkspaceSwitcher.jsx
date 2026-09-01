@@ -11,12 +11,13 @@ import {
 import Avatar from '../common/Avatar';
 
 export default function WorkspaceSwitcher({ 
-  workspaces, 
+  workspaces = [], 
   activeWorkspace, 
   onSelectWorkspace, 
-  searchQuery, 
+  searchQuery = '', 
   onSearchChange,
-  onCreateWorkspace 
+  onCreateWorkspace,
+  onShowToast
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showTips, setShowTips] = useState(true);
@@ -33,6 +34,15 @@ export default function WorkspaceSwitcher({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Filter workspaces based on searchQuery
+  const filteredWorkspaces = searchQuery?.trim()
+    ? workspaces.filter((ws) => ws.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : workspaces;
+
+  const currentWsInitial = activeWorkspace?.initial || (activeWorkspace?.name ? activeWorkspace.name.charAt(0).toUpperCase() : 'W');
+  const currentWsName = activeWorkspace?.name || 'Pilih Workspace';
+  const currentWsColor = activeWorkspace?.color || '#5956e9';
+
   return (
     <div className="switcher-panel">
       <div className="switcher-section-title">
@@ -46,69 +56,92 @@ export default function WorkspaceSwitcher({
             type="button"
             className="switcher-dropdown-trigger"
             onClick={() => setIsOpen(!isOpen)}
+            title="Pilih Workspace"
           >
             <div className="dropdown-current-item">
               <Avatar 
-                initial={activeWorkspace.initial} 
-                color={activeWorkspace.color} 
+                initial={currentWsInitial} 
+                color={currentWsColor} 
                 size="sm" 
               />
-              <span>{activeWorkspace.name}</span>
+              <span>{currentWsName}</span>
             </div>
             {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
 
           {isOpen && (
             <div className="switcher-dropdown-menu">
-              {workspaces.map((ws) => (
+              {filteredWorkspaces.length === 0 ? (
+                <div style={{ padding: '10px 14px', fontSize: '13px', color: '#94a3b8', textAlign: 'center' }}>
+                  Tidak ada workspace ditemukan
+                </div>
+              ) : (
+                filteredWorkspaces.map((ws) => (
+                  <button
+                    key={ws.id}
+                    type="button"
+                    className={`dropdown-item ${ws.id === activeWorkspace?.id ? 'active' : ''}`}
+                    onClick={() => {
+                      if (onSelectWorkspace) onSelectWorkspace(ws.id);
+                      setIsOpen(false);
+                    }}
+                  >
+                    <Avatar 
+                      initial={ws.initial || ws.name?.charAt(0).toUpperCase() || 'W'} 
+                      color={ws.color || '#5956e9'} 
+                      size="sm" 
+                    />
+                    <span>{ws.name}</span>
+                  </button>
+                ))
+              )}
+
+              {onCreateWorkspace && (
                 <button
-                  key={ws.id}
-                  className={`dropdown-item ${ws.id === activeWorkspace.id ? 'active' : ''}`}
+                  type="button"
+                  className="dropdown-create-btn"
                   onClick={() => {
-                    onSelectWorkspace(ws.id);
                     setIsOpen(false);
+                    onCreateWorkspace();
                   }}
                 >
-                  <Avatar 
-                    initial={ws.initial} 
-                    color={ws.color} 
-                    size="sm" 
-                  />
-                  <span>{ws.name}</span>
+                  <Plus size={16} />
+                  <span>Buat Workspace Baru</span>
                 </button>
-              ))}
-
-              <button
-                className="dropdown-create-btn"
-                onClick={() => {
-                  setIsOpen(false);
-                  onCreateWorkspace();
-                }}
-              >
-                <Plus size={16} />
-                <span>Buat Workspace Baru</span>
-              </button>
+              )}
             </div>
           )}
         </div>
 
         {/* Search Bar */}
-        <div className="switcher-search-container">
+        <div className="switcher-search-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <Search size={17} className="switcher-search-icon" />
           <input 
             type="text"
             className="switcher-search-input"
             placeholder="Cari workspace..."
             value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
           />
-          <button 
-            className="switcher-filter-btn" 
-            title="Filter opsi"
-            onClick={() => alert("Filter kriteria workspace")}
-          >
-            <SlidersHorizontal size={17} />
-          </button>
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => onSearchChange && onSearchChange('')}
+              title="Hapus pencarian"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px', display: 'flex', alignItems: 'center' }}
+            >
+              <X size={15} />
+            </button>
+          ) : (
+            <button 
+              type="button"
+              className="switcher-filter-btn" 
+              title="Filter workspace"
+              onClick={() => onShowToast && onShowToast('Filter pencarian workspace aktif')}
+            >
+              <SlidersHorizontal size={17} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -125,6 +158,7 @@ export default function WorkspaceSwitcher({
             </p>
           </div>
           <button 
+            type="button"
             className="tips-close-btn"
             onClick={() => setShowTips(false)}
             title="Tutup tips"

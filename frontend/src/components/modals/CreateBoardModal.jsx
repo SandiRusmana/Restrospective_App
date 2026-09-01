@@ -103,7 +103,7 @@ export default function CreateBoardModal({
     e?.preventDefault();
     if (!title.trim()) return;
 
-    const tmpl = selectedTemplate || RETRO_TEMPLATES[3];
+    const tmpl = selectedTemplate || RETRO_TEMPLATES[0];
     onCreateBoard({
       id: `board_${Date.now()}`,
       title: title.trim(),
@@ -115,7 +115,7 @@ export default function CreateBoardModal({
       updatedText: 'Baru saja',
       theme: { bg: tmpl.bg, color: tmpl.color },
       color: tmpl.color,
-      template: tmpl.name,
+      template: tmpl.id,
       columns: tmpl.columns,
     });
     onClose();

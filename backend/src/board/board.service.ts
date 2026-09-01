@@ -206,9 +206,15 @@ export class BoardService {
       throw new NotFoundException('Board tidak ditemukan');
     }
 
-    const isOwner = board.workspace.ownerId === userId;
-    if (!isOwner) {
-      throw new ForbiddenException('Hanya owner workspace yang dapat menghapus board');
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: {
+        workspaceId: board.workspaceId,
+        userId,
+      },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException('Anda tidak memiliki akses untuk menghapus board ini');
     }
 
     await this.prisma.$transaction([

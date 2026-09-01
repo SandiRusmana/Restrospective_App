@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { LayoutGrid, List, Search, ArrowLeft } from 'lucide-react';
+import { LayoutGrid, List, Search, ArrowLeft, Loader2 } from 'lucide-react';
 import { api } from './services/api';
 
 // Sidebar Navigation Items
@@ -33,192 +33,21 @@ import CreateBoardModal from './components/modals/CreateBoardModal';
 import InviteMemberModal from './components/modals/InviteMemberModal';
 import Toast from './components/common/Toast';
 
-const DEFAULT_MEMBERS = [
-  {
-    id: 'm1',
-    name: 'Afrizal (Anda)',
-    role: 'Owner',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=afrizal@gmail.com',
-    isOnline: true,
-  },
-  {
-    id: 'm2',
-    name: 'Sarah Wijaya',
-    role: 'Member',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah@gmail.com',
-    isOnline: true,
-  },
-  {
-    id: 'm3',
-    name: 'Budi Santoso',
-    role: 'Member',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=budi@gmail.com',
-    isOnline: false,
-  },
-  {
-    id: 'm4',
-    name: 'Dewi Lestari',
-    role: 'Member',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dewi@gmail.com',
-    isOnline: false,
-  },
-  {
-    id: 'm5',
-    name: 'Andi Pratama',
-    role: 'Member',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=andi@gmail.com',
-    isOnline: true,
-  },
-  {
-    id: 'm6',
-    name: 'Rian Kusuma',
-    role: 'Member',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=rian@gmail.com',
-    isOnline: false,
-  },
-  {
-    id: 'm7',
-    name: 'Citra Kirana',
-    role: 'Member',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=citra@gmail.com',
-    isOnline: true,
-  },
-  {
-    id: 'm8',
-    name: 'Dimas Anggara',
-    role: 'Member',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dimas@gmail.com',
-    isOnline: false,
-  }
-];
-
-const INITIAL_WORKSPACES = [
-  {
-    id: 'ws_01H8J2KX6PYZQ4M5N2R7D3E1F',
-    name: 'Mobile Team',
-    initial: 'M',
-    color: '#5956e9',
-    role: 'Owner',
-    description: 'Tim pengembangan aplikasi mobile',
-    longDescription: 'Workspace untuk tim pengembangan aplikasi mobile. Semua retrospective dan diskusi tim dilakukan di sini',
-    memberCount: 8,
-    dateText: 'Dibuat 20 Jun 2026',
-    isRecent: true,
-    members: DEFAULT_MEMBERS,
-    boards: [
-      {
-        id: 'board_sprint16',
-        title: 'Sprint 16 Retrospective',
-        name: 'Sprint 16 Retrospective',
-        description: 'Evaluasi sprint aplikasi mobile periode 16.',
-        membersCount: 8,
-        dateText: 'Dibuat 30 Jun 2026',
-        updatedText: 'Diperbarui 30 Jun 2026',
-        template: 'start-stop-continue',
-        theme: { bg: '#f3f0ff', color: '#7c3aed' },
-        color: '#7c3aed',
-      },
-      {
-        id: 'board_sprint15',
-        title: 'Sprint 15 Retrospective',
-        name: 'Sprint 15 Retrospective',
-        description: 'Evaluasi sprint aplikasi mobile periode 15.',
-        membersCount: 8,
-        dateText: 'Dibuat 20 Jun 2026',
-        updatedText: 'Diperbarui 20 Jun 2024',
-        template: 'start-stop-continue',
-        theme: { bg: '#f3f0ff', color: '#7c3aed' },
-        color: '#7c3aed',
-      },
-      {
-        id: 'board_q2_review',
-        title: 'Quarter 2 Review',
-        name: 'Quarter 2 Review',
-        description: 'Evaluasi dan refleksi kerja tim pada Q2.',
-        membersCount: 12,
-        dateText: 'Dibuat 30 Jun 2026',
-        updatedText: 'Diperbarui 30 Jun 2024',
-        template: 'start-stop-continue',
-        theme: { bg: '#eff6ff', color: '#2563eb' },
-        color: '#2563eb',
-      }
-    ]
-  },
-  {
-    id: 'ws_02WEBTEAM',
-    name: 'Web Team',
-    initial: 'W',
-    color: '#2563eb',
-    role: 'Member',
-    description: 'Tim frontend & backend website aplikasi',
-    longDescription: 'Workspace untuk tim website dan portal web RetroNerve.',
-    memberCount: 6,
-    dateText: 'Dibuat 15 Mei 2026',
-    isRecent: true,
-    members: DEFAULT_MEMBERS.slice(0, 6),
-    boards: [
-      {
-        id: 'board_web_s1',
-        title: 'Website Redesign Retro',
-        name: 'Website Redesign Retro',
-        description: 'Refleksi rilis UI homepage dan flow pendaftaran baru.',
-        membersCount: 6,
-        dateText: 'Dibuat 15 Mei 2026',
-        updatedText: 'Diperbarui 15 Mei 2024',
-        template: 'start-stop-continue',
-        theme: { bg: '#eff6ff', color: '#2563eb' },
-        color: '#2563eb',
-      }
-    ]
-  },
-  {
-    id: 'ws_03QASQUAD',
-    name: 'QA Squad',
-    initial: 'Q',
-    color: '#10b981',
-    role: 'Member',
-    description: 'Tim QA & Automated Testing',
-    longDescription: 'Workspace evaluasi kualitas dan kestabilan aplikasi.',
-    memberCount: 4,
-    dateText: 'Dibuat 2 Mei 2026',
-    isRecent: true,
-    members: DEFAULT_MEMBERS.slice(0, 4),
-    boards: [
-      {
-        id: 'board_qa_s1',
-        title: 'Automation Testing Sync',
-        name: 'Automation Testing Sync',
-        description: 'Evaluasi coverage unit test dan integrasi CI/CD pipeline.',
-        membersCount: 4,
-        dateText: 'Dibuat 2 Mei 2026',
-        updatedText: 'Diperbarui 2 Mei 2024',
-        template: 'start-stop-continue',
-        theme: { bg: '#f0fdf4', color: '#16a34a' },
-        color: '#16a34a',
-      }
-    ]
-  }
-];
-
 export default function App() {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+
   // Page Routing State: 'login' | 'register' | 'dashboard'
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [user, setUser] = useState({
-    id: 'user_afrizal',
-    name: 'Afrizal',
-    fullName: 'Afrizal (Anda)',
-    email: 'afrizal@gmail.com',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    isOnline: true
-  });
+  const [currentPage, setCurrentPage] = useState(token ? 'dashboard' : 'login');
+  const [user, setUser] = useState(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(Boolean(token));
 
   // Main Dashboard View State: 'workspace-detail' | 'all-workspaces' | 'board-detail'
   const [dashboardView, setDashboardView] = useState('workspace-detail');
   const [activeBoard, setActiveBoard] = useState(null);
 
   // Dashboard States
-  const [workspaces, setWorkspaces] = useState(INITIAL_WORKSPACES);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState(INITIAL_WORKSPACES[0].id);
+  const [workspaces, setWorkspaces] = useState([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(null);
   const [activeNav, setActiveNav] = useState('workspace');
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
@@ -332,8 +161,9 @@ export default function App() {
   // Initial Auth Check on Mount
   useEffect(() => {
     async function checkAuth() {
-      const token = localStorage.getItem('access_token');
-      if (token) {
+      const savedToken = localStorage.getItem('access_token');
+      if (savedToken) {
+        setIsLoadingAuth(true);
         try {
           const userData = await api.getMe();
           const formattedUser = {
@@ -348,8 +178,15 @@ export default function App() {
           setCurrentPage('dashboard');
           await fetchWorkspaces(formattedUser);
         } catch {
-          // Token invalid
+          api.logout();
+          setUser(null);
+          setCurrentPage('login');
+        } finally {
+          setIsLoadingAuth(false);
         }
+      } else {
+        setCurrentPage('login');
+        setIsLoadingAuth(false);
       }
     }
     checkAuth();
@@ -531,6 +368,22 @@ export default function App() {
     }
   };
 
+  // Handler: Delete Board
+  const handleDeleteBoard = async (boardId, boardTitle) => {
+    setWorkspaces((prev) =>
+      prev.map((ws) => ({
+        ...ws,
+        boards: (ws.boards || []).filter((b) => b.id !== boardId),
+      }))
+    );
+    showToast(`Board "${boardTitle || ''}" berhasil dihapus`);
+    try {
+      await api.deleteBoard(boardId);
+    } catch (err) {
+      showToast(err.message || 'Gagal menghapus board di server');
+    }
+  };
+
   // Handler: Delete Workspace
   const handleDeleteWorkspace = async (workspaceId, workspaceName) => {
     setWorkspaces((prev) => prev.filter((w) => w.id !== workspaceId));
@@ -604,8 +457,18 @@ export default function App() {
             onLogout={handleLogout}
           />
 
+          {/* Loading Indicator during Auth/Workspaces Fetch */}
+          {isLoadingAuth && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 40px)', color: '#64748b', width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <Loader2 size={36} color="#5956e9" style={{ animation: 'spin 1s linear infinite' }} />
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Memuat workspace...</span>
+              </div>
+            </div>
+          )}
+
           {/* Interactive Retrospective Board View (When a board is opened) */}
-          {dashboardView === 'board-detail' && activeBoard && (
+          {dashboardView === 'board-detail' && activeBoard && !isLoadingAuth && (
             <RetroBoardDetail 
               workspace={activeWorkspace}
               board={activeBoard}
@@ -632,9 +495,33 @@ export default function App() {
               onInviteModalOpen={() => setIsInviteModalOpen(true)}
               onDeleteWorkspace={handleDeleteWorkspace}
               onUpdateWorkspace={handleUpdateWorkspace}
+              onDeleteBoard={handleDeleteBoard}
               onShowToast={showToast}
               onNavigateAllWorkspaces={() => setDashboardView('all-workspaces')}
             />
+          )}
+
+          {/* Empty Workspace State (When user has 0 workspaces) */}
+          {dashboardView === 'workspace-detail' && !activeWorkspace && !isLoadingAuth && (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', textAlign: 'center', width: '100%' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '16px', backgroundColor: '#f3f0ff', color: '#5956e9', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                <LayoutGrid size={32} />
+              </div>
+              <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 700, color: '#0f172a' }}>
+                Selamat Datang di RetroNerve, {user?.name || 'User'}!
+              </h2>
+              <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '15px', maxWidth: '480px', lineHeight: '1.6' }}>
+                Anda belum memiliki workspace. Silakan buat workspace pertama Anda untuk mulai mengelola sesi retrospective bersama tim!
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setIsCreateModalOpen(true)}
+                style={{ padding: '12px 24px', fontSize: '15px', fontWeight: 600 }}
+              >
+                + Buat Workspace Pertama Anda
+              </button>
+            </div>
           )}
 
           {/* All Workspaces Grid View (If user wants to see all workspaces) */}
