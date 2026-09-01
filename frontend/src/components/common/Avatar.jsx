@@ -32,7 +32,15 @@ export default function Avatar({
       className={avatarSizeClass} 
       style={{ 
         backgroundColor: color || '#f1f5f9',
-        color: textColor 
+        color: textColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        lineHeight: 1,
+        textAlign: 'center',
+        flexShrink: 0,
+        fontWeight: 700,
+        userSelect: 'none',
       }}
     >
       {initial}

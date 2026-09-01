@@ -80,12 +80,12 @@ export class CardService {
       },
     });
 
-    // 4. Trigger Realtime Broadcast via Pusher
-    const channelName = `board-${boardId}`;
+    // 4. Trigger Realtime Broadcast via Pusher (Broadcast ke private-board-{id} dan board-{id})
+    const channels = [`private-board-${boardId}`, `board-${boardId}`];
     try {
-      await this.pusher.trigger(channelName, 'card.created', card);
+      await this.pusher.trigger(channels, 'card.created', card);
     } catch (err) {
-      console.warn(`[Pusher Warn] Gagal mengirim broadcast card.created ke channel ${channelName}:`, err.message);
+      console.warn(`[Pusher Warn] Gagal mengirim broadcast card.created ke channels ${channels.join(', ')}:`, err.message);
     }
 
     return {
@@ -166,11 +166,11 @@ export class CardService {
     });
 
     // 4. Trigger Realtime Broadcast via Pusher
-    const channelName = `board-${card.boardId}`;
+    const channels = [`private-board-${card.boardId}`, `board-${card.boardId}`];
     try {
-      await this.pusher.trigger(channelName, 'card.updated', updatedCard);
+      await this.pusher.trigger(channels, 'card.updated', updatedCard);
     } catch (err) {
-      console.warn(`[Pusher Warn] Gagal mengirim broadcast card.updated ke channel ${channelName}:`, err.message);
+      console.warn(`[Pusher Warn] Gagal mengirim broadcast card.updated ke channels:`, err.message);
     }
 
     return {
@@ -203,19 +203,74 @@ export class CardService {
     });
 
     // 4. Trigger Realtime Broadcast via Pusher
-    const channelName = `board-${card.boardId}`;
+    const channels = [`private-board-${card.boardId}`, `board-${card.boardId}`];
     try {
-      await this.pusher.trigger(channelName, 'card.deleted', {
+      await this.pusher.trigger(channels, 'card.deleted', {
         id: card.id,
+        cardId: card.id,
         boardId: card.boardId,
         columnId: card.columnId,
       });
     } catch (err) {
-      console.warn(`[Pusher Warn] Gagal mengirim broadcast card.deleted ke channel ${channelName}:`, err.message);
+      console.warn(`[Pusher Warn] Gagal mengirim broadcast card.deleted:`, err.message);
     }
 
     return {
       message: 'Card berhasil dihapus',
     };
+  }
+
+  /**
+   * Toggle / Submit Vote Realtime
+   */
+  async toggleVote(userId: string, cardId: string) {
+    const card = await this.prisma.card.findUnique({ where: { id: cardId } });
+    if (!card) throw new NotFoundException('Card tidak ditemukan');
+
+    await this.checkBoardAccess(userId, card.boardId);
+
+    const channels = [`private-board-${card.boardId}`, `board-${card.boardId}`];
+    const voteData = {
+      cardId: card.id,
+      boardId: card.boardId,
+      userId,
+      votedAt: new Date().toISOString(),
+    };
+
+    try {
+      await this.pusher.trigger(channels, 'vote.updated', voteData);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast vote.updated:`, err.message);
+    }
+
+    return { message: 'Vote berhasil diperbarui', vote: voteData };
+  }
+
+  /**
+   * Add Comment Realtime
+   */
+  async addComment(userId: string, cardId: string, commentText: string) {
+    const card = await this.prisma.card.findUnique({ where: { id: cardId } });
+    if (!card) throw new NotFoundException('Card tidak ditemukan');
+
+    await this.checkBoardAccess(userId, card.boardId);
+
+    const commentData = {
+      id: `comment_${Date.now()}`,
+      cardId: card.id,
+      boardId: card.boardId,
+      authorId: userId,
+      text: commentText,
+      createdAt: new Date().toISOString(),
+    };
+
+    const channels = [`private-board-${card.boardId}`, `board-${card.boardId}`];
+    try {
+      await this.pusher.trigger(channels, 'comment.created', commentData);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast comment.created:`, err.message);
+    }
+
+    return { message: 'Komentar berhasil ditambahkan', comment: commentData };
   }
 }

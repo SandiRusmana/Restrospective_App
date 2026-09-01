@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  User, 
-  Calendar, 
-  MoreVertical, 
-  ArrowRight, 
-  Settings, 
-  LayoutGrid, 
-  Bell, 
-  Copy, 
-  Check, 
-  UserPlus, 
-  FileText, 
+import {
+  Plus,
+  User,
+  Calendar,
+  MoreVertical,
+  ArrowRight,
+  Settings,
+  LayoutGrid,
+  Bell,
+  Copy,
+  Check,
+  UserPlus,
+  FileText,
   FileCheck2,
   Trash2,
   Edit2,
@@ -34,6 +34,7 @@ export default function WorkspaceBoardsView({
   onInviteModalOpen,
   onDeleteWorkspace,
   onUpdateWorkspace,
+  onDeleteBoard,
   onShowToast,
   currentUser,
   onNavigateAllWorkspaces
@@ -89,17 +90,17 @@ export default function WorkspaceBoardsView({
   };
 
   const boards = workspace?.boards || workspace?.recentBoards || [];
-  
+
   // Real members from workspace data or logged in user (no fake fallback users)
   const realMembers = (workspace?.members && workspace.members.length > 0)
     ? workspace.members
     : (currentUser ? [{
-        id: currentUser.id || 'current-user',
-        name: currentUser.fullName || currentUser.name || 'User',
-        role: workspace?.role || 'Owner',
-        avatar: currentUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.email || 'user'}`,
-        isOnline: true,
-      }] : []);
+      id: currentUser.id || 'current-user',
+      name: currentUser.fullName || currentUser.name || 'User',
+      role: workspace?.role || 'Owner',
+      avatar: currentUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.email || 'user'}`,
+      isOnline: true,
+    }] : []);
 
   const memberCount = realMembers.length;
   const totalCardsCount = boards.reduce((sum, b) => sum + (b.cardsCount || (b.cards ? b.cards.length : 0)), 0);
@@ -111,7 +112,7 @@ export default function WorkspaceBoardsView({
         {/* Top Header / Breadcrumbs & Action Icons */}
         <div className="workspace-top-bar">
           <div className="workspace-breadcrumbs">
-            <button 
+            <button
               type="button"
               className="breadcrumb-root-link"
               onClick={onNavigateAllWorkspaces}
@@ -124,18 +125,18 @@ export default function WorkspaceBoardsView({
           </div>
 
           <div className="workspace-top-actions">
-            <button 
-              type="button" 
-              className="btn-icon-top" 
+            <button
+              type="button"
+              className="btn-icon-top"
               title="Semua Aplikasi & Tampilan"
               onClick={onNavigateAllWorkspaces}
             >
               <LayoutGrid size={18} />
             </button>
 
-            <button 
-              type="button" 
-              className="btn-icon-top notification-btn" 
+            <button
+              type="button"
+              className="btn-icon-top notification-btn"
               title="Notifikasi"
               onClick={() => onShowToast && onShowToast('Tidak ada notifikasi baru')}
             >
@@ -144,9 +145,9 @@ export default function WorkspaceBoardsView({
             </button>
 
             <div className="top-user-avatar-wrapper" title={currentUser?.name}>
-              <img 
-                src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=afrizal@gmail.com'} 
-                alt={currentUser?.name || 'User'} 
+              <img
+                src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=afrizal@gmail.com'}
+                alt={currentUser?.name || 'User'}
                 className="top-user-avatar"
               />
             </div>
@@ -156,8 +157,8 @@ export default function WorkspaceBoardsView({
         {/* Workspace Identity Profile Banner */}
         <div className="workspace-banner-header">
           <div className="ws-banner-profile">
-            <div 
-              className="ws-large-badge" 
+            <div
+              className="ws-large-badge"
               style={{ backgroundColor: workspace?.color || '#5956e9' }}
             >
               {workspace?.initial || workspace?.name?.substring(0, 1) || 'M'}
@@ -175,29 +176,29 @@ export default function WorkspaceBoardsView({
 
           {/* Navigation Tabs */}
           <div className="ws-navigation-tabs">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`ws-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
               onClick={() => setActiveTab('overview')}
             >
               Overview
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`ws-tab-btn ${activeTab === 'anggota' ? 'active' : ''}`}
               onClick={() => setActiveTab('anggota')}
             >
               Anggota
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`ws-tab-btn ${activeTab === 'board' ? 'active' : ''}`}
               onClick={() => setActiveTab('board')}
             >
               Board
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className={`ws-tab-btn ${activeTab === 'pengaturan' ? 'active' : ''}`}
               onClick={() => setActiveTab('pengaturan')}
             >
@@ -218,7 +219,7 @@ export default function WorkspaceBoardsView({
                 </p>
               </div>
 
-              <button 
+              <button
                 type="button"
                 className="btn btn-primary btn-create-ws-top"
                 onClick={onCreateBoardModalOpen}
@@ -240,14 +241,14 @@ export default function WorkspaceBoardsView({
                 );
 
                 return (
-                  <div 
-                    key={board.id || idx} 
+                  <div
+                    key={board.id || idx}
                     className="retro-board-card"
                     onClick={() => onOpenBoard(board)}
                   >
                     <div className="retro-card-top">
                       {/* 4-circle Icon Box */}
-                      <div 
+                      <div
                         className="retro-icon-box"
                         style={{ backgroundColor: iconBgStyle }}
                       >
@@ -258,7 +259,7 @@ export default function WorkspaceBoardsView({
 
                       {/* Dropdown 3-dots menu */}
                       <div className="retro-dropdown-container">
-                        <button 
+                        <button
                           type="button"
                           className="btn-ghost-icon"
                           onClick={(e) => {
@@ -271,11 +272,11 @@ export default function WorkspaceBoardsView({
                         </button>
 
                         {activeDropdownBoardId === board.id && (
-                          <div 
+                          <div
                             className="retro-dropdown-popup"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <button 
+                            <button
                               type="button"
                               onClick={() => {
                                 setActiveDropdownBoardId(null);
@@ -285,7 +286,7 @@ export default function WorkspaceBoardsView({
                               <ArrowRight size={14} />
                               <span>Buka Board</span>
                             </button>
-                            <button 
+                            <button
                               type="button"
                               onClick={() => {
                                 setActiveDropdownBoardId(null);
@@ -295,12 +296,15 @@ export default function WorkspaceBoardsView({
                               <Copy size={14} />
                               <span>Duplikat Board</span>
                             </button>
-                            <button 
+                            <button
                               type="button"
                               className="danger"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setActiveDropdownBoardId(null);
-                                if (onShowToast) onShowToast(`Board "${board.title}" dihapus`);
+                                if (window.confirm(`Apakah Anda yakin ingin menghapus board "${board.title || board.name}"?`)) {
+                                  if (onDeleteBoard) onDeleteBoard(board.id, board.title || board.name);
+                                }
                               }}
                             >
                               <Trash2 size={14} />
@@ -324,14 +328,14 @@ export default function WorkspaceBoardsView({
                       <div className="meta-item">
                         <Calendar size={14} />
                         <span>
-                          {board.createdAt 
-                            ? `Dibuat ${new Date(board.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` 
+                          {board.createdAt
+                            ? `Dibuat ${new Date(board.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
                             : 'Baru saja'}
                         </span>
                       </div>
                     </div>
 
-                    <button 
+                    <button
                       type="button"
                       className="btn-buka-board"
                       onClick={(e) => {
@@ -347,7 +351,7 @@ export default function WorkspaceBoardsView({
               })}
 
               {/* Dashed Create New Board / Workspace Card */}
-              <div 
+              <div
                 className="retro-create-card-dashed"
                 onClick={onCreateBoardModalOpen}
               >
@@ -439,8 +443,8 @@ export default function WorkspaceBoardsView({
                 <h2 className="board-section-title">Daftar Anggota Tim ({memberCount})</h2>
                 <p className="board-section-subtitle">Kelola anggota yang memiliki akses ke workspace ini</p>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn btn-primary"
                 onClick={onInviteModalOpen}
               >
@@ -480,9 +484,9 @@ export default function WorkspaceBoardsView({
                         </span>
                       </td>
                       <td>
-                        <button 
-                          type="button" 
-                          className="btn-ghost-icon" 
+                        <button
+                          type="button"
+                          className="btn-ghost-icon"
                           onClick={() => onShowToast && onShowToast(`Pengaturan akses untuk ${member.name}`)}
                         >
                           <MoreVertical size={16} />
@@ -505,9 +509,9 @@ export default function WorkspaceBoardsView({
             <form className="settings-form-card" onSubmit={handleSaveSettings}>
               <div className="form-group">
                 <label className="form-label">Nama Workspace</label>
-                <input 
-                  type="text" 
-                  className="form-input" 
+                <input
+                  type="text"
+                  className="form-input"
                   value={editWsName}
                   onChange={(e) => setEditWsName(e.target.value)}
                   placeholder="Masukkan nama workspace..."
@@ -517,9 +521,9 @@ export default function WorkspaceBoardsView({
 
               <div className="form-group">
                 <label className="form-label">Deskripsi Tim</label>
-                <textarea 
-                  className="form-textarea" 
-                  rows={3} 
+                <textarea
+                  className="form-textarea"
+                  rows={3}
                   value={editWsDesc}
                   onChange={(e) => setEditWsDesc(e.target.value)}
                   placeholder="Masukkan deskripsi workspace..."
@@ -546,8 +550,8 @@ export default function WorkspaceBoardsView({
                 <p className="danger-zone-desc">
                   Menghapus workspace akan menghapus semua board, catatan retrospective, dan data terkait secara permanen.
                 </p>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-outline"
                   style={{ borderColor: '#fca5a5', color: '#ef4444' }}
                   onClick={() => {
@@ -564,7 +568,6 @@ export default function WorkspaceBoardsView({
           </div>
         )}
       </div>
-
       {/* 2. Right Sidebar Detail Panels (Pixel-perfect matching screenshot) */}
       <aside className="workspace-boards-right-sidebar">
         {/* Widget 1: WORKSPACE AKTIF */}
@@ -574,10 +577,10 @@ export default function WorkspaceBoardsView({
           </div>
 
           <div className="active-ws-identity">
-            <Avatar 
-              initial={workspace?.initial || 'M'} 
-              color={workspace?.color || '#5956e9'} 
-              size="md" 
+            <Avatar
+              initial={workspace?.initial || 'M'}
+              color={workspace?.color || '#5956e9'}
+              size="md"
             />
             <div>
               <div className="card-title-group">
@@ -593,7 +596,7 @@ export default function WorkspaceBoardsView({
               <span className="field-id-text" title={workspace?.id}>
                 {workspace?.id?.length > 28 ? `${workspace?.id?.substring(0, 26)}...` : (workspace?.id || 'ws_01H8J2KX6PYZQ4M5N2R7D3E1F')}
               </span>
-              <button 
+              <button
                 type="button"
                 className="copy-button"
                 onClick={handleCopyId}
@@ -611,7 +614,7 @@ export default function WorkspaceBoardsView({
             </p>
           </div>
 
-          <button 
+          <button
             type="button"
             className="btn btn-outline btn-full-width btn-pengaturan-ws"
             onClick={() => setActiveTab('pengaturan')}
@@ -625,7 +628,7 @@ export default function WorkspaceBoardsView({
         <div className="right-panel-card">
           <div className="panel-header-title">
             <span>ANGGOTA ({memberCount})</span>
-            <button 
+            <button
               type="button"
               className="panel-action-link"
               onClick={onInviteModalOpen}
@@ -640,9 +643,9 @@ export default function WorkspaceBoardsView({
               <div key={member.id} className="member-item">
                 <div className="member-info">
                   <div className="member-avatar-wrapper">
-                    <img 
-                      src={member.avatar} 
-                      alt={member.name} 
+                    <img
+                      src={member.avatar}
+                      alt={member.name}
                       className="member-avatar-img"
                     />
                     {member.isOnline && <span className="member-online-dot" />}
@@ -652,7 +655,7 @@ export default function WorkspaceBoardsView({
                     <div className="member-role">{member.role}</div>
                   </div>
                 </div>
-                <button 
+                <button
                   type="button"
                   className="btn-ghost-icon"
                   onClick={() => onShowToast && onShowToast(`Opsi untuk ${member.name}`)}
@@ -664,7 +667,7 @@ export default function WorkspaceBoardsView({
             ))}
           </div>
 
-          <button 
+          <button
             type="button"
             className="panel-footer-link-btn"
             onClick={() => setActiveTab('anggota')}
@@ -696,13 +699,13 @@ export default function WorkspaceBoardsView({
                       {board.title}
                     </div>
                     <div className="board-updated">
-                      {board.createdAt 
-                        ? `Diperbarui ${new Date(board.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` 
+                      {board.createdAt
+                        ? `Diperbarui ${new Date(board.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
                         : 'Baru saja'}
                     </div>
                   </div>
                 </div>
-                <button 
+                <button
                   type="button"
                   className="btn-action-small"
                   onClick={() => onOpenBoard(board)}
@@ -713,7 +716,7 @@ export default function WorkspaceBoardsView({
             ))}
           </div>
 
-          <button 
+          <button
             type="button"
             className="panel-footer-link-btn"
             onClick={() => setActiveTab('board')}
