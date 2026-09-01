@@ -231,4 +231,33 @@ export class BoardService {
 
     return { message: 'Board berhasil dihapus' };
   }
+
+  /**
+   * Update Timer Realtime Broadcast
+   */
+  async updateTimer(userId: string, boardId: string, timerData: any) {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board tidak ditemukan');
+    }
+
+    const channels = [`private-board-${boardId}`, `board-${boardId}`];
+    const payload = {
+      boardId,
+      status: timerData?.status || 'running',
+      seconds: timerData?.seconds || 0,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      await this.pusher.trigger(channels, 'timer.updated', payload);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast timer.updated:`, err.message);
+    }
+
+    return { message: 'Timer berhasil diperbarui', timer: payload };
+  }
 }
