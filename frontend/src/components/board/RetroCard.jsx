@@ -1,16 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Copy, Trash2, Check } from 'lucide-react';
+import { MoreVertical, Edit2, Copy, Trash2, Check, ThumbsUp, Flame } from 'lucide-react';
 
 export default function RetroCard({
   card,
   onEdit,
   onDelete,
-  onCopy
+  onCopy,
+  onVote,
+  currentUser,
+  isPriority: isPriorityProp
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(card?.content || card?.text || '');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isVoteAnimating, setIsVoteAnimating] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -35,6 +39,25 @@ export default function RetroCard({
   const authorAvatar = card?.author?.avatarUrl || card?.author?.avatar || card?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
   const timestamp = card?.time || (card?.createdAt ? new Date(card.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true }) : '10:32 AM');
   const cardText = card?.content || card?.text || '';
+  const votes = card?.votes !== undefined ? card?.votes : 0;
+
+  // Determine if current user has voted
+  const userId = currentUser?.id || currentUser?.email || 'current_user';
+  const hasVoted = card?.hasVoted !== undefined 
+    ? card.hasVoted 
+    : (Array.isArray(card?.votedBy) && card.votedBy.includes(userId));
+
+  // Determine if this is a priority card (explicit prop, or card.isPriority, or votes >= 10)
+  const isPriority = Boolean(isPriorityProp ?? card?.isPriority ?? (votes >= 10));
+
+  const handleVoteClick = (e) => {
+    e.stopPropagation();
+    setIsVoteAnimating(true);
+    setTimeout(() => setIsVoteAnimating(false), 400);
+    if (onVote) {
+      onVote(card.id);
+    }
+  };
 
   const handleSaveEdit = (e) => {
     if (e) e.preventDefault();
@@ -97,29 +120,28 @@ export default function RetroCard({
     );
   }
 
-  return (
-    <div className="retro-sticky-card">
-      <div className="retro-card-body">
-        <p className="retro-card-text">{cardText}</p>
-      </div>
+  const cardClasses = [
+    'retro-sticky-card',
+    isPriority ? 'retro-card-priority' : '',
+    (!isPriority && hasVoted) ? 'retro-card-voted' : ''
+  ].filter(Boolean).join(' ');
 
-      <div className="retro-card-footer">
-        <div className="retro-card-author-info">
-          <img
-            src={authorAvatar}
-            alt={authorName}
-            className="retro-card-avatar"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
-            }}
-          />
-          <div className="retro-card-author-meta">
-            <span className="retro-card-author-name">{authorName}</span>
-            <span className="retro-card-time">{timestamp}</span>
-          </div>
+  return (
+    <div className={cardClasses}>
+      {/* Priority Badge */}
+      {isPriority && (
+        <div className="retro-card-priority-badge">
+          <Flame size={12} className="retro-priority-badge-icon" />
+          <span>PRIORITAS TIM</span>
+        </div>
+      )}
+
+      <div className="retro-card-header-row">
+        <div className="retro-card-body">
+          <p className="retro-card-text">{cardText}</p>
         </div>
 
+        {/* 3-Dots Menu Dropdown */}
         <div className="retro-card-actions-wrapper" ref={menuRef}>
           <button
             type="button"
@@ -160,6 +182,46 @@ export default function RetroCard({
                 <span>Hapus Catatan</span>
               </button>
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Card Footer: Left Avatar/Author, Right Voting */}
+      <div className="retro-card-footer">
+        <div className="retro-card-author-info">
+          <img
+            src={authorAvatar}
+            alt={authorName}
+            className="retro-card-avatar"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
+            }}
+          />
+          <div className="retro-card-author-meta">
+            <span className="retro-card-author-name">{authorName}</span>
+            <span className="retro-card-time">{timestamp}</span>
+          </div>
+        </div>
+
+        {/* Voting Action Section */}
+        <div className="retro-card-vote-section">
+          <button
+            type="button"
+            className={`btn-retro-vote ${hasVoted ? 'voted' : ''} ${isPriority ? 'priority' : ''} ${isVoteAnimating ? 'vote-pop' : ''}`}
+            onClick={handleVoteClick}
+            title={hasVoted ? 'Batalkan vote Anda' : 'Beri vote (+1)'}
+          >
+            <ThumbsUp 
+              size={15} 
+              className={`retro-vote-icon ${hasVoted ? 'filled' : ''}`}
+            />
+            <span className="retro-vote-count">{votes}</span>
+          </button>
+
+          {/* Voted badge indicator pill (Screenshot 2) */}
+          {hasVoted && !isPriority && (
+            <span className="retro-voted-pill">Voted</span>
           )}
         </div>
       </div>

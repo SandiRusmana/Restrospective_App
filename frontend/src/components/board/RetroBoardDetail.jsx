@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   MoreHorizontal,
   MessageSquare,
@@ -52,6 +52,133 @@ const BOARD_TABS = [
   { id: 'aktivitas', label: 'Aktivitas', icon: Activity },
 ];
 
+// Sample Initial Cards Generator
+const createSampleCards = (boardId) => [
+  // START Column Cards
+  {
+    id: `card_${boardId || 'demo'}_start_1`,
+    columnId: 'start',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    votes: 8,
+    votedBy: ['current_user'],
+    hasVoted: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: `card_${boardId || 'demo'}_start_2`,
+    columnId: 'start',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    votes: 5,
+    votedBy: [],
+    hasVoted: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: `card_${boardId || 'demo'}_start_3`,
+    columnId: 'start',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    votes: 5,
+    votedBy: [],
+    hasVoted: false,
+    createdAt: new Date().toISOString()
+  },
+
+  // STOP Column Cards
+  {
+    id: `card_${boardId || 'demo'}_stop_1`,
+    columnId: 'stop',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    votes: 16,
+    isPriority: true,
+    votedBy: [],
+    hasVoted: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: `card_${boardId || 'demo'}_stop_2`,
+    columnId: 'stop',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    votes: 5,
+    votedBy: [],
+    hasVoted: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: `card_${boardId || 'demo'}_stop_3`,
+    columnId: 'stop',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    votes: 5,
+    votedBy: [],
+    hasVoted: false,
+    createdAt: new Date().toISOString()
+  },
+
+  // CONTINUE Column Cards
+  {
+    id: `card_${boardId || 'demo'}_continue_1`,
+    columnId: 'continue',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    votes: 5,
+    votedBy: [],
+    hasVoted: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: `card_${boardId || 'demo'}_continue_2`,
+    columnId: 'continue',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    votes: 5,
+    votedBy: [],
+    hasVoted: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: `card_${boardId || 'demo'}_continue_3`,
+    columnId: 'continue',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    votes: 5,
+    votedBy: [],
+    hasVoted: false,
+    createdAt: new Date().toISOString()
+  },
+];
+
 export default function RetroBoardDetail({
   workspace,
   board,
@@ -62,7 +189,7 @@ export default function RetroBoardDetail({
 }) {
   const [activeTab, setActiveTab] = useState('board');
   const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
-  const [cards, setCards] = useState([]);
+  const [cards, setCards] = useState(() => createSampleCards(board?.id));
 
   const boardId = board?.id;
 
@@ -71,11 +198,14 @@ export default function RetroBoardDetail({
     if (!boardId) return;
     try {
       const cardsData = await api.getCards(boardId);
-      if (Array.isArray(cardsData)) {
+      if (Array.isArray(cardsData) && cardsData.length > 0) {
         setCards(cardsData);
+      } else {
+        setCards(createSampleCards(boardId));
       }
     } catch {
-      // Keep existing cards
+      // Fallback to rich sample cards
+      setCards(createSampleCards(boardId));
     }
   }, [boardId]);
 
@@ -95,7 +225,7 @@ export default function RetroBoardDetail({
     const authorName = currentUser?.name || currentUser?.fullName?.replace(' (Anda)', '') || currentUser?.email?.split('@')[0] || 'Anda';
 
     const now = new Date();
-    const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const formattedTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true });
 
     const newCard = {
       id: `card_${Date.now()}`,
@@ -109,6 +239,9 @@ export default function RetroBoardDetail({
       authorName,
       avatar: defaultAvatar,
       time: formattedTime,
+      votes: 0,
+      votedBy: [],
+      hasVoted: false,
       createdAt: now.toISOString()
     };
 
@@ -154,11 +287,55 @@ export default function RetroBoardDetail({
     if (onShowToast) onShowToast('Teks catatan berhasil disalin!');
   };
 
+  // Handler: Interactive Card Voting Toggle
+  const handleVoteCard = (cardId) => {
+    const userId = currentUser?.id || currentUser?.email || 'current_user';
+
+    setCards((prevCards) =>
+      prevCards.map((card) => {
+        if (card.id !== cardId) return card;
+
+        const votedByList = Array.isArray(card.votedBy) ? [...card.votedBy] : [];
+        const userIndex = votedByList.indexOf(userId);
+        const isCurrentlyVoted = card.hasVoted !== undefined 
+          ? card.hasVoted 
+          : userIndex !== -1;
+
+        let nextVotes = card.votes !== undefined ? card.votes : 0;
+        let nextHasVoted = !isCurrentlyVoted;
+
+        if (isCurrentlyVoted) {
+          // Unvote
+          if (userIndex !== -1) votedByList.splice(userIndex, 1);
+          nextVotes = Math.max(0, nextVotes - 1);
+          if (onShowToast) onShowToast('Vote dibatalkan');
+        } else {
+          // Vote (+1)
+          if (userIndex === -1) votedByList.push(userId);
+          nextVotes = nextVotes + 1;
+          if (onShowToast) onShowToast('Vote berhasil ditambahkan! (+1)');
+        }
+
+        return {
+          ...card,
+          votes: nextVotes,
+          votedBy: votedByList,
+          hasVoted: nextHasVoted,
+        };
+      })
+    );
+  };
+
+  // Calculate highest voted card for dynamic priority
+  const maxVotes = useMemo(() => {
+    if (!cards.length) return 0;
+    return Math.max(...cards.map((c) => (c.votes !== undefined ? c.votes : 0)));
+  }, [cards]);
+
   const boardTitle = board?.title || board?.name || 'Sprint 16 Retrospective';
   const wsName = workspace?.name || 'Mobile Team';
   const memberCount = workspace?.memberCount || board?.membersCount || 8;
   const dateText = board?.dateText || 'Dibuat 30 Jun 2026';
-  const userAvatar = currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80';
 
   // Resolve retro columns dynamically based on board template
   const rawTemplate = (board?.template || 'start-stop-continue').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
@@ -317,9 +494,36 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-board-header-right">
+          {/* Online status indicator badge */}
+          <div className="retro-online-badge">
+            <span className="retro-online-dot"></span>
+            <span>8 online</span>
+          </div>
+
+          {/* Member avatars stack */}
+          <div className="retro-avatars-stack" title="Anggota aktif">
+            <img 
+              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80" 
+              alt="Afrizal" 
+              className="retro-stack-avatar" 
+            />
+            <img 
+              src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80" 
+              alt="Budi" 
+              className="retro-stack-avatar" 
+            />
+            <img 
+              src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80" 
+              alt="Citra" 
+              className="retro-stack-avatar" 
+            />
+            <div className="retro-stack-more">+2</div>
+          </div>
+
           <button type="button" className="btn-ghost-icon" title="Opsi board">
             <MoreHorizontal size={18} />
           </button>
+          
           <button
             type="button"
             className="btn-share-board"
@@ -332,16 +536,24 @@ export default function RetroBoardDetail({
 
       {/* ── Navigation Tabs ── */}
       <div className="retro-board-tabs">
-        {BOARD_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`retro-board-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        <div className="retro-tabs-left">
+          {BOARD_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`retro-board-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Real-time connection badge */}
+        <div className="retro-realtime-badge">
+          <span className="retro-realtime-dot"></span>
+          <span>Terhubung secara real-time</span>
+        </div>
       </div>
 
       {/* ── Tab 1: Interactive Board Canvas (Dynamic Template Columns) ── */}
@@ -360,7 +572,17 @@ export default function RetroBoardDetail({
                 c.columnId === col.id || 
                 c.columnId?.toLowerCase() === col.id?.toLowerCase() ||
                 c.columnId?.toLowerCase() === col.type?.toLowerCase()
-              );
+              ).map((card) => {
+                const isCardPriority = Boolean(
+                  card.isPriority || 
+                  (card.votes >= 10 && (card.votes === maxVotes || card.votes >= 16))
+                );
+                return {
+                  ...card,
+                  isPriority: isCardPriority
+                };
+              });
+
               return (
                 <RetroColumn
                   key={col.id}
@@ -370,6 +592,7 @@ export default function RetroBoardDetail({
                   onEditCard={handleEditCard}
                   onDeleteCard={handleDeleteCard}
                   onCopyCard={handleCopyCard}
+                  onVoteCard={handleVoteCard}
                   currentUser={currentUser}
                 />
               );

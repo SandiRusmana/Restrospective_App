@@ -2352,7 +2352,65 @@
 .retro-board-header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+/* Online Badge */
+.retro-online-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.retro-online-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+}
+
+/* Avatars Stack */
+.retro-avatars-stack {
+  display: flex;
+  align-items: center;
+}
+
+.retro-stack-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  margin-left: -8px;
+  object-fit: cover;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.retro-avatars-stack .retro-stack-avatar:first-child {
+  margin-left: 0;
+}
+
+.retro-stack-more {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  margin-left: -8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .btn-share-board {
@@ -2378,10 +2436,37 @@
 .retro-board-tabs {
   display: flex;
   align-items: center;
-  gap: 0;
+  justify-content: space-between;
   padding: 0 28px;
   background-color: #ffffff;
   border-bottom: 1px solid #e8ecf2;
+}
+
+.retro-tabs-left {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.retro-realtime-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.retro-realtime-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
 }
 
 .retro-board-tab-btn {
@@ -2669,22 +2754,71 @@
   gap: 12px;
 }
 
-/* ── Sticky Note Card (Screenshot 3) ── */
+/* ── Sticky Note Card ── */
 .retro-sticky-card {
   background-color: #ffffff;
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  border: 1.5px solid #f1f5f9;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   position: relative;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .retro-sticky-card:hover {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: #e2e8f0;
+}
+
+/* Priority Card State (🔥 PRIORITAS TIM) */
+.retro-sticky-card.retro-card-priority {
+  border: 1.5px solid #ef4444 !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.12);
+  background-color: #ffffff;
+}
+
+.retro-sticky-card.retro-card-priority:hover {
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.18);
+}
+
+.retro-card-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #ef4444 0%, #ea580c 100%);
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  width: fit-content;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
+}
+
+.retro-priority-badge-icon {
+  flex-shrink: 0;
+}
+
+/* Voted Card State (Screenshot 2) */
+.retro-sticky-card.retro-card-voted {
+  border: 1.5px solid #5956e9 !important;
+  box-shadow: 0 4px 14px rgba(89, 86, 233, 0.12);
+}
+
+.retro-sticky-card.retro-card-voted:hover {
+  box-shadow: 0 6px 18px rgba(89, 86, 233, 0.18);
+}
+
+/* Card Header Row (Text on Left, 3-dots on Right) */
+.retro-card-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .retro-card-body {
@@ -2693,7 +2827,7 @@
 
 .retro-card-text {
   margin: 0;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #111827;
   line-height: 1.45;
@@ -2704,17 +2838,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .retro-card-author-info {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
 }
 
 .retro-card-avatar {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -2736,6 +2872,97 @@
   font-size: 10.5px;
   color: #94a3b8;
   font-weight: 500;
+}
+
+/* ── Card Voting Section ── */
+.retro-card-vote-section {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-retro-vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 4px 8px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.btn-retro-vote:hover {
+  background-color: #f1f5f9;
+  color: #5956e9;
+  border-color: #cbd5e1;
+  transform: scale(1.05);
+}
+
+.btn-retro-vote.voted {
+  background-color: #ede9fe;
+  color: #5956e9;
+  border-color: #c4b5fd;
+}
+
+.btn-retro-vote.voted:hover {
+  background-color: #e0e7ff;
+  border-color: #a5b4fc;
+}
+
+.btn-retro-vote.priority {
+  color: #ef4444;
+}
+
+.btn-retro-vote.priority:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.retro-vote-icon {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-retro-vote:hover .retro-vote-icon {
+  transform: scale(1.15) rotate(-8deg);
+}
+
+.retro-vote-icon.filled {
+  fill: currentColor;
+}
+
+.retro-vote-count {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.retro-voted-pill {
+  background-color: #ede9fe;
+  color: #5956e9;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  letter-spacing: 0.3px;
+  border: 1px solid #ddd6fe;
+}
+
+@keyframes voteBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.28); }
+  75% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+.btn-retro-vote.vote-pop {
+  animation: voteBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Card 3-Dots Dropdown Menu */
@@ -2764,7 +2991,7 @@
 .retro-card-menu-dropdown {
   position: absolute;
   right: 0;
-  bottom: calc(100% + 4px);
+  top: calc(100% + 4px);
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;

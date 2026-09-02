@@ -154,7 +154,77 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.warn('Gagal fetch workspaces:', err);
+      console.warn('Backend offline, menggunakan workspace demo:', err);
+      const defaultUser = currentUserObj || {
+        id: 'user_afrizal',
+        name: 'Afrizal',
+        fullName: 'Afrizal (Anda)',
+        email: 'afrizal@gmail.com',
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+        isOnline: true
+      };
+      const fallbackWorkspaces = [
+        {
+          id: 'ws_mobile_team',
+          name: 'Mobile Team',
+          initial: 'M',
+          color: '#5956e9',
+          role: 'Owner',
+          description: 'Workspace tim Mobile Development RetroNerve',
+          longDescription: 'Workspace untuk tim Mobile Team. Semua retrospective dan diskusi tim dilakukan di sini',
+          memberCount: 8,
+          dateText: 'Dibuat 30 Jun 2026',
+          isRecent: true,
+          members: [
+            { id: '1', name: 'Afrizal (Anda)', role: 'Owner', email: 'afrizal@gmail.com', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', isOnline: true },
+            { id: '2', name: 'Budi Santoso', role: 'Member', email: 'budi@gmail.com', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', isOnline: true },
+            { id: '3', name: 'Citra Lestari', role: 'Member', email: 'citra@gmail.com', avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80', isOnline: true },
+          ],
+          boards: [
+            {
+              id: 'board_sprint_16',
+              title: 'Sprint 16 Retrospective',
+              name: 'Sprint 16 Retrospective',
+              template: 'start-stop-continue',
+              isAnonymous: false,
+              voteLimit: 5,
+              cardsCount: 9,
+              createdAt: '2026-06-30T10:00:00.000Z',
+              theme: { bg: '#f3f0ff', color: '#7c3aed' },
+            }
+          ]
+        },
+        {
+          id: 'ws_web_team',
+          name: 'Web Team',
+          initial: 'W',
+          color: '#2563eb',
+          role: 'Owner',
+          description: 'Workspace tim Web Platform',
+          longDescription: 'Workspace untuk tim Web Platform',
+          memberCount: 5,
+          dateText: 'Dibuat 15 Jul 2026',
+          isRecent: true,
+          members: [],
+          boards: []
+        },
+        {
+          id: 'ws_qa_squad',
+          name: 'QA Squad',
+          initial: 'Q',
+          color: '#10b981',
+          role: 'Owner',
+          description: 'Quality Assurance squad board',
+          longDescription: 'Quality Assurance squad board',
+          memberCount: 4,
+          dateText: 'Dibuat 20 Jul 2026',
+          isRecent: true,
+          members: [],
+          boards: []
+        }
+      ];
+      setWorkspaces(fallbackWorkspaces);
+      setActiveWorkspaceId('ws_mobile_team');
     }
   }, []);
 

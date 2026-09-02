@@ -9,6 +9,7 @@ export default function RetroColumn({
   onEditCard,
   onDeleteCard,
   onCopyCard,
+  onVoteCard,
   currentUser
 }) {
   const [isAdding, setIsAdding] = useState(false);
@@ -122,6 +123,7 @@ export default function RetroColumn({
               onEdit={onEditCard}
               onDelete={onDeleteCard}
               onCopy={onCopyCard}
+              onVote={onVoteCard}
               currentUser={currentUser}
             />
           ))}
