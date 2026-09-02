@@ -181,6 +181,12 @@ export const api = {
     });
   },
 
+  async unvoteCard(cardId) {
+    return request(`/cards/${cardId}/vote`, {
+      method: 'DELETE',
+    });
+  },
+
   async addComment(cardId, text) {
     return request(`/cards/${cardId}/comments`, {
       method: 'POST',

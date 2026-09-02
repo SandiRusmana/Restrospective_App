@@ -64,8 +64,32 @@ export default function RetroBoardDetail({
   const [activeTab, setActiveTab] = useState('board');
   const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
   const [cards, setCards] = useState([]);
+  const [members, setMembers] = useState([]);
 
   const boardId = board?.id;
+
+  // Load Workspace Members from API
+  useEffect(() => {
+    const wsId = workspace?.id || board?.workspaceId;
+    if (!wsId) return;
+    api
+      .getWorkspaceMembers(wsId)
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const formatted = data.map((m) => ({
+            id: m.userId || m.id,
+            name: m.user?.name || m.name || m.user?.email?.split('@')[0] || 'Member',
+            email: m.user?.email || m.email || '',
+            avatarUrl:
+              m.user?.avatarUrl ||
+              m.avatarUrl ||
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user?.name || m.user?.email || m.userId || 'member'}`,
+          }));
+          setMembers(formatted);
+        }
+      })
+      .catch(() => {});
+  }, [workspace?.id, board?.workspaceId]);
 
   // Load Cards from API
   const loadCardsFromApi = useCallback(async () => {
@@ -84,8 +108,8 @@ export default function RetroBoardDetail({
     loadCardsFromApi();
   }, [loadCardsFromApi]);
 
-  // Hook Pusher Channels Realtime
-  const { connectionStatus } = useBoardPusher(boardId, {
+  // Hook Pusher Channels Realtime & Presence
+  const { connectionStatus, onlineMembers, onlineCount } = useBoardPusher(boardId, currentUser, {
     onCardCreated: (newCard) => {
       setCards((prev) => {
         // Jika sudah ada (berdasarkan id yang sama), jangan duplikasi
@@ -295,9 +319,13 @@ export default function RetroBoardDetail({
     );
 
     try {
-      await api.voteCard(cardId);
+      if (userHasVoted) {
+        await api.unvoteCard(cardId);
+      } else {
+        await api.voteCard(cardId);
+      }
     } catch (err) {
-      console.error('Failed to vote card:', err);
+      console.error('Failed to vote/unvote card:', err);
     }
   };
 
@@ -308,8 +336,29 @@ export default function RetroBoardDetail({
 
   const boardTitle = board?.title || board?.name || 'Sprint 16 Retrospective';
   const wsName = workspace?.name || 'Mobile Team';
-  const memberCount = workspace?.memberCount || board?.membersCount || 8;
+  const memberCount = members.length > 0 ? members.length : workspace?.memberCount || board?.membersCount || 1;
+  const totalMemberCount = memberCount;
   const dateText = board?.dateText || 'Dibuat 30 Jun 2026';
+
+  // Daftar anggota yang ditampilkan (prioritas anggota online, fallback ke member workspace)
+  const displayMembers = useMemo(() => {
+    if (onlineMembers && onlineMembers.length > 0) {
+      return onlineMembers;
+    }
+    if (members && members.length > 0) {
+      return members;
+    }
+    const myEmail = currentUser?.email || '';
+    const myName = currentUser?.name || currentUser?.fullName || (myEmail ? myEmail.split('@')[0] : 'Anda');
+    return [
+      {
+        id: currentUser?.id || 'current_user',
+        name: myName,
+        email: myEmail,
+        avatarUrl: currentUser?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${myEmail || myName}`,
+      },
+    ];
+  }, [onlineMembers, members, currentUser]);
 
   // Resolve retro columns dynamically based on board template
   const rawTemplate = (board?.template || 'start-stop-continue')
@@ -506,30 +555,32 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-board-header-right">
-          {/* Online status indicator badge */}
+          {/* Online status indicator badge (Realtime Count) */}
           <div className="retro-online-badge">
             <span className="retro-online-dot"></span>
-            <span>{memberCount} online</span>
+            <span>{onlineCount} online</span>
           </div>
 
-          {/* Member avatars stack */}
-          <div className="retro-avatars-stack" title="Anggota aktif">
-            <img
-              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
-              alt="Afrizal"
-              className="retro-stack-avatar"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
-              alt="Budi"
-              className="retro-stack-avatar"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80"
-              alt="Citra"
-              className="retro-stack-avatar"
-            />
-            <div className="retro-stack-more">+2</div>
+          {/* Real member avatars stack */}
+          <div className="retro-avatars-stack" title={`${onlineCount} anggota online`}>
+            {displayMembers.slice(0, 3).map((m, idx) => (
+              <img
+                key={m.id || idx}
+                src={m.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name || m.email || idx}`}
+                alt={m.name || 'Member'}
+                title={m.name || m.email || 'Member'}
+                className="retro-stack-avatar"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name || 'user'}`;
+                }}
+              />
+            ))}
+            {displayMembers.length > 3 && (
+              <div className="retro-stack-more" title={`${displayMembers.length - 3} lainnya`}>
+                +{displayMembers.length - 3}
+              </div>
+            )}
           </div>
 
           <button type="button" className="btn-ghost-icon" title="Opsi board">

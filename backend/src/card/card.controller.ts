@@ -44,14 +44,6 @@ export class CardController {
     return this.cardService.deleteCard(userId, cardId);
   }
 
-  @Post('cards/:id/vote')
-  async toggleVote(
-    @GetUser('id') userId: string,
-    @Param('id') cardId: string,
-  ) {
-    return this.cardService.toggleVote(userId, cardId);
-  }
-
   @Post('cards/:id/comments')
   async addComment(
     @GetUser('id') userId: string,

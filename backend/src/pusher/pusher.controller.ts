@@ -34,8 +34,8 @@ export class PusherController {
       throw new ForbiddenException('socket_id dan channel_name wajib diisi');
     }
 
-    // Ekstrak boardId dari nama channel (misal: "private-board-123", "board-123")
-    const match = channelName.match(/(?:private-)?board-?(.+)/);
+    // Ekstrak boardId dari nama channel (misal: "private-board-123", "presence-board-123", "board-123")
+    const match = channelName.match(/(?:private-|presence-)?board-?(.+)/);
     if (match && match[1]) {
       const boardId = match[1];
       const board = await this.prisma.board.findUnique({
@@ -60,13 +60,21 @@ export class PusherController {
       }
     }
 
-    // Data otorisasi presensi/channel
+    // Data otorisasi presensi/channel dengan konsistensi avatar seed
+    const userEmail = user.email || '';
+    const userName = user.name || (userEmail ? userEmail.split('@')[0] : 'User');
+    const avatarUrl =
+      (user as any).avatarUrl ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || userName}`;
+
     const presenceData = {
       user_id: user.id,
       user_info: {
         id: user.id,
-        name: user.name || user.email.split('@')[0],
-        email: user.email,
+        name: userName,
+        email: userEmail,
+        avatarUrl,
+        avatar: avatarUrl,
       },
     };
 

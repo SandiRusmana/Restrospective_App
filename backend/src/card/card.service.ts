@@ -101,7 +101,7 @@ export class CardService {
     // 1. Cek Otorisasi Akses User ke Board
     await this.checkBoardAccess(userId, boardId);
 
-    // 2. Ambil semua card diurutkan berdasarkan tanggal dibuat
+    // 2. Ambil semua card pada board beserta relasi author dan vote
     const cards = await this.prisma.card.findMany({
       where: { boardId },
       include: {
@@ -112,13 +112,34 @@ export class CardService {
             email: true,
           },
         },
+        votes: {
+          select: {
+            userId: true,
+          },
+        },
+        _count: {
+          select: {
+            votes: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'asc',
       },
     });
 
-    return cards;
+    return cards.map((c) => ({
+      id: c.id,
+      boardId: c.boardId,
+      columnId: c.columnId,
+      authorId: c.authorId,
+      content: c.content,
+      createdAt: c.createdAt,
+      author: c.author,
+      votes: c.votes,
+      votesCount: c._count.votes,
+      hasVoted: c.votes.some((v) => v.userId === userId),
+    }));
   }
 
   /**
@@ -218,32 +239,6 @@ export class CardService {
     return {
       message: 'Card berhasil dihapus',
     };
-  }
-
-  /**
-   * Toggle / Submit Vote Realtime
-   */
-  async toggleVote(userId: string, cardId: string) {
-    const card = await this.prisma.card.findUnique({ where: { id: cardId } });
-    if (!card) throw new NotFoundException('Card tidak ditemukan');
-
-    await this.checkBoardAccess(userId, card.boardId);
-
-    const channels = [`private-board-${card.boardId}`, `board-${card.boardId}`];
-    const voteData = {
-      cardId: card.id,
-      boardId: card.boardId,
-      userId,
-      votedAt: new Date().toISOString(),
-    };
-
-    try {
-      await this.pusher.trigger(channels, 'vote.updated', voteData);
-    } catch (err) {
-      console.warn(`[Pusher Warn] Gagal broadcast vote.updated:`, err.message);
-    }
-
-    return { message: 'Vote berhasil diperbarui', vote: voteData };
   }
 
   /**

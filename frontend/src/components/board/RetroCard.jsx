@@ -40,7 +40,7 @@ export default function RetroCard({
     card?.author?.avatarUrl ||
     card?.author?.avatar ||
     card?.avatar ||
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${card?.author?.email || authorName}`;
   const timestamp =
     card?.time ||
     (card?.createdAt
