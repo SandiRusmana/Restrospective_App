@@ -11,6 +11,7 @@ import {
   Clock
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { useBoardPusher } from '../../hooks/useBoardPusher';
 import RetroColumn from './RetroColumn';
 
 // Template Columns Dictionary
@@ -66,7 +67,7 @@ export default function RetroBoardDetail({
 
   const boardId = board?.id;
 
-  // Load Cards from API if available
+  // Load Cards from API
   const loadCardsFromApi = useCallback(async () => {
     if (!boardId) return;
     try {
@@ -83,6 +84,77 @@ export default function RetroBoardDetail({
     loadCardsFromApi();
   }, [loadCardsFromApi]);
 
+  // Hook Pusher Channels Realtime
+  const { connectionStatus } = useBoardPusher(boardId, {
+    onCardCreated: (newCard) => {
+      setCards((prev) => {
+        // Jika sudah ada (berdasarkan id yang sama), jangan duplikasi
+        if (prev.some((c) => c.id === newCard.id)) return prev;
+
+        // Jika ada temporary optimistic card dengan konten & kolom yang sama, replace
+        const optIndex = prev.findIndex(
+          (c) =>
+            typeof c.id === 'string' &&
+            c.id.startsWith('card_') &&
+            c.columnId === newCard.columnId &&
+            c.content === newCard.content
+        );
+
+        if (optIndex !== -1) {
+          const next = [...prev];
+          next[optIndex] = newCard;
+          return next;
+        }
+
+        return [...prev, newCard];
+      });
+    },
+
+    onCardUpdated: (updatedCard) => {
+      setCards((prev) =>
+        prev.map((c) => (c.id === updatedCard.id ? { ...c, ...updatedCard } : c))
+      );
+    },
+
+    onCardDeleted: (deletedData) => {
+      const targetId = deletedData?.id || deletedData?.cardId;
+      setCards((prev) => prev.filter((c) => c.id !== targetId));
+    },
+
+    onVoteUpdated: (voteData) => {
+      setCards((prev) =>
+        prev.map((c) => {
+          if (c.id === voteData.cardId) {
+            const currentVotes = Array.isArray(c.votes) ? [...c.votes] : [];
+            const userVoteIndex = currentVotes.findIndex(
+              (v) => (v.userId || v.id || v) === voteData.userId
+            );
+
+            let nextVotes;
+            if (userVoteIndex >= 0) {
+              nextVotes = currentVotes.filter((_, idx) => idx !== userVoteIndex);
+            } else {
+              nextVotes = [
+                ...currentVotes,
+                { userId: voteData.userId, votedAt: voteData.votedAt || new Date().toISOString() },
+              ];
+            }
+
+            return {
+              ...c,
+              votes: nextVotes,
+              votesCount: nextVotes.length,
+              hasVoted: nextVotes.some(
+                (v) => (v.userId || v.id || v) === currentUser?.id
+              ),
+            };
+          }
+          return c;
+        })
+      );
+    },
+  });
+
   // Handler: Share Board Link
   const handleShare = () => {
     if (navigator?.clipboard) navigator.clipboard.writeText(window.location.href);
@@ -91,25 +163,38 @@ export default function RetroBoardDetail({
 
   // Handler: Add Card
   const handleAddCard = async (columnId, text) => {
-    const defaultAvatar = currentUser?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'user'}`;
-    const authorName = currentUser?.name || currentUser?.fullName?.replace(' (Anda)', '') || currentUser?.email?.split('@')[0] || 'Anda';
+    const defaultAvatar =
+      currentUser?.avatarUrl ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'user'}`;
+    const authorName =
+      currentUser?.name ||
+      currentUser?.fullName?.replace(' (Anda)', '') ||
+      currentUser?.email?.split('@')[0] ||
+      'Anda';
 
     const now = new Date();
-    const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const formattedTime = now.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
 
+    const tempId = `card_${Date.now()}`;
     const newCard = {
-      id: `card_${Date.now()}`,
+      id: tempId,
       columnId,
       content: text,
       author: {
         id: currentUser?.id || 'current_user',
         name: authorName,
-        email: currentUser?.email || ''
+        email: currentUser?.email || '',
       },
       authorName,
       avatar: defaultAvatar,
       time: formattedTime,
-      createdAt: now.toISOString()
+      createdAt: now.toISOString(),
+      votes: [],
+      votesCount: 0,
     };
 
     setCards((prev) => [...prev, newCard]);
@@ -117,7 +202,12 @@ export default function RetroBoardDetail({
 
     // Async sync with API
     try {
-      await api.createCard(boardId, columnId, text);
+      const res = await api.createCard(boardId, columnId, text);
+      if (res?.card) {
+        setCards((prev) =>
+          prev.map((c) => (c.id === tempId ? { ...c, ...res.card } : c))
+        );
+      }
     } catch {
       // Local state already updated
     }
@@ -126,7 +216,9 @@ export default function RetroBoardDetail({
   // Handler: Edit Card
   const handleEditCard = async (cardId, updatedText) => {
     setCards((prev) =>
-      prev.map((c) => (c.id === cardId ? { ...c, content: updatedText, text: updatedText } : c))
+      prev.map((c) =>
+        c.id === cardId ? { ...c, content: updatedText, text: updatedText } : c
+      )
     );
     if (onShowToast) onShowToast('Catatan berhasil diperbarui!');
 
@@ -149,6 +241,48 @@ export default function RetroBoardDetail({
     }
   };
 
+  // Handler: Toggle Vote on Card
+  const handleVoteCard = async (cardId) => {
+    setCards((prev) =>
+      prev.map((c) => {
+        if (c.id === cardId) {
+          const currentVotes = Array.isArray(c.votes) ? [...c.votes] : [];
+          const userHasVoted =
+            Boolean(c.hasVoted) ||
+            currentVotes.some(
+              (v) => (v.userId || v.id || v) === currentUser?.id
+            );
+
+          let updatedVotes;
+          if (userHasVoted) {
+            updatedVotes = currentVotes.filter(
+              (v) => (v.userId || v.id || v) !== currentUser?.id
+            );
+          } else {
+            updatedVotes = [
+              ...currentVotes,
+              { userId: currentUser?.id || 'current_user', votedAt: new Date().toISOString() },
+            ];
+          }
+
+          return {
+            ...c,
+            votes: updatedVotes,
+            votesCount: updatedVotes.length,
+            hasVoted: !userHasVoted,
+          };
+        }
+        return c;
+      })
+    );
+
+    try {
+      await api.voteCard(cardId);
+    } catch (err) {
+      console.error('Failed to vote card:', err);
+    }
+  };
+
   // Handler: Copy Card
   const handleCopyCard = () => {
     if (onShowToast) onShowToast('Teks catatan berhasil disalin!');
@@ -158,40 +292,47 @@ export default function RetroBoardDetail({
   const wsName = workspace?.name || 'Mobile Team';
   const memberCount = workspace?.memberCount || board?.membersCount || 8;
   const dateText = board?.dateText || 'Dibuat 30 Jun 2026';
-  const userAvatar = currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80';
 
   // Resolve retro columns dynamically based on board template
-  const rawTemplate = (board?.template || 'start-stop-continue').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
-  const activeColumns = TEMPLATE_COLUMNS_MAP[rawTemplate] || 
-    (rawTemplate.includes('mad') || rawTemplate.includes('sad') || rawTemplate.includes('glad') ? TEMPLATE_COLUMNS_MAP['mad-sad-glad'] :
-     rawTemplate.includes('4l') || rawTemplate.includes('liked') || rawTemplate.includes('learned') ? TEMPLATE_COLUMNS_MAP['4ls'] :
-     rawTemplate.includes('went') || rawTemplate.includes('wrong') || rawTemplate.includes('well') ? TEMPLATE_COLUMNS_MAP['went-well-wrong'] :
-     TEMPLATE_COLUMNS_MAP['start-stop-continue']);
+  const rawTemplate = (board?.template || 'start-stop-continue')
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '');
+  const activeColumns =
+    TEMPLATE_COLUMNS_MAP[rawTemplate] ||
+    (rawTemplate.includes('mad') ||
+    rawTemplate.includes('sad') ||
+    rawTemplate.includes('glad')
+      ? TEMPLATE_COLUMNS_MAP['mad-sad-glad']
+      : rawTemplate.includes('4l') ||
+        rawTemplate.includes('liked') ||
+        rawTemplate.includes('learned')
+      ? TEMPLATE_COLUMNS_MAP['4ls']
+      : rawTemplate.includes('went') ||
+        rawTemplate.includes('wrong') ||
+        rawTemplate.includes('well')
+      ? TEMPLATE_COLUMNS_MAP['went-well-wrong']
+      : TEMPLATE_COLUMNS_MAP['start-stop-continue']);
 
   return (
     <div className="retro-board-full-view">
       {/* ── Top Breadcrumb Bar ── */}
       <div className="retro-full-topbar">
         <div className="retro-full-breadcrumbs">
-          <button
-            type="button"
-            className="retro-crumb-btn"
-            onClick={onBack}
-          >
+          <button type="button" className="retro-crumb-btn" onClick={onBack}>
             Workspace Saya
           </button>
           <span className="retro-crumb-chevron">{'>'}</span>
-          <button
-            type="button"
-            className="retro-crumb-btn"
-            onClick={onBack}
-          >
+          <button type="button" className="retro-crumb-btn" onClick={onBack}>
             {wsName}
           </button>
           <span className="retro-crumb-chevron">{'>'}</span>
-          
+
           {workspace?.boards && workspace.boards.length > 1 ? (
-            <div className="retro-board-switcher-container" style={{ position: 'relative', display: 'inline-block' }}>
+            <div
+              className="retro-board-switcher-container"
+              style={{ position: 'relative', display: 'inline-block' }}
+            >
               <button
                 type="button"
                 className="retro-crumb-active-btn"
@@ -207,7 +348,7 @@ export default function RetroBoardDetail({
                   cursor: 'pointer',
                   fontWeight: 600,
                   color: '#0f172a',
-                  fontSize: '13px'
+                  fontSize: '13px',
                 }}
               >
                 <span>{boardTitle}</span>
@@ -215,7 +356,7 @@ export default function RetroBoardDetail({
               </button>
 
               {isBoardDropdownOpen && (
-                <div 
+                <div
                   className="retro-board-dropdown-popup"
                   style={{
                     position: 'absolute',
@@ -223,15 +364,24 @@ export default function RetroBoardDetail({
                     left: 0,
                     marginTop: '6px',
                     backgroundColor: '#ffffff',
-                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                    boxShadow:
+                      '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
                     borderRadius: '8px',
                     padding: '6px',
                     zIndex: 50,
                     minWidth: '220px',
-                    border: '1px solid #e2e8f0'
+                    border: '1px solid #e2e8f0',
                   }}
                 >
-                  <div style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+                  <div
+                    style={{
+                      padding: '6px 10px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#94a3b8',
+                      textTransform: 'uppercase',
+                    }}
+                  >
                     Pindah Board di {wsName}
                   </div>
                   {workspace.boards.map((b) => (
@@ -251,11 +401,12 @@ export default function RetroBoardDetail({
                         fontSize: '13px',
                         color: b.id === board?.id ? '#5956e9' : '#334155',
                         fontWeight: b.id === board?.id ? 600 : 400,
-                        backgroundColor: b.id === board?.id ? '#f1f5f9' : 'transparent',
+                        backgroundColor:
+                          b.id === board?.id ? '#f1f5f9' : 'transparent',
                         borderRadius: '6px',
                         border: 'none',
                         textAlign: 'left',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
                       }}
                     >
                       <span>{b.title || b.name}</span>
@@ -275,8 +426,19 @@ export default function RetroBoardDetail({
           <button type="button" className="btn-icon-top" title="Tampilan">
             <LayoutGrid size={18} />
           </button>
-          <button type="button" className="btn-icon-top notification-btn" title="Notifikasi">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button
+            type="button"
+            className="btn-icon-top notification-btn"
+            title="Notifikasi"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
@@ -284,7 +446,10 @@ export default function RetroBoardDetail({
           </button>
           <div className="top-user-avatar-wrapper">
             <img
-              src={currentUser?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=user`}
+              src={
+                currentUser?.avatarUrl ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=user`
+              }
               alt={currentUser?.name || 'User'}
               className="top-user-avatar"
             />
@@ -296,9 +461,15 @@ export default function RetroBoardDetail({
       <div className="retro-board-header-banner">
         <div className="retro-board-header-left">
           {/* 4-dot squircle icon */}
-          <div className="retro-board-icon-box" style={{ backgroundColor: '#f3f0ff' }}>
+          <div
+            className="retro-board-icon-box"
+            style={{ backgroundColor: '#f3f0ff' }}
+          >
             <div className="four-dots-icon" style={{ '--dot-color': '#5956e9' }}>
-              <span></span><span></span><span></span><span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
             </div>
           </div>
 
@@ -317,6 +488,12 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-board-header-right">
+          {/* Online badge */}
+          <div className="retro-online-badge">
+            <span className="retro-online-dot"></span>
+            <span>Online</span>
+          </div>
+
           <button type="button" className="btn-ghost-icon" title="Opsi board">
             <MoreHorizontal size={18} />
           </button>
@@ -330,36 +507,60 @@ export default function RetroBoardDetail({
         </div>
       </div>
 
-      {/* ── Navigation Tabs ── */}
+      {/* ── Navigation Tabs with Realtime Status Badge ── */}
       <div className="retro-board-tabs">
-        {BOARD_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`retro-board-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        <div className="retro-tabs-left">
+          {BOARD_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`retro-board-tab-btn ${
+                activeTab === tab.id ? 'active' : ''
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div
+          className={`retro-realtime-badge ${
+            connectionStatus === 'connected' ? '' : connectionStatus
+          }`}
+        >
+          <span
+            className={`retro-realtime-dot ${
+              connectionStatus === 'connected' ? '' : connectionStatus
+            }`}
+          ></span>
+          <span>
+            {connectionStatus === 'connected'
+              ? 'Realtime Aktif'
+              : connectionStatus === 'connecting'
+              ? 'Menghubungkan...'
+              : 'Offline (Polling)'}
+          </span>
+        </div>
       </div>
 
       {/* ── Tab 1: Interactive Board Canvas (Dynamic Template Columns) ── */}
       {activeTab === 'board' && (
         <div className="retro-board-columns-container">
-          <div 
-            className="retro-board-columns-grid" 
-            style={{ 
-              display: 'grid', 
-              gridTemplateColumns: `repeat(${activeColumns.length}, minmax(260px, 1fr))`, 
-              gap: '16px' 
+          <div
+            className="retro-board-columns-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${activeColumns.length}, minmax(260px, 1fr))`,
+              gap: '16px',
             }}
           >
             {activeColumns.map((col) => {
-              const colCards = cards.filter((c) => 
-                c.columnId === col.id || 
-                c.columnId?.toLowerCase() === col.id?.toLowerCase() ||
-                c.columnId?.toLowerCase() === col.type?.toLowerCase()
+              const colCards = cards.filter(
+                (c) =>
+                  c.columnId === col.id ||
+                  c.columnId?.toLowerCase() === col.id?.toLowerCase() ||
+                  c.columnId?.toLowerCase() === col.type?.toLowerCase()
               );
               return (
                 <RetroColumn
@@ -370,6 +571,7 @@ export default function RetroBoardDetail({
                   onEditCard={handleEditCard}
                   onDeleteCard={handleDeleteCard}
                   onCopyCard={handleCopyCard}
+                  onVoteCard={handleVoteCard}
                   currentUser={currentUser}
                 />
               );
