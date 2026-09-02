@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   MoreHorizontal,
   MessageSquare,
@@ -72,7 +72,7 @@ export default function RetroBoardDetail({
     if (!boardId) return;
     try {
       const cardsData = await api.getCards(boardId);
-      if (Array.isArray(cardsData)) {
+      if (Array.isArray(cardsData) && cardsData.length > 0) {
         setCards(cardsData);
       }
     } catch {
@@ -140,12 +140,13 @@ export default function RetroBoardDetail({
               ];
             }
 
+            const currentUserId = currentUser?.id || currentUser?.email || 'current_user';
             return {
               ...c,
               votes: nextVotes,
               votesCount: nextVotes.length,
               hasVoted: nextVotes.some(
-                (v) => (v.userId || v.id || v) === currentUser?.id
+                (v) => (v.userId || v.id || v) === currentUserId
               ),
             };
           }
@@ -154,6 +155,19 @@ export default function RetroBoardDetail({
       );
     },
   });
+
+  // Calculate highest voted card for dynamic priority
+  const maxVotes = useMemo(() => {
+    if (!cards.length) return 0;
+    return Math.max(
+      ...cards.map((c) => {
+        if (typeof c.votesCount === 'number') return c.votesCount;
+        if (Array.isArray(c.votes)) return c.votes.length;
+        if (typeof c.votes === 'number') return c.votes;
+        return c.voteCount || 0;
+      })
+    );
+  }, [cards]);
 
   // Handler: Share Board Link
   const handleShare = () => {
@@ -195,6 +209,8 @@ export default function RetroBoardDetail({
       createdAt: now.toISOString(),
       votes: [],
       votesCount: 0,
+      votedBy: [],
+      hasVoted: false,
     };
 
     setCards((prev) => [...prev, newCard]);
@@ -243,26 +259,28 @@ export default function RetroBoardDetail({
 
   // Handler: Toggle Vote on Card
   const handleVoteCard = async (cardId) => {
+    const currentUserId = currentUser?.id || currentUser?.email || 'current_user';
+
     setCards((prev) =>
       prev.map((c) => {
         if (c.id === cardId) {
           const currentVotes = Array.isArray(c.votes) ? [...c.votes] : [];
           const userHasVoted =
             Boolean(c.hasVoted) ||
-            currentVotes.some(
-              (v) => (v.userId || v.id || v) === currentUser?.id
-            );
+            currentVotes.some((v) => (v.userId || v.id || v) === currentUserId);
 
           let updatedVotes;
           if (userHasVoted) {
             updatedVotes = currentVotes.filter(
-              (v) => (v.userId || v.id || v) !== currentUser?.id
+              (v) => (v.userId || v.id || v) !== currentUserId
             );
+            if (onShowToast) onShowToast('Vote dibatalkan');
           } else {
             updatedVotes = [
               ...currentVotes,
-              { userId: currentUser?.id || 'current_user', votedAt: new Date().toISOString() },
+              { userId: currentUserId, votedAt: new Date().toISOString() },
             ];
+            if (onShowToast) onShowToast('Vote berhasil ditambahkan! (+1)');
           }
 
           return {
@@ -488,10 +506,30 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-board-header-right">
-          {/* Online badge */}
+          {/* Online status indicator badge */}
           <div className="retro-online-badge">
             <span className="retro-online-dot"></span>
-            <span>Online</span>
+            <span>{memberCount} online</span>
+          </div>
+
+          {/* Member avatars stack */}
+          <div className="retro-avatars-stack" title="Anggota aktif">
+            <img
+              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
+              alt="Afrizal"
+              className="retro-stack-avatar"
+            />
+            <img
+              src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+              alt="Budi"
+              className="retro-stack-avatar"
+            />
+            <img
+              src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80"
+              alt="Citra"
+              className="retro-stack-avatar"
+            />
+            <div className="retro-stack-more">+2</div>
           </div>
 
           <button type="button" className="btn-ghost-icon" title="Opsi board">
@@ -536,7 +574,7 @@ export default function RetroBoardDetail({
           ></span>
           <span>
             {connectionStatus === 'connected'
-              ? 'Realtime Aktif'
+              ? 'Terhubung secara real-time'
               : connectionStatus === 'connecting'
               ? 'Menghubungkan...'
               : 'Offline (Polling)'}
@@ -556,12 +594,32 @@ export default function RetroBoardDetail({
             }}
           >
             {activeColumns.map((col) => {
-              const colCards = cards.filter(
-                (c) =>
-                  c.columnId === col.id ||
-                  c.columnId?.toLowerCase() === col.id?.toLowerCase() ||
-                  c.columnId?.toLowerCase() === col.type?.toLowerCase()
-              );
+              const colCards = cards
+                .filter(
+                  (c) =>
+                    c.columnId === col.id ||
+                    c.columnId?.toLowerCase() === col.id?.toLowerCase() ||
+                    c.columnId?.toLowerCase() === col.type?.toLowerCase()
+                )
+                .map((card) => {
+                  const votesNum =
+                    typeof card.votesCount === 'number'
+                      ? card.votesCount
+                      : Array.isArray(card.votes)
+                      ? card.votes.length
+                      : typeof card.votes === 'number'
+                      ? card.votes
+                      : 0;
+                  const isCardPriority = Boolean(
+                    card.isPriority ||
+                      (votesNum >= 3 && (votesNum === maxVotes || votesNum >= 10))
+                  );
+                  return {
+                    ...card,
+                    isPriority: isCardPriority,
+                  };
+                });
+
               return (
                 <RetroColumn
                   key={col.id}

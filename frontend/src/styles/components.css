@@ -2490,7 +2490,6 @@
   background-color: #d97706;
   box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
 }
-
 .retro-board-tab-btn {
   background: none;
   border: none;
@@ -2795,7 +2794,7 @@
   border-color: #e2e8f0;
 }
 
-/* Priority Card State */
+/* Priority Card State (🔥 PRIORITAS TIM) */
 .retro-sticky-card.retro-card-priority {
   border: 1.5px solid #ef4444 !important;
   box-shadow: 0 4px 14px rgba(239, 68, 68, 0.12);
