@@ -9,6 +9,7 @@ import { CardModule } from './card/card.module';
 import { InviteModule } from './invite/invite.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PusherModule } from './pusher/pusher.module';
+import { VoteModule } from './vote/vote.module';
 import { WorkspaceModule } from './workspace/workspace.module';
 
 @Module({
@@ -37,14 +38,14 @@ import { WorkspaceModule } from './workspace/workspace.module';
     AuthModule,
     // Modul Manajemen Workspace
     WorkspaceModule,
-    // Modul Board & Card Retrospective
+    // Modul Board Retrospective
     BoardModule,
     // Modul Invite Workspace
     InviteModule,
-    // Modul Retrospective Board
-    BoardModule,
     // Modul Card / Sticky Notes
     CardModule,
+    // Modul Vote Realtime
+    VoteModule,
   ],
   controllers: [AppController],
   providers: [AppService],

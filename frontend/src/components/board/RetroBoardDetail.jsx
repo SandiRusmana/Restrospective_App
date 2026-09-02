@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
+import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import RetroColumn from './RetroColumn';
 
 // Template Columns Dictionary
@@ -64,8 +65,32 @@ export default function RetroBoardDetail({
   const [activeTab, setActiveTab] = useState('board');
   const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
   const [cards, setCards] = useState([]);
+  const [members, setMembers] = useState([]);
 
   const boardId = board?.id;
+
+  // Load Workspace Members from API
+  useEffect(() => {
+    const wsId = workspace?.id || board?.workspaceId;
+    if (!wsId) return;
+    api
+      .getWorkspaceMembers(wsId)
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const formatted = data.map((m) => ({
+            id: m.userId || m.id,
+            name: m.user?.name || m.name || m.user?.email?.split('@')[0] || 'Member',
+            email: m.user?.email || m.email || '',
+            avatarUrl:
+              m.user?.avatarUrl ||
+              m.avatarUrl ||
+              `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user?.name || m.user?.email || m.userId || 'member'}`,
+          }));
+          setMembers(formatted);
+        }
+      })
+      .catch(() => {});
+  }, [workspace?.id, board?.workspaceId]);
 
   // Load Cards from API
   const loadCardsFromApi = useCallback(async () => {
@@ -84,8 +109,8 @@ export default function RetroBoardDetail({
     loadCardsFromApi();
   }, [loadCardsFromApi]);
 
-  // Hook Pusher Channels Realtime
-  const { connectionStatus } = useBoardPusher(boardId, {
+  // Hook Pusher Channels Realtime & Presence
+  const { connectionStatus, onlineMembers, onlineCount } = useBoardPusher(boardId, currentUser, {
     onCardCreated: (newCard) => {
       setCards((prev) => {
         // Jika sudah ada (berdasarkan id yang sama), jangan duplikasi
@@ -154,7 +179,42 @@ export default function RetroBoardDetail({
         })
       );
     },
+
+    onCardGrouped: (groupData) => {
+      const targetCardId = groupData?.cardId || groupData?.id;
+      if (!targetCardId) return;
+
+      setCards((prev) =>
+        prev.map((c) => {
+          if (c.id === targetCardId) {
+            return {
+              ...c,
+              groupId: groupData.groupId || null,
+              groupTitle:
+                groupData.groupTitle !== undefined ? groupData.groupTitle : c.groupTitle,
+            };
+          }
+          if (
+            groupData.groupId &&
+            c.groupId === groupData.groupId &&
+            groupData.groupTitle !== undefined
+          ) {
+            return { ...c, groupTitle: groupData.groupTitle };
+          }
+          return c;
+        })
+      );
+    },
   });
+
+  // Sensor drag dengan activation constraint agar tidak mengganggu klik vote/menu
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
 
   // Calculate highest voted card for dynamic priority
   const maxVotes = useMemo(() => {
@@ -295,9 +355,13 @@ export default function RetroBoardDetail({
     );
 
     try {
-      await api.voteCard(cardId);
+      if (userHasVoted) {
+        await api.unvoteCard(cardId);
+      } else {
+        await api.voteCard(cardId);
+      }
     } catch (err) {
-      console.error('Failed to vote card:', err);
+      console.error('Failed to vote/unvote card:', err);
     }
   };
 
@@ -306,10 +370,270 @@ export default function RetroBoardDetail({
     if (onShowToast) onShowToast('Teks catatan berhasil disalin!');
   };
 
+  // Handler: Drag & Drop Card Grouping & Moving
+  const handleDragEnd = async (event) => {
+    const { active, over } = event;
+    if (!over || !active) return;
+
+    const activeData = active.data.current;
+    const overData = over.data.current;
+
+    // A. Dragging Entire Group Cluster
+    if (activeData?.type === 'group' && activeData?.groupId) {
+      if (overData?.type === 'column' && overData?.columnId !== activeData.columnId) {
+        handleMoveGroupColumn(activeData.groupId, overData.columnId);
+      }
+      return;
+    }
+
+    // B. Dragging Individual Card
+    if (!activeData?.card) return;
+    const activeCard = activeData.card;
+
+    // 1. Dropped on another card
+    if (overData?.type === 'card' && overData?.card) {
+      const targetCard = overData.card;
+      if (activeCard.id === targetCard.id) return;
+
+      const targetGroupId = targetCard.groupId || activeCard.groupId || `group_${Date.now()}`;
+      const targetColumnId = targetCard.columnId || activeCard.columnId;
+
+      setCards((prev) =>
+        prev.map((c) => {
+          if (c.id === activeCard.id) {
+            return { ...c, groupId: targetGroupId, columnId: targetColumnId };
+          }
+          if (c.id === targetCard.id) {
+            return { ...c, groupId: targetGroupId };
+          }
+          return c;
+        })
+      );
+
+      if (onShowToast) onShowToast('Catatan digabungkan ke dalam grup');
+
+      try {
+        if (activeCard.columnId !== targetColumnId) {
+          await api.moveCard(activeCard.id, targetColumnId);
+        }
+        await api.groupCard(activeCard.id, targetGroupId);
+        if (!targetCard.groupId) {
+          await api.groupCard(targetCard.id, targetGroupId);
+        }
+      } catch (err) {
+        console.error('Failed to group cards:', err);
+      }
+      return;
+    }
+
+    // 2. Dropped on existing group container
+    if (overData?.type === 'group' && overData?.groupId) {
+      const targetGroupId = overData.groupId;
+      const targetColumnId = overData.columnId || activeCard.columnId;
+      if (activeCard.groupId === targetGroupId && activeCard.columnId === targetColumnId) return;
+
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === activeCard.id
+            ? { ...c, groupId: targetGroupId, columnId: targetColumnId }
+            : c
+        )
+      );
+
+      if (onShowToast) onShowToast('Catatan ditambahkan ke grup');
+
+      try {
+        if (activeCard.columnId !== targetColumnId) {
+          await api.moveCard(activeCard.id, targetColumnId);
+        }
+        await api.groupCard(activeCard.id, targetGroupId);
+      } catch (err) {
+        console.error('Failed to add card to group:', err);
+      }
+      return;
+    }
+
+    // 3. Dropped on column container (cross-column move or ungroup)
+    if (overData?.type === 'column') {
+      const targetColumnId = overData.columnId;
+      if (targetColumnId && targetColumnId !== activeCard.columnId) {
+        // Pindah ke kolom lain
+        handleMoveCardColumn(activeCard.id, targetColumnId);
+      } else if (activeCard.groupId) {
+        // Drop di kolom yang sama untuk keluar dari grup
+        handleUngroupCard(activeCard.id);
+      }
+    }
+  };
+
+  // Handler: Move Card to Another Column
+  const handleMoveCardColumn = async (cardId, targetColumnId) => {
+    const targetCard = cards.find((c) => c.id === cardId);
+    if (!targetCard || targetCard.columnId === targetColumnId) return;
+
+    const oldGroupId = targetCard.groupId;
+
+    setCards((prev) => {
+      const remainingInGroup = oldGroupId
+        ? prev.filter((c) => c.groupId === oldGroupId && c.id !== cardId)
+        : [];
+
+      return prev.map((c) => {
+        if (c.id === cardId) {
+          return { ...c, columnId: targetColumnId, groupId: null };
+        }
+        if (remainingInGroup.length === 1 && c.groupId === oldGroupId) {
+          return { ...c, groupId: null };
+        }
+        return c;
+      });
+    });
+
+    const targetColName =
+      activeColumns.find((col) => col.id === targetColumnId || col.type === targetColumnId)
+        ?.title || targetColumnId.toUpperCase();
+    if (onShowToast) onShowToast(`Catatan dipindahkan ke kolom ${targetColName}`);
+
+    try {
+      await api.moveCard(cardId, targetColumnId);
+      if (oldGroupId) {
+        const remainingInGroup = cards.filter(
+          (c) => c.groupId === oldGroupId && c.id !== cardId
+        );
+        if (remainingInGroup.length === 1) {
+          await api.groupCard(remainingInGroup[0].id, null);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to move card column:', err);
+    }
+  };
+
+  // Handler: Ungroup Individual Card
+  const handleUngroupCard = async (cardId) => {
+    const targetCard = cards.find((c) => c.id === cardId);
+    if (!targetCard || !targetCard.groupId) return;
+
+    const oldGroupId = targetCard.groupId;
+
+    // Optimistically remove groupId from this card
+    setCards((prev) => {
+      const remainingInGroup = prev.filter(
+        (c) => c.groupId === oldGroupId && c.id !== cardId
+      );
+
+      return prev.map((c) => {
+        if (c.id === cardId) {
+          return { ...c, groupId: null };
+        }
+        if (remainingInGroup.length === 1 && c.groupId === oldGroupId) {
+          return { ...c, groupId: null };
+        }
+        return c;
+      });
+    });
+
+    if (onShowToast) onShowToast('Catatan dikeluarkan dari grup');
+
+    try {
+      await api.groupCard(cardId, null);
+      const remainingInGroup = cards.filter(
+        (c) => c.groupId === oldGroupId && c.id !== cardId
+      );
+      if (remainingInGroup.length === 1) {
+        await api.groupCard(remainingInGroup[0].id, null);
+      }
+    } catch (err) {
+      console.error('Failed to ungroup card:', err);
+    }
+  };
+
+  // Handler: Ungroup All Cards in a Group
+  const handleUngroupAll = async (groupId) => {
+    const cardsInGroup = cards.filter((c) => c.groupId === groupId);
+    if (cardsInGroup.length === 0) return;
+
+    setCards((prev) =>
+      prev.map((c) => (c.groupId === groupId ? { ...c, groupId: null } : c))
+    );
+
+    if (onShowToast) onShowToast('Semua catatan dalam grup telah dipisahkan');
+
+    try {
+      await Promise.all(cardsInGroup.map((c) => api.groupCard(c.id, null)));
+    } catch (err) {
+      console.error('Failed to ungroup all cards:', err);
+    }
+  };
+
+  // Handler: Rename Group Title
+  const handleRenameGroup = async (groupId, newTitle) => {
+    setCards((prev) =>
+      prev.map((c) => (c.groupId === groupId ? { ...c, groupTitle: newTitle } : c))
+    );
+
+    if (onShowToast) onShowToast(`Nama grup diubah menjadi "${newTitle || 'Cluster'}"`);
+
+    const groupCards = cards.filter((c) => c.groupId === groupId);
+    if (groupCards.length > 0) {
+      try {
+        await api.groupCard(groupCards[0].id, groupId, newTitle);
+      } catch (err) {
+        console.error('Failed to rename group:', err);
+      }
+    }
+  };
+
+  // Handler: Move Entire Group Cluster to Another Column
+  const handleMoveGroupColumn = async (groupId, targetColumnId) => {
+    const groupCards = cards.filter((c) => c.groupId === groupId);
+    if (groupCards.length === 0) return;
+
+    setCards((prev) =>
+      prev.map((c) => (c.groupId === groupId ? { ...c, columnId: targetColumnId } : c))
+    );
+
+    const targetColName =
+      activeColumns.find((col) => col.id === targetColumnId || col.type === targetColumnId)
+        ?.title || targetColumnId.toUpperCase();
+    const groupTitle = groupCards[0]?.groupTitle || 'Cluster';
+    if (onShowToast)
+      onShowToast(`Seluruh grup "${groupTitle}" dipindahkan ke kolom ${targetColName}`);
+
+    try {
+      await Promise.all(
+        groupCards.map((c) => api.moveCard(c.id, targetColumnId))
+      );
+    } catch (err) {
+      console.error('Failed to move group column:', err);
+    }
+  };
+
   const boardTitle = board?.title || board?.name || 'Sprint 16 Retrospective';
   const wsName = workspace?.name || 'Mobile Team';
-  const memberCount = workspace?.memberCount || board?.membersCount || 8;
+  const memberCount = members.length > 0 ? members.length : workspace?.memberCount || board?.membersCount || 1;
+  const totalMemberCount = memberCount;
   const dateText = board?.dateText || 'Dibuat 30 Jun 2026';
+
+  // Daftar anggota yang ditampilkan (prioritas anggota online, fallback ke member workspace)
+  const displayMembers = useMemo(() => {
+    if (onlineMembers && onlineMembers.length > 0) {
+      return onlineMembers;
+    }
+    if (members && members.length > 0) {
+      return members;
+    }
+    const myEmail = currentUser?.email || '';
+    const myName = currentUser?.name || currentUser?.fullName || (myEmail ? myEmail.split('@')[0] : 'Anda');
+    return [
+      {
+        id: currentUser?.id || 'current_user',
+        name: myName,
+        email: myEmail,
+        avatarUrl: currentUser?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${myEmail || myName}`,
+      },
+    ];
+  }, [onlineMembers, members, currentUser]);
 
   // Resolve retro columns dynamically based on board template
   const rawTemplate = (board?.template || 'start-stop-continue')
@@ -506,30 +830,32 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-board-header-right">
-          {/* Online status indicator badge */}
+          {/* Online status indicator badge (Realtime Count) */}
           <div className="retro-online-badge">
             <span className="retro-online-dot"></span>
-            <span>{memberCount} online</span>
+            <span>{onlineCount} online</span>
           </div>
 
-          {/* Member avatars stack */}
-          <div className="retro-avatars-stack" title="Anggota aktif">
-            <img
-              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
-              alt="Afrizal"
-              className="retro-stack-avatar"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
-              alt="Budi"
-              className="retro-stack-avatar"
-            />
-            <img
-              src="https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80"
-              alt="Citra"
-              className="retro-stack-avatar"
-            />
-            <div className="retro-stack-more">+2</div>
+          {/* Real member avatars stack */}
+          <div className="retro-avatars-stack" title={`${onlineCount} anggota online`}>
+            {displayMembers.slice(0, 3).map((m, idx) => (
+              <img
+                key={m.id || idx}
+                src={m.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name || m.email || idx}`}
+                alt={m.name || 'Member'}
+                title={m.name || m.email || 'Member'}
+                className="retro-stack-avatar"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name || 'user'}`;
+                }}
+              />
+            ))}
+            {displayMembers.length > 3 && (
+              <div className="retro-stack-more" title={`${displayMembers.length - 3} lainnya`}>
+                +{displayMembers.length - 3}
+              </div>
+            )}
           </div>
 
           <button type="button" className="btn-ghost-icon" title="Opsi board">
@@ -584,58 +910,66 @@ export default function RetroBoardDetail({
 
       {/* ── Tab 1: Interactive Board Canvas (Dynamic Template Columns) ── */}
       {activeTab === 'board' && (
-        <div className="retro-board-columns-container">
-          <div
-            className="retro-board-columns-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${activeColumns.length}, minmax(260px, 1fr))`,
-              gap: '16px',
-            }}
-          >
-            {activeColumns.map((col) => {
-              const colCards = cards
-                .filter(
-                  (c) =>
-                    c.columnId === col.id ||
-                    c.columnId?.toLowerCase() === col.id?.toLowerCase() ||
-                    c.columnId?.toLowerCase() === col.type?.toLowerCase()
-                )
-                .map((card) => {
-                  const votesNum =
-                    typeof card.votesCount === 'number'
-                      ? card.votesCount
-                      : Array.isArray(card.votes)
-                      ? card.votes.length
-                      : typeof card.votes === 'number'
-                      ? card.votes
-                      : 0;
-                  const isCardPriority = Boolean(
-                    card.isPriority ||
-                      (votesNum >= 3 && (votesNum === maxVotes || votesNum >= 10))
-                  );
-                  return {
-                    ...card,
-                    isPriority: isCardPriority,
-                  };
-                });
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <div className="retro-board-columns-container">
+            <div
+              className="retro-board-columns-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${activeColumns.length}, minmax(260px, 1fr))`,
+                gap: '16px',
+              }}
+            >
+              {activeColumns.map((col) => {
+                const colCards = cards
+                  .filter(
+                    (c) =>
+                      c.columnId === col.id ||
+                      c.columnId?.toLowerCase() === col.id?.toLowerCase() ||
+                      c.columnId?.toLowerCase() === col.type?.toLowerCase()
+                  )
+                  .map((card) => {
+                    const votesNum =
+                      typeof card.votesCount === 'number'
+                        ? card.votesCount
+                        : Array.isArray(card.votes)
+                        ? card.votes.length
+                        : typeof card.votes === 'number'
+                        ? card.votes
+                        : 0;
+                    const isCardPriority = Boolean(
+                      card.isPriority ||
+                        (votesNum >= 3 && (votesNum === maxVotes || votesNum >= 10))
+                    );
+                    return {
+                      ...card,
+                      isPriority: isCardPriority,
+                    };
+                  });
 
-              return (
-                <RetroColumn
-                  key={col.id}
-                  column={col}
-                  cards={colCards}
-                  onAddCard={handleAddCard}
-                  onEditCard={handleEditCard}
-                  onDeleteCard={handleDeleteCard}
-                  onCopyCard={handleCopyCard}
-                  onVoteCard={handleVoteCard}
-                  currentUser={currentUser}
-                />
-              );
-            })}
+                return (
+                  <RetroColumn
+                    key={col.id}
+                    column={col}
+                    columns={activeColumns}
+                    cards={colCards}
+                    onAddCard={handleAddCard}
+                    onEditCard={handleEditCard}
+                    onDeleteCard={handleDeleteCard}
+                    onCopyCard={handleCopyCard}
+                    onVoteCard={handleVoteCard}
+                    onUngroupCard={handleUngroupCard}
+                    onUngroupAll={handleUngroupAll}
+                    onRenameGroup={handleRenameGroup}
+                    onMoveColumn={handleMoveCardColumn}
+                    onMoveGroupColumn={handleMoveGroupColumn}
+                    currentUser={currentUser}
+                  />
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </DndContext>
       )}
 
       {/* ── Tab 2: Diskusi ── */}

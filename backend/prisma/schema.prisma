@@ -19,6 +19,7 @@ model User {
   workspaceMembers WorkspaceMember[]
   cards            Card[]
   createdInvites   WorkspaceInvite[]
+  votes            Vote[]
 }
 
 model Workspace {
@@ -70,16 +71,31 @@ model BoardColumn {
 }
 
 model Card {
-  id        String   @id @default(uuid())
-  boardId   String
-  columnId  String
-  authorId  String
-  content   String
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  boardId    String
+  columnId   String
+  authorId   String
+  content    String
+  groupId    String?
+  groupTitle String?
+  createdAt  DateTime @default(now())
 
   board  Board       @relation(fields: [boardId], references: [id])
   column BoardColumn @relation(fields: [columnId], references: [id])
   author User        @relation(fields: [authorId], references: [id])
+  votes  Vote[]
+}
+
+model Vote {
+  id        String   @id @default(uuid())
+  cardId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, userId])
 }
 
 model WorkspaceInvite {

@@ -1,14 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Copy, Trash2, Check, ThumbsUp, Flame } from 'lucide-react';
+import { MoreVertical, Edit2, Copy, Trash2, Check, ThumbsUp, Flame, Unlink, ArrowRightLeft } from 'lucide-react';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 
 export default function RetroCard({
   card,
+  isInGroup = false,
+  columns = [],
   onEdit,
   onDelete,
   onCopy,
   onVote,
+  onUngroup,
+  onMoveColumn,
   currentUser,
-  isPriority: isPriorityProp
+  isPriority: isPriorityProp,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(card?.content || card?.text || '');
@@ -16,6 +22,41 @@ export default function RetroCard({
   const [isCopied, setIsCopied] = useState(false);
   const [isVoteAnimating, setIsVoteAnimating] = useState(false);
   const menuRef = useRef(null);
+
+  // DnD Draggable hook
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDragNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: `drag-card-${card.id}`,
+    data: {
+      type: 'card',
+      card,
+      columnId: card.columnId,
+      groupId: card.groupId,
+    },
+    disabled: isEditing,
+  });
+
+  // DnD Droppable hook (for dropping another card onto this card to create/expand a cluster)
+  const { setNodeRef: setDropNodeRef, isOver } = useDroppable({
+    id: `drop-card-${card.id}`,
+    data: {
+      type: 'card',
+      card,
+      columnId: card.columnId,
+      groupId: card.groupId,
+    },
+    disabled: isDragging || isEditing,
+  });
+
+  const setCombinedRef = (node) => {
+    setDragNodeRef(node);
+    setDropNodeRef(node);
+  };
 
   useEffect(() => {
     setEditText(card?.content || card?.text || '');
@@ -40,7 +81,7 @@ export default function RetroCard({
     card?.author?.avatarUrl ||
     card?.author?.avatar ||
     card?.avatar ||
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${card?.author?.email || authorName}`;
   const timestamp =
     card?.time ||
     (card?.createdAt
@@ -103,6 +144,13 @@ export default function RetroCard({
     }
   };
 
+  const handleUngroup = () => {
+    setIsMenuOpen(false);
+    if (onUngroup) {
+      onUngroup(card.id);
+    }
+  };
+
   const isAuthor =
     !currentUser?.id ||
     card?.author?.id === currentUser?.id ||
@@ -148,12 +196,27 @@ export default function RetroCard({
     'retro-sticky-card',
     isPriority ? 'retro-card-priority' : '',
     !isPriority && hasVoted ? 'retro-card-voted' : '',
+    isInGroup ? 'retro-card-grouped' : '',
+    isDragging ? 'retro-card-dragging' : '',
+    isOver ? 'retro-card-drop-target' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.4 : 1,
+    cursor: isEditing ? 'default' : 'grab',
+  };
+
   return (
-    <div className={cardClasses}>
+    <div
+      ref={setCombinedRef}
+      style={style}
+      className={cardClasses}
+      {...attributes}
+      {...listeners}
+    >
       {/* Priority Badge */}
       {isPriority && (
         <div className="retro-card-priority-badge">
@@ -169,11 +232,18 @@ export default function RetroCard({
         </div>
 
         {/* 3-Dots Menu Dropdown */}
-        <div className="retro-card-actions-wrapper" ref={menuRef}>
+        <div
+          className="retro-card-actions-wrapper"
+          ref={menuRef}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <button
             type="button"
             className="btn-retro-card-menu"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMenuOpen(!isMenuOpen);
+            }}
             title="Opsi Catatan"
           >
             <MoreVertical size={16} />
@@ -194,6 +264,47 @@ export default function RetroCard({
                   <span>Edit Catatan</span>
                 </button>
               )}
+
+              {(isInGroup || Boolean(card.groupId)) && onUngroup && (
+                <button
+                  type="button"
+                  className="retro-menu-item"
+                  onClick={handleUngroup}
+                >
+                  <Unlink size={13} />
+                  <span>Keluarkan dari Grup</span>
+                </button>
+              )}
+
+              {/* Move to another column submenu */}
+              {columns && columns.length > 1 && onMoveColumn && (
+                <div className="retro-menu-move-section">
+                  <div className="retro-menu-move-header">
+                    <ArrowRightLeft size={12} />
+                    <span>Pindahkan ke:</span>
+                  </div>
+                  {columns
+                    .filter((col) => col.id !== card.columnId && col.type !== card.columnId)
+                    .map((col) => (
+                      <button
+                        key={col.id}
+                        type="button"
+                        className="retro-menu-move-item"
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          onMoveColumn(card.id, col.id);
+                        }}
+                      >
+                        <span
+                          className="retro-menu-col-dot"
+                          style={{ backgroundColor: col.color || '#2563eb' }}
+                        />
+                        <span>{col.title || col.name}</span>
+                      </button>
+                    ))}
+                </div>
+              )}
+
               <button
                 type="button"
                 className="retro-menu-item"
@@ -202,6 +313,7 @@ export default function RetroCard({
                 {isCopied ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
                 <span>{isCopied ? 'Tersalin!' : 'Salin Teks'}</span>
               </button>
+
               {isAuthor && (
                 <button
                   type="button"
@@ -218,7 +330,7 @@ export default function RetroCard({
       </div>
 
       {/* Card Footer: Left Avatar/Author, Right Voting */}
-      <div className="retro-card-footer">
+      <div className="retro-card-footer" onPointerDown={(e) => e.stopPropagation()}>
         <div className="retro-card-author-info">
           <img
             src={authorAvatar}

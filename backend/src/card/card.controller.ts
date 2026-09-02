@@ -3,6 +3,7 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CardService } from './card.service';
 import { CreateCardDto } from './dto/create-card.dto';
+import { GroupCardDto } from './dto/group-card.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 
 @UseGuards(JwtAuthGuard)
@@ -44,12 +45,13 @@ export class CardController {
     return this.cardService.deleteCard(userId, cardId);
   }
 
-  @Post('cards/:id/vote')
-  async toggleVote(
+  @Patch('cards/:id/group')
+  async groupCard(
     @GetUser('id') userId: string,
     @Param('id') cardId: string,
+    @Body() groupCardDto: GroupCardDto,
   ) {
-    return this.cardService.toggleVote(userId, cardId);
+    return this.cardService.groupCard(userId, cardId, groupCardDto);
   }
 
   @Post('cards/:id/comments')
