@@ -1,7 +1,11 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class UpdateCardDto {
+  @IsOptional()
   @IsString({ message: 'content card harus berupa text' })
-  @IsNotEmpty({ message: 'content card tidak boleh kosong' })
-  content: string;
+  content?: string;
+
+  @IsOptional()
+  @IsString({ message: 'columnId harus berupa text' })
+  columnId?: string;
 }

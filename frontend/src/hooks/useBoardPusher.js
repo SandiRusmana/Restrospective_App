@@ -153,6 +153,9 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       ch.bind('comment.created', (data) => {
         if (handlersRef.current?.onCommentCreated) handlersRef.current.onCommentCreated(data);
       });
+      ch.bind('card.grouped', (data) => {
+        if (handlersRef.current?.onCardGrouped) handlersRef.current.onCardGrouped(data);
+      });
       ch.bind('timer.updated', (data) => {
         if (handlersRef.current?.onTimerUpdated) handlersRef.current.onTimerUpdated(data);
       });

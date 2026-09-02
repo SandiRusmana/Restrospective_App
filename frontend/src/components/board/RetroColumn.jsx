@@ -1,23 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import RetroCard from './RetroCard';
+import RetroCardGroup from './RetroCardGroup';
 import RetroCardInput from './RetroCardInput';
 
 export default function RetroColumn({
   column,
+  columns = [],
   cards = [],
   onAddCard,
   onEditCard,
   onDeleteCard,
   onCopyCard,
   onVoteCard,
-  currentUser
+  onUngroupCard,
+  onUngroupAll,
+  onRenameGroup,
+  onMoveColumn,
+  onMoveGroupColumn,
+  currentUser,
 }) {
   const [isAdding, setIsAdding] = useState(false);
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: `column-drop-${column.id}`,
+    data: {
+      type: 'column',
+      columnId: column.id,
+    },
+  });
 
   const handleSaveCard = (text) => {
     onAddCard(column.id, text);
     setIsAdding(false);
   };
+
+  // Organize cards into standalone and grouped clusters
+  const { standaloneCards, groupedCardsMap } = useMemo(() => {
+    const standalone = [];
+    const grouped = {};
+
+    cards.forEach((card) => {
+      if (card.groupId) {
+        if (!grouped[card.groupId]) {
+          grouped[card.groupId] = [];
+        }
+        grouped[card.groupId].push(card);
+      } else {
+        standalone.push(card);
+      }
+    });
+
+    return { standaloneCards: standalone, groupedCardsMap: grouped };
+  }, [cards]);
 
   // Render icon with column theme color
   const renderColumnIcon = () => {
@@ -60,16 +95,19 @@ export default function RetroColumn({
     );
   };
 
-  const columnClass = `retro-board-column retro-column-${column.id || 'default'}`;
+  const columnClass = `retro-board-column retro-column-${column.id || 'default'} ${
+    isOver ? 'retro-column-drag-over' : ''
+  }`;
 
   return (
-    <div 
+    <div
+      ref={setNodeRef}
       className={columnClass}
       style={{
         backgroundColor: column.bg || '#f8fafc',
         border: `1px solid ${column.border || '#e2e8f0'}`,
         borderRadius: '12px',
-        padding: '16px'
+        padding: '16px',
       }}
     >
       {/* ── Column Header ── */}
@@ -80,11 +118,11 @@ export default function RetroColumn({
             {column.title || column.name}
           </h2>
         </div>
-        <span 
+        <span
           className="retro-column-count-badge"
           style={{
             backgroundColor: column.badgeBg || '#e2e8f0',
-            color: column.badgeColor || column.color || '#334155'
+            color: column.badgeColor || column.color || '#334155',
           }}
         >
           {cards.length}
@@ -98,7 +136,7 @@ export default function RetroColumn({
         onClick={() => setIsAdding(true)}
         style={{
           border: `1.5px solid ${column.border || column.color || '#cbd5e1'}`,
-          color: column.color || '#2563eb'
+          color: column.color || '#2563eb',
         }}
       >
         + Tambah Catatan
@@ -113,17 +151,42 @@ export default function RetroColumn({
         />
       )}
 
-      {/* ── Sticky Notes / Cards List ── */}
+      {/* ── Cards & Group Clusters List ── */}
       {cards.length > 0 && (
         <div className="retro-column-cards-list">
-          {cards.map((card) => (
+          {/* Render Groups First */}
+          {Object.entries(groupedCardsMap).map(([groupId, groupCards]) => (
+            <RetroCardGroup
+              key={groupId}
+              groupId={groupId}
+              cards={groupCards}
+              columns={columns}
+              onEditCard={onEditCard}
+              onDeleteCard={onDeleteCard}
+              onCopyCard={onCopyCard}
+              onVoteCard={onVoteCard}
+              onUngroupCard={onUngroupCard}
+              onUngroupAll={onUngroupAll}
+              onRenameGroup={onRenameGroup}
+              onMoveColumn={onMoveColumn}
+              onMoveGroupColumn={onMoveGroupColumn}
+              currentUser={currentUser}
+            />
+          ))}
+
+          {/* Render Standalone Cards */}
+          {standaloneCards.map((card) => (
             <RetroCard
               key={card.id}
               card={card}
+              isInGroup={false}
+              columns={columns}
               onEdit={onEditCard}
               onDelete={onDeleteCard}
               onCopy={onCopyCard}
               onVote={onVoteCard}
+              onUngroup={onUngroupCard}
+              onMoveColumn={onMoveColumn}
               currentUser={currentUser}
             />
           ))}

@@ -71,12 +71,14 @@ model BoardColumn {
 }
 
 model Card {
-  id        String   @id @default(uuid())
-  boardId   String
-  columnId  String
-  authorId  String
-  content   String
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  boardId    String
+  columnId   String
+  authorId   String
+  content    String
+  groupId    String?
+  groupTitle String?
+  createdAt  DateTime @default(now())
 
   board  Board       @relation(fields: [boardId], references: [id])
   column BoardColumn @relation(fields: [columnId], references: [id])

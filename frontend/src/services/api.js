@@ -162,10 +162,18 @@ export const api = {
     });
   },
 
-  async updateCard(cardId, content) {
+  async updateCard(cardId, data) {
+    const payload = typeof data === 'string' ? { content: data } : data;
     return request(`/cards/${cardId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async moveCard(cardId, columnId) {
+    return request(`/cards/${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ columnId }),
     });
   },
 
@@ -184,6 +192,16 @@ export const api = {
   async unvoteCard(cardId) {
     return request(`/cards/${cardId}/vote`, {
       method: 'DELETE',
+    });
+  },
+
+  async groupCard(cardId, groupId, groupTitle) {
+    return request(`/cards/${cardId}/group`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        groupId: groupId !== undefined ? (groupId || null) : undefined,
+        groupTitle: groupTitle !== undefined ? groupTitle : undefined,
+      }),
     });
   },
 

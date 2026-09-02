@@ -3053,10 +3053,279 @@
   color: #ef4444;
 }
 
+/* Move to Column Submenu Section */
+.retro-menu-move-section {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 4px;
+  margin-top: 4px;
+}
+
+.retro-menu-move-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding: 4px 8px;
+  letter-spacing: 0.03em;
+}
+
+.retro-menu-move-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.retro-menu-move-item:hover {
+  background-color: #f1f5f9;
+  color: #5956e9;
+  transform: translateX(2px);
+}
+
+.retro-menu-col-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* Card Editing Mode */
 .retro-card-editing {
   border-color: #5956e9;
 }
+
+/* ── Group / Cluster Styles ── */
+.retro-card-group-container {
+  background: #ffffff;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.retro-card-group-container:hover {
+  border-color: #94a3b8;
+}
+
+.retro-card-group-container.retro-group-drag-over {
+  border-color: #5956e9;
+  background-color: #f5f3ff;
+  box-shadow: 0 0 0 3px rgba(89, 86, 233, 0.15);
+  transform: scale(1.01);
+}
+
+.retro-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.retro-group-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  flex: 1;
+  min-width: 0;
+}
+
+.retro-group-icon-box {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #ede9fe;
+  color: #5956e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.retro-group-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.retro-group-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.retro-group-rename-form {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+}
+
+.retro-group-rename-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1.5px solid #5956e9;
+  border-radius: 6px;
+  outline: none;
+  background: #ffffff;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.btn-group-rename-save {
+  background: #16a34a;
+  border: none;
+  color: #ffffff;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.btn-group-rename-save:hover {
+  background: #15803d;
+}
+
+.btn-group-rename-cancel {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-group-rename-cancel:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.retro-group-votes-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #5956e9;
+  background: #ede9fe;
+  padding: 2px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.btn-group-collapse {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.btn-group-collapse:hover {
+  color: #334155;
+  background: #f1f5f9;
+}
+
+.retro-group-actions-dropdown {
+  min-width: 175px;
+  z-index: 50;
+}
+
+.retro-card-group-container.retro-group-dragging {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18) !important;
+  border-color: #5956e9 !important;
+  cursor: grabbing !important;
+  z-index: 100 !important;
+}
+
+.retro-group-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.retro-sticky-card.retro-card-grouped {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 0;
+}
+
+.retro-sticky-card.retro-card-grouped:hover {
+  border-color: #cbd5e1;
+}
+
+.retro-sticky-card.retro-card-dragging {
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15) !important;
+  border-color: #5956e9 !important;
+  cursor: grabbing !important;
+  z-index: 100 !important;
+}
+
+.retro-sticky-card.retro-card-drop-target {
+  border: 2px dashed #5956e9 !important;
+  background-color: #faf5ff !important;
+  box-shadow: 0 0 0 2px rgba(89, 86, 233, 0.2) !important;
+}
+
+.retro-column-drag-over {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+}
+
+.retro-group-drop-indicator {
+  margin-top: 8px;
+  padding: 6px;
+  background: #f5f3ff;
+  border: 1.5px dashed #a5b4fc;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #5956e9;
+  text-align: center;
+}
+
 
 .retro-card-edit-textarea {
   width: 100%;
