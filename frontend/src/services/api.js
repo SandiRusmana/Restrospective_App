@@ -174,4 +174,17 @@ export const api = {
       method: 'DELETE',
     });
   },
+
+  async voteCard(cardId) {
+    return request(`/cards/${cardId}/vote`, {
+      method: 'POST',
+    });
+  },
+
+  async addComment(cardId, text) {
+    return request(`/cards/${cardId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+  },
 };

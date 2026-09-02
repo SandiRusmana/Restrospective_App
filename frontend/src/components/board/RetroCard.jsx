@@ -35,23 +35,41 @@ export default function RetroCard({
     };
   }, [isMenuOpen]);
 
-  const authorName = card?.author?.name || card?.authorName || card?.author || 'Afrizal';
-  const authorAvatar = card?.author?.avatarUrl || card?.author?.avatar || card?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
-  const timestamp = card?.time || (card?.createdAt ? new Date(card.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true }) : '10:32 AM');
+  const authorName = card?.author?.name || card?.authorName || card?.author || 'Anggota Tim';
+  const authorAvatar =
+    card?.author?.avatarUrl ||
+    card?.author?.avatar ||
+    card?.avatar ||
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
+  const timestamp =
+    card?.time ||
+    (card?.createdAt
+      ? new Date(card.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true })
+      : 'Baru saja');
   const cardText = card?.content || card?.text || '';
-  const votes = card?.votes !== undefined ? card?.votes : 0;
 
-  // Determine if current user has voted
-  const userId = currentUser?.id || currentUser?.email || 'current_user';
-  const hasVoted = card?.hasVoted !== undefined 
-    ? card.hasVoted 
-    : (Array.isArray(card?.votedBy) && card.votedBy.includes(userId));
+  // Determine vote count & voted state
+  const currentUserId = currentUser?.id || currentUser?.email || 'current_user';
+  const votesArray = Array.isArray(card?.votes) ? card.votes : [];
+  const votesCount =
+    typeof card?.votesCount === 'number'
+      ? card.votesCount
+      : votesArray.length > 0
+      ? votesArray.length
+      : typeof card?.votes === 'number'
+      ? card.votes
+      : card?.voteCount || (card?.hasVoted ? 1 : 0);
 
-  // Determine if this is a priority card (explicit prop, or card.isPriority, or votes >= 10)
-  const isPriority = Boolean(isPriorityProp ?? card?.isPriority ?? (votes >= 10));
+  const hasVoted =
+    Boolean(card?.hasVoted) ||
+    votesArray.some((v) => (v.userId || v.id || v) === currentUserId) ||
+    (Array.isArray(card?.votedBy) && card.votedBy.includes(currentUserId));
+
+  // Determine if this is a priority card
+  const isPriority = Boolean(isPriorityProp ?? card?.isPriority ?? (votesCount >= 3));
 
   const handleVoteClick = (e) => {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     setIsVoteAnimating(true);
     setTimeout(() => setIsVoteAnimating(false), 400);
     if (onVote) {
@@ -84,6 +102,12 @@ export default function RetroCard({
       onDelete(card);
     }
   };
+
+  const isAuthor =
+    !currentUser?.id ||
+    card?.author?.id === currentUser?.id ||
+    card?.authorId === currentUser?.id ||
+    card?.author === currentUser?.name;
 
   if (isEditing) {
     return (
@@ -123,8 +147,10 @@ export default function RetroCard({
   const cardClasses = [
     'retro-sticky-card',
     isPriority ? 'retro-card-priority' : '',
-    (!isPriority && hasVoted) ? 'retro-card-voted' : ''
-  ].filter(Boolean).join(' ');
+    !isPriority && hasVoted ? 'retro-card-voted' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div className={cardClasses}>
@@ -136,6 +162,7 @@ export default function RetroCard({
         </div>
       )}
 
+      {/* Card Header: Text on Left, 3-dots Menu on Right */}
       <div className="retro-card-header-row">
         <div className="retro-card-body">
           <p className="retro-card-text">{cardText}</p>
@@ -154,17 +181,19 @@ export default function RetroCard({
 
           {isMenuOpen && (
             <div className="retro-card-menu-dropdown">
-              <button
-                type="button"
-                className="retro-menu-item"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  setIsEditing(true);
-                }}
-              >
-                <Edit2 size={13} />
-                <span>Edit Catatan</span>
-              </button>
+              {isAuthor && (
+                <button
+                  type="button"
+                  className="retro-menu-item"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsEditing(true);
+                  }}
+                >
+                  <Edit2 size={13} />
+                  <span>Edit Catatan</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="retro-menu-item"
@@ -173,14 +202,16 @@ export default function RetroCard({
                 {isCopied ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
                 <span>{isCopied ? 'Tersalin!' : 'Salin Teks'}</span>
               </button>
-              <button
-                type="button"
-                className="retro-menu-item retro-menu-item-delete"
-                onClick={handleDelete}
-              >
-                <Trash2 size={13} />
-                <span>Hapus Catatan</span>
-              </button>
+              {isAuthor && (
+                <button
+                  type="button"
+                  className="retro-menu-item retro-menu-item-delete"
+                  onClick={handleDelete}
+                >
+                  <Trash2 size={13} />
+                  <span>Hapus Catatan</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -208,18 +239,20 @@ export default function RetroCard({
         <div className="retro-card-vote-section">
           <button
             type="button"
-            className={`btn-retro-vote ${hasVoted ? 'voted' : ''} ${isPriority ? 'priority' : ''} ${isVoteAnimating ? 'vote-pop' : ''}`}
+            className={`btn-retro-vote ${hasVoted ? 'voted' : ''} ${isPriority ? 'priority' : ''} ${
+              isVoteAnimating ? 'vote-pop' : ''
+            }`}
             onClick={handleVoteClick}
             title={hasVoted ? 'Batalkan vote Anda' : 'Beri vote (+1)'}
           >
-            <ThumbsUp 
-              size={15} 
+            <ThumbsUp
+              size={15}
               className={`retro-vote-icon ${hasVoted ? 'filled' : ''}`}
             />
-            <span className="retro-vote-count">{votes}</span>
+            <span className="retro-vote-count">{votesCount}</span>
           </button>
 
-          {/* Voted badge indicator pill (Screenshot 2) */}
+          {/* Voted badge indicator pill */}
           {hasVoted && !isPriority && (
             <span className="retro-voted-pill">Voted</span>
           )}
