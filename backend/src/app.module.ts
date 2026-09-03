@@ -10,6 +10,7 @@ import { InviteModule } from './invite/invite.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PusherModule } from './pusher/pusher.module';
 import { VoteModule } from './vote/vote.module';
+import { CommentModule } from './comment/comment.module';
 import { WorkspaceModule } from './workspace/workspace.module';
 
 @Module({
@@ -46,6 +47,8 @@ import { WorkspaceModule } from './workspace/workspace.module';
     CardModule,
     // Modul Vote Realtime
     VoteModule,
+    // Modul Comment Realtime
+    CommentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
