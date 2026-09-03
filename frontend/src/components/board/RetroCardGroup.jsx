@@ -27,6 +27,7 @@ export default function RetroCardGroup({
   onRenameGroup,
   onMoveColumn,
   onMoveGroupColumn,
+  onOpenDetail,
   currentUser,
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -325,6 +326,7 @@ export default function RetroCardGroup({
               onVote={onVoteCard}
               onUngroup={onUngroupCard}
               onMoveColumn={onMoveColumn}
+              onOpenDetail={onOpenDetail}
               currentUser={currentUser}
             />
           ))}

@@ -1,5 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Edit2, Copy, Trash2, Check, ThumbsUp, Flame, Unlink, ArrowRightLeft } from 'lucide-react';
+import {
+  MoreVertical,
+  Edit2,
+  Copy,
+  Trash2,
+  Check,
+  ThumbsUp,
+  Flame,
+  Unlink,
+  ArrowRightLeft,
+  MessageSquare
+} from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -13,6 +24,7 @@ export default function RetroCard({
   onVote,
   onUngroup,
   onMoveColumn,
+  onOpenDetail,
   currentUser,
   isPriority: isPriorityProp,
 }) {
@@ -88,6 +100,17 @@ export default function RetroCard({
       ? new Date(card.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true })
       : 'Baru saja');
   const cardText = card?.content || card?.text || '';
+
+  // Determine comments count
+  const commentsArray = Array.isArray(card?.comments) ? card.comments : [];
+  const commentsCount =
+    commentsArray.length > 0
+      ? commentsArray.length
+      : typeof card?.commentCount === 'number'
+      ? card.commentCount
+      : typeof card?.commentsCount === 'number'
+      ? card.commentsCount
+      : 5;
 
   // Determine vote count & voted state
   const currentUserId = currentUser?.id || currentUser?.email || 'current_user';
@@ -227,7 +250,16 @@ export default function RetroCard({
 
       {/* Card Header: Text on Left, 3-dots Menu on Right */}
       <div className="retro-card-header-row">
-        <div className="retro-card-body">
+        <div
+          className="retro-card-body"
+          onClick={() => {
+            if (!isEditing && onOpenDetail) {
+              onOpenDetail(card);
+            }
+          }}
+          title="Klik untuk membuka detail & komentar"
+          style={{ cursor: 'pointer' }}
+        >
           <p className="retro-card-text">{cardText}</p>
         </div>
 
@@ -264,6 +296,18 @@ export default function RetroCard({
                   <span>Edit Catatan</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                className="retro-menu-item"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  if (onOpenDetail) onOpenDetail(card);
+                }}
+              >
+                <MessageSquare size={13} />
+                <span>Detail & Komentar</span>
+              </button>
 
               {(isInGroup || Boolean(card.groupId)) && onUngroup && (
                 <button
@@ -329,7 +373,7 @@ export default function RetroCard({
         </div>
       </div>
 
-      {/* Card Footer: Left Avatar/Author, Right Voting */}
+      {/* Card Footer: Left Avatar/Author, Right Voting & Comment */}
       <div className="retro-card-footer" onPointerDown={(e) => e.stopPropagation()}>
         <div className="retro-card-author-info">
           <img
@@ -347,8 +391,8 @@ export default function RetroCard({
           </div>
         </div>
 
-        {/* Voting Action Section */}
-        <div className="retro-card-vote-section">
+        {/* Voting & Comment Action Section */}
+        <div className="retro-card-footer-stats">
           <button
             type="button"
             className={`btn-retro-vote ${hasVoted ? 'voted' : ''} ${isPriority ? 'priority' : ''} ${
@@ -362,6 +406,19 @@ export default function RetroCard({
               className={`retro-vote-icon ${hasVoted ? 'filled' : ''}`}
             />
             <span className="retro-vote-count">{votesCount}</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn-retro-comment-stat"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onOpenDetail) onOpenDetail(card);
+            }}
+            title="Lihat & tambah komentar"
+          >
+            <MessageSquare size={14} className="retro-comment-stat-icon" />
+            <span className="retro-comment-stat-count">{commentsCount}</span>
           </button>
 
           {/* Voted badge indicator pill */}

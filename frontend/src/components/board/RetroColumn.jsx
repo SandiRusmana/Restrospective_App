@@ -18,6 +18,7 @@ export default function RetroColumn({
   onRenameGroup,
   onMoveColumn,
   onMoveGroupColumn,
+  onOpenDetail,
   currentUser,
 }) {
   const [isAdding, setIsAdding] = useState(false);
@@ -170,6 +171,7 @@ export default function RetroColumn({
               onRenameGroup={onRenameGroup}
               onMoveColumn={onMoveColumn}
               onMoveGroupColumn={onMoveGroupColumn}
+              onOpenDetail={onOpenDetail}
               currentUser={currentUser}
             />
           ))}
@@ -187,6 +189,7 @@ export default function RetroColumn({
               onVote={onVoteCard}
               onUngroup={onUngroupCard}
               onMoveColumn={onMoveColumn}
+              onOpenDetail={onOpenDetail}
               currentUser={currentUser}
             />
           ))}
