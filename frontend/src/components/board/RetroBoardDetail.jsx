@@ -14,6 +14,205 @@ import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import RetroColumn from './RetroColumn';
+import CardDetailModal from '../modals/CardDetailModal';
+
+// Initial default cards for demonstration and fallback matching Sprint 16 Retrospective
+const createInitialRetroCards = () => [
+  {
+    id: 'c_start_1',
+    columnId: 'start',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    createdAt: new Date().toISOString(),
+    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
+    votesCount: 5,
+    commentCount: 5,
+    commentsCount: 5,
+    comments: [
+      {
+        id: 'cm_1',
+        author: { name: 'Budi Santoso' },
+        authorName: 'Budi Santoso',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        text: 'Setuju, perlu dibuat checklist sebelum sprint',
+        time: '10:25 AM',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cm_2',
+        author: { name: 'Budi Santoso' },
+        authorName: 'Budi Santoso',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        text: 'Setuju, perlu dibuat checklist sebelum sprint',
+        time: '10:25 AM',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cm_3',
+        author: { name: 'Budi Santoso' },
+        authorName: 'Budi Santoso',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        text: 'Setuju, perlu dibuat checklist sebelum sprint',
+        time: '10:25 AM',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cm_4',
+        author: { name: 'Budi Santoso' },
+        authorName: 'Budi Santoso',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        text: 'Setuju, perlu dibuat checklist sebelum sprint',
+        time: '10:25 AM',
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  },
+  {
+    id: 'c_start_2',
+    columnId: 'start',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    createdAt: new Date().toISOString(),
+    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
+    votesCount: 5,
+    commentCount: 5,
+    commentsCount: 5,
+    comments: [],
+  },
+  {
+    id: 'c_start_3',
+    columnId: 'start',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    createdAt: new Date().toISOString(),
+    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
+    votesCount: 5,
+    commentCount: 5,
+    commentsCount: 5,
+    comments: [],
+  },
+  {
+    id: 'c_stop_1',
+    columnId: 'stop',
+    content: 'Testing sering terlambat',
+    author: { name: 'Sarah Wijaya', email: 'sarah@gmail.com' },
+    authorName: 'Sarah Wijaya',
+    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
+    time: '10:20 AM',
+    createdAt: new Date().toISOString(),
+    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }, { userId: '6' }, { userId: '7' }, { userId: '8' }],
+    votesCount: 8,
+    commentCount: 4,
+    commentsCount: 4,
+    comments: [
+      {
+        id: 'cm_stop1_1',
+        author: { name: 'Budi Santoso' },
+        authorName: 'Budi Santoso',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        text: 'Setuju, perlu dibuat checklist sebelum sprint',
+        time: '10:25 AM',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cm_stop1_2',
+        author: { name: 'Budi Santoso' },
+        authorName: 'Budi Santoso',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        text: 'Setuju, perlu dibuat checklist sebelum sprint',
+        time: '10:25 AM',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cm_stop1_3',
+        author: { name: 'Budi Santoso' },
+        authorName: 'Budi Santoso',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        text: 'Setuju, perlu dibuat checklist sebelum sprint',
+        time: '10:25 AM',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'cm_stop1_4',
+        author: { name: 'Budi Santoso' },
+        authorName: 'Budi Santoso',
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+        text: 'Setuju, perlu dibuat checklist sebelum sprint',
+        time: '10:25 AM',
+        createdAt: new Date().toISOString(),
+      },
+    ],
+  },
+  {
+    id: 'c_stop_2',
+    columnId: 'stop',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    createdAt: new Date().toISOString(),
+    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
+    votesCount: 5,
+    commentCount: 5,
+    commentsCount: 5,
+    comments: [],
+  },
+  {
+    id: 'c_continue_1',
+    columnId: 'continue',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    createdAt: new Date().toISOString(),
+    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
+    votesCount: 5,
+    commentCount: 5,
+    commentsCount: 5,
+    comments: [],
+  },
+  {
+    id: 'c_continue_2',
+    columnId: 'continue',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    createdAt: new Date().toISOString(),
+    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
+    votesCount: 5,
+    commentCount: 5,
+    commentsCount: 5,
+    comments: [],
+  },
+  {
+    id: 'c_continue_3',
+    columnId: 'continue',
+    content: 'Mulai melakukan daily meeting setiap pagi',
+    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
+    authorName: 'Afrizal',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    time: '10:32 AM',
+    createdAt: new Date().toISOString(),
+    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
+    votesCount: 5,
+    commentCount: 5,
+    commentsCount: 5,
+    comments: [],
+  },
+];
 
 // Template Columns Dictionary
 const TEMPLATE_COLUMNS_MAP = {
@@ -64,7 +263,8 @@ export default function RetroBoardDetail({
 }) {
   const [activeTab, setActiveTab] = useState('board');
   const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
-  const [cards, setCards] = useState([]);
+  const [cards, setCards] = useState(() => createInitialRetroCards());
+  const [selectedCardForDetail, setSelectedCardForDetail] = useState(null);
   const [members, setMembers] = useState([]);
 
   const boardId = board?.id;
@@ -99,6 +299,8 @@ export default function RetroBoardDetail({
       const cardsData = await api.getCards(boardId);
       if (Array.isArray(cardsData) && cardsData.length > 0) {
         setCards(cardsData);
+      } else {
+        setCards(createInitialRetroCards());
       }
     } catch {
       // Keep existing cards
@@ -139,11 +341,15 @@ export default function RetroBoardDetail({
       setCards((prev) =>
         prev.map((c) => (c.id === updatedCard.id ? { ...c, ...updatedCard } : c))
       );
+      setSelectedCardForDetail((prev) =>
+        prev && prev.id === updatedCard.id ? { ...prev, ...updatedCard } : prev
+      );
     },
 
     onCardDeleted: (deletedData) => {
       const targetId = deletedData?.id || deletedData?.cardId;
       setCards((prev) => prev.filter((c) => c.id !== targetId));
+      setSelectedCardForDetail((prev) => (prev && prev.id === targetId ? null : prev));
     },
 
     onVoteUpdated: (voteData) => {
@@ -166,7 +372,7 @@ export default function RetroBoardDetail({
             }
 
             const currentUserId = currentUser?.id || currentUser?.email || 'current_user';
-            return {
+            const updatedCardObj = {
               ...c,
               votes: nextVotes,
               votesCount: nextVotes.length,
@@ -174,10 +380,94 @@ export default function RetroBoardDetail({
                 (v) => (v.userId || v.id || v) === currentUserId
               ),
             };
+            return updatedCardObj;
           }
           return c;
         })
       );
+
+      setSelectedCardForDetail((prev) => {
+        if (prev && prev.id === voteData.cardId) {
+          const currentVotes = Array.isArray(prev.votes) ? [...prev.votes] : [];
+          const userVoteIndex = currentVotes.findIndex(
+            (v) => (v.userId || v.id || v) === voteData.userId
+          );
+          let nextVotes;
+          if (userVoteIndex >= 0) {
+            nextVotes = currentVotes.filter((_, idx) => idx !== userVoteIndex);
+          } else {
+            nextVotes = [
+              ...currentVotes,
+              { userId: voteData.userId, votedAt: voteData.votedAt || new Date().toISOString() },
+            ];
+          }
+          const currentUserId = currentUser?.id || currentUser?.email || 'current_user';
+          return {
+            ...prev,
+            votes: nextVotes,
+            votesCount: nextVotes.length,
+            hasVoted: nextVotes.some((v) => (v.userId || v.id || v) === currentUserId),
+          };
+        }
+        return prev;
+      });
+    },
+
+    onCommentCreated: (commentData) => {
+      const cardId = commentData?.cardId;
+      if (!cardId) return;
+
+      const formattedComment = {
+        id: commentData.id || `comment_${Date.now()}`,
+        cardId,
+        author: {
+          id: commentData.authorId || 'author',
+          name: commentData.authorName || 'Anggota Tim',
+          avatarUrl:
+            commentData.authorAvatar ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentData.authorId || 'member'}`,
+        },
+        authorName: commentData.authorName || 'Anggota Tim',
+        text: commentData.text || commentData.content || '',
+        time: new Date(commentData.createdAt || Date.now()).toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
+        }),
+        createdAt: commentData.createdAt || new Date().toISOString(),
+      };
+
+      setCards((prev) =>
+        prev.map((c) => {
+          if (c.id === cardId) {
+            const existingComments = Array.isArray(c.comments) ? [...c.comments] : [];
+            if (existingComments.some((cm) => cm.id === formattedComment.id)) return c;
+            const nextComments = [...existingComments, formattedComment];
+            return {
+              ...c,
+              comments: nextComments,
+              commentCount: nextComments.length,
+              commentsCount: nextComments.length,
+            };
+          }
+          return c;
+        })
+      );
+
+      setSelectedCardForDetail((prev) => {
+        if (prev && prev.id === cardId) {
+          const existingComments = Array.isArray(prev.comments) ? [...prev.comments] : [];
+          if (existingComments.some((cm) => cm.id === formattedComment.id)) return prev;
+          const nextComments = [...existingComments, formattedComment];
+          return {
+            ...prev,
+            comments: nextComments,
+            commentCount: nextComments.length,
+            commentsCount: nextComments.length,
+          };
+        }
+        return prev;
+      });
     },
 
     onCardGrouped: (groupData) => {
@@ -296,6 +586,9 @@ export default function RetroBoardDetail({
         c.id === cardId ? { ...c, content: updatedText, text: updatedText } : c
       )
     );
+    setSelectedCardForDetail((prev) =>
+      prev && prev.id === cardId ? { ...prev, content: updatedText, text: updatedText } : prev
+    );
     if (onShowToast) onShowToast('Catatan berhasil diperbarui!');
 
     try {
@@ -308,6 +601,7 @@ export default function RetroBoardDetail({
   // Handler: Delete Card
   const handleDeleteCard = async (card) => {
     setCards((prev) => prev.filter((c) => c.id !== card.id));
+    setSelectedCardForDetail((prev) => (prev && prev.id === card.id ? null : prev));
     if (onShowToast) onShowToast('Catatan berhasil dihapus');
 
     try {
@@ -320,12 +614,13 @@ export default function RetroBoardDetail({
   // Handler: Toggle Vote on Card
   const handleVoteCard = async (cardId) => {
     const currentUserId = currentUser?.id || currentUser?.email || 'current_user';
+    let userHasVoted = false;
 
     setCards((prev) =>
       prev.map((c) => {
         if (c.id === cardId) {
           const currentVotes = Array.isArray(c.votes) ? [...c.votes] : [];
-          const userHasVoted =
+          userHasVoted =
             Boolean(c.hasVoted) ||
             currentVotes.some((v) => (v.userId || v.id || v) === currentUserId);
 
@@ -354,6 +649,35 @@ export default function RetroBoardDetail({
       })
     );
 
+    setSelectedCardForDetail((prev) => {
+      if (prev && prev.id === cardId) {
+        const currentVotes = Array.isArray(prev.votes) ? [...prev.votes] : [];
+        const isVoted =
+          Boolean(prev.hasVoted) ||
+          currentVotes.some((v) => (v.userId || v.id || v) === currentUserId);
+
+        let updatedVotes;
+        if (isVoted) {
+          updatedVotes = currentVotes.filter(
+            (v) => (v.userId || v.id || v) !== currentUserId
+          );
+        } else {
+          updatedVotes = [
+            ...currentVotes,
+            { userId: currentUserId, votedAt: new Date().toISOString() },
+          ];
+        }
+
+        return {
+          ...prev,
+          votes: updatedVotes,
+          votesCount: updatedVotes.length,
+          hasVoted: !isVoted,
+        };
+      }
+      return prev;
+    });
+
     try {
       if (userHasVoted) {
         await api.unvoteCard(cardId);
@@ -363,6 +687,147 @@ export default function RetroBoardDetail({
     } catch (err) {
       console.error('Failed to vote/unvote card:', err);
     }
+  };
+
+  // Handler: Add Comment to Card
+  const handleAddComment = async (cardId, text) => {
+    const defaultAvatar =
+      currentUser?.avatarUrl ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'afrizal'}`;
+    const authorName =
+      currentUser?.name ||
+      currentUser?.fullName?.replace(' (Anda)', '') ||
+      currentUser?.email?.split('@')[0] ||
+      'Afrizal';
+
+    const now = new Date();
+    const formattedTime = now.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    const newCommentId = `comment_${Date.now()}`;
+    const newComment = {
+      id: newCommentId,
+      cardId,
+      author: {
+        id: currentUser?.id || 'current_user',
+        name: authorName,
+        email: currentUser?.email || '',
+        avatarUrl: defaultAvatar,
+      },
+      authorName,
+      avatar: defaultAvatar,
+      text,
+      time: formattedTime,
+      createdAt: now.toISOString(),
+      isHighlighted: true,
+    };
+
+    setCards((prev) =>
+      prev.map((c) => {
+        if (c.id === cardId) {
+          const prevComments = Array.isArray(c.comments) ? c.comments : [];
+          const nextComments = [...prevComments, newComment];
+          return {
+            ...c,
+            comments: nextComments,
+            commentCount: nextComments.length,
+            commentsCount: nextComments.length,
+          };
+        }
+        return c;
+      })
+    );
+
+    setSelectedCardForDetail((prev) => {
+      if (prev && prev.id === cardId) {
+        const prevComments = Array.isArray(prev.comments) ? prev.comments : [];
+        const nextComments = [...prevComments, newComment];
+        return {
+          ...prev,
+          comments: nextComments,
+          commentCount: nextComments.length,
+          commentsCount: nextComments.length,
+        };
+      }
+      return prev;
+    });
+
+    if (onShowToast) onShowToast('Komentar berhasil ditambahkan!');
+
+    try {
+      await api.addComment(cardId, text);
+    } catch {
+      // Local state already updated
+    }
+
+    return newCommentId;
+  };
+
+  // Handler: Edit Comment
+  const handleEditComment = async (cardId, commentId, newText) => {
+    setCards((prev) =>
+      prev.map((c) => {
+        if (c.id === cardId && Array.isArray(c.comments)) {
+          return {
+            ...c,
+            comments: c.comments.map((cm) =>
+              cm.id === commentId ? { ...cm, text: newText, content: newText } : cm
+            ),
+          };
+        }
+        return c;
+      })
+    );
+
+    setSelectedCardForDetail((prev) => {
+      if (prev && prev.id === cardId && Array.isArray(prev.comments)) {
+        return {
+          ...prev,
+          comments: prev.comments.map((cm) =>
+            cm.id === commentId ? { ...cm, text: newText, content: newText } : cm
+          ),
+        };
+      }
+      return prev;
+    });
+
+    if (onShowToast) onShowToast('Komentar berhasil diperbarui');
+  };
+
+  // Handler: Delete Comment
+  const handleDeleteComment = async (cardId, commentId) => {
+    setCards((prev) =>
+      prev.map((c) => {
+        if (c.id === cardId && Array.isArray(c.comments)) {
+          const nextComments = c.comments.filter((cm) => cm.id !== commentId);
+          return {
+            ...c,
+            comments: nextComments,
+            commentCount: nextComments.length,
+            commentsCount: nextComments.length,
+          };
+        }
+        return c;
+      })
+    );
+
+    setSelectedCardForDetail((prev) => {
+      if (prev && prev.id === cardId && Array.isArray(prev.comments)) {
+        const nextComments = prev.comments.filter((cm) => cm.id !== commentId);
+        return {
+          ...prev,
+          comments: nextComments,
+          commentCount: nextComments.length,
+          commentsCount: nextComments.length,
+        };
+      }
+      return prev;
+    });
+
+    if (onShowToast) onShowToast('Komentar berhasil dihapus');
   };
 
   // Handler: Copy Card
@@ -963,6 +1428,7 @@ export default function RetroBoardDetail({
                     onRenameGroup={handleRenameGroup}
                     onMoveColumn={handleMoveCardColumn}
                     onMoveGroupColumn={handleMoveGroupColumn}
+                    onOpenDetail={(cardToOpen) => setSelectedCardForDetail(cardToOpen)}
                     currentUser={currentUser}
                   />
                 );
@@ -998,6 +1464,18 @@ export default function RetroBoardDetail({
           <p>Log aktivitas semua anggota di board retrospective ini.</p>
         </div>
       )}
+
+      {/* ── Modal Detail Catatan & Komentar ── */}
+      <CardDetailModal
+        isOpen={Boolean(selectedCardForDetail)}
+        onClose={() => setSelectedCardForDetail(null)}
+        card={selectedCardForDetail}
+        currentUser={currentUser}
+        onAddComment={handleAddComment}
+        onEditComment={handleEditComment}
+        onDeleteComment={handleDeleteComment}
+        onVoteCard={handleVoteCard}
+      />
     </div>
   );
 }
