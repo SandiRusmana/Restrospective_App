@@ -8,13 +8,17 @@ import {
   ChevronDown,
   Check,
   User,
-  Clock
+  Clock,
+  AlarmClock
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import RetroColumn from './RetroColumn';
+import SessionTimerBanner from './SessionTimerBanner';
 import CardDetailModal from '../modals/CardDetailModal';
+import SessionTimerModal from '../modals/SessionTimerModal';
+import SessionTimerEndedModal from '../modals/SessionTimerEndedModal';
 
 // Template Columns Dictionary
 const TEMPLATE_COLUMNS_MAP = {
@@ -68,6 +72,73 @@ export default function RetroBoardDetail({
   const [cards, setCards] = useState([]);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState(null);
   const [members, setMembers] = useState([]);
+
+  // ── Retro Session Timer State ──
+  const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
+  const [isTimerEndedModalOpen, setIsTimerEndedModalOpen] = useState(false);
+  const [timerStatus, setTimerStatus] = useState('idle'); // 'idle' | 'running' | 'paused' | 'ended'
+  const [timerTotal, setTimerTotal] = useState(15 * 60); // 15 mins in seconds
+  const [timerRemaining, setTimerRemaining] = useState(15 * 60);
+  const [timerFacilitator, setTimerFacilitator] = useState(
+    currentUser?.name || currentUser?.email?.split('@')[0] || 'Afrizal'
+  );
+
+  // Sync facilitator if current user changes
+  useEffect(() => {
+    if (currentUser?.name && timerFacilitator === 'Afrizal') {
+      setTimerFacilitator(currentUser.name);
+    }
+  }, [currentUser?.name]);
+
+  // Timer Countdown Ticker
+  useEffect(() => {
+    let interval = null;
+    if (timerStatus === 'running') {
+      interval = setInterval(() => {
+        setTimerRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setTimerStatus('ended');
+            setIsTimerEndedModalOpen(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerStatus]);
+
+  const handleStartTimer = (durationMinutes) => {
+    const totalSecs = Math.max(1, durationMinutes) * 60;
+    setTimerTotal(totalSecs);
+    setTimerRemaining(totalSecs);
+    setTimerStatus('running');
+    if (onShowToast) onShowToast(`Timer sesi dimulai: ${durationMinutes} menit`);
+  };
+
+  const handlePauseTimer = () => {
+    setTimerStatus('paused');
+    if (onShowToast) onShowToast('Timer sesi dijeda');
+  };
+
+  const handleResumeTimer = () => {
+    setTimerStatus('running');
+    if (onShowToast) onShowToast('Timer sesi dilanjutkan');
+  };
+
+  const handleResetTimer = () => {
+    setTimerStatus('idle');
+    setTimerRemaining(timerTotal);
+    if (onShowToast) onShowToast('Timer sesi direset');
+  };
+
+  const handleChangeFacilitator = (name) => {
+    setTimerFacilitator(name);
+    if (onShowToast) onShowToast(`Fasilitator diubah: ${name}`);
+  };
 
   const boardId = board?.id;
 
@@ -341,6 +412,15 @@ export default function RetroBoardDetail({
           return c;
         })
       );
+    },
+
+    onTimerUpdated: (timerData) => {
+      if (!timerData) return;
+      if (timerData.status) setTimerStatus(timerData.status);
+      if (typeof timerData.remainingSeconds === 'number') setTimerRemaining(timerData.remainingSeconds);
+      if (typeof timerData.totalSeconds === 'number') setTimerTotal(timerData.totalSeconds);
+      if (timerData.facilitator) setTimerFacilitator(timerData.facilitator);
+      if (timerData.status === 'ended') setIsTimerEndedModalOpen(true);
     },
   });
 
@@ -1186,7 +1266,7 @@ export default function RetroBoardDetail({
         </div>
       </div>
 
-      {/* ── Navigation Tabs with Realtime Status Badge ── */}
+      {/* ── Navigation Tabs with Realtime Status Badge & Mulai Timer Button ── */}
       <div className="retro-board-tabs">
         <div className="retro-tabs-left">
           {BOARD_TABS.map((tab) => (
@@ -1203,23 +1283,37 @@ export default function RetroBoardDetail({
           ))}
         </div>
 
-        <div
-          className={`retro-realtime-badge ${
-            connectionStatus === 'connected' ? '' : connectionStatus
-          }`}
-        >
-          <span
-            className={`retro-realtime-dot ${
+        <div className="retro-tabs-right">
+          <div
+            className={`retro-realtime-badge ${
               connectionStatus === 'connected' ? '' : connectionStatus
             }`}
-          ></span>
-          <span>
-            {connectionStatus === 'connected'
-              ? 'Terhubung secara real-time'
-              : connectionStatus === 'connecting'
-              ? 'Menghubungkan...'
-              : 'Offline (Polling)'}
-          </span>
+          >
+            <span
+              className={`retro-realtime-dot ${
+                connectionStatus === 'connected' ? '' : connectionStatus
+              }`}
+            ></span>
+            <span>
+              {connectionStatus === 'connected'
+                ? 'Terhubung secara real-time'
+                : connectionStatus === 'connecting'
+                ? 'Menghubungkan...'
+                : 'Offline (Polling)'}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className={`retro-mulai-timer-btn ${
+              timerStatus === 'running' ? 'active-running' : ''
+            }`}
+            onClick={() => setIsTimerModalOpen(true)}
+            title="Atur & Mulai Timer Sesi"
+          >
+            <AlarmClock size={16} />
+            <span>Mulai Timer</span>
+          </button>
         </div>
       </div>
 
@@ -1227,6 +1321,20 @@ export default function RetroBoardDetail({
       {activeTab === 'board' && (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="retro-board-columns-container">
+            {/* Session Timer Banner Bar (Running / Paused) */}
+            {['running', 'paused'].includes(timerStatus) && (
+              <SessionTimerBanner
+                status={timerStatus}
+                remainingSeconds={timerRemaining}
+                facilitator={timerFacilitator}
+                members={members}
+                onPause={handlePauseTimer}
+                onResume={handleResumeTimer}
+                onReset={handleResetTimer}
+                onChangeFacilitator={handleChangeFacilitator}
+              />
+            )}
+
             <div
               className="retro-board-columns-grid"
               style={{
@@ -1325,6 +1433,23 @@ export default function RetroBoardDetail({
         onEditComment={handleEditComment}
         onDeleteComment={handleDeleteComment}
         onVoteCard={handleVoteCard}
+      />
+
+      {/* ── Modal Atur Timer Sesi ── */}
+      <SessionTimerModal
+        isOpen={isTimerModalOpen}
+        onClose={() => setIsTimerModalOpen(false)}
+        onStartTimer={handleStartTimer}
+        initialMinutes={Math.max(1, Math.round((timerTotal || 900) / 60))}
+      />
+
+      {/* ── Modal Waktu Sesi Habis! ── */}
+      <SessionTimerEndedModal
+        isOpen={isTimerEndedModalOpen}
+        onClose={() => {
+          setIsTimerEndedModalOpen(false);
+          setTimerStatus('idle');
+        }}
       />
     </div>
   );
