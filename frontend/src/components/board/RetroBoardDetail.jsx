@@ -16,204 +16,6 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import RetroColumn from './RetroColumn';
 import CardDetailModal from '../modals/CardDetailModal';
 
-// Initial default cards for demonstration and fallback matching Sprint 16 Retrospective
-const createInitialRetroCards = () => [
-  {
-    id: 'c_start_1',
-    columnId: 'start',
-    content: 'Mulai melakukan daily meeting setiap pagi',
-    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
-    authorName: 'Afrizal',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    time: '10:32 AM',
-    createdAt: new Date().toISOString(),
-    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
-    votesCount: 5,
-    commentCount: 5,
-    commentsCount: 5,
-    comments: [
-      {
-        id: 'cm_1',
-        author: { name: 'Budi Santoso' },
-        authorName: 'Budi Santoso',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-        text: 'Setuju, perlu dibuat checklist sebelum sprint',
-        time: '10:25 AM',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'cm_2',
-        author: { name: 'Budi Santoso' },
-        authorName: 'Budi Santoso',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-        text: 'Setuju, perlu dibuat checklist sebelum sprint',
-        time: '10:25 AM',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'cm_3',
-        author: { name: 'Budi Santoso' },
-        authorName: 'Budi Santoso',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-        text: 'Setuju, perlu dibuat checklist sebelum sprint',
-        time: '10:25 AM',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'cm_4',
-        author: { name: 'Budi Santoso' },
-        authorName: 'Budi Santoso',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-        text: 'Setuju, perlu dibuat checklist sebelum sprint',
-        time: '10:25 AM',
-        createdAt: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    id: 'c_start_2',
-    columnId: 'start',
-    content: 'Mulai melakukan daily meeting setiap pagi',
-    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
-    authorName: 'Afrizal',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    time: '10:32 AM',
-    createdAt: new Date().toISOString(),
-    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
-    votesCount: 5,
-    commentCount: 5,
-    commentsCount: 5,
-    comments: [],
-  },
-  {
-    id: 'c_start_3',
-    columnId: 'start',
-    content: 'Mulai melakukan daily meeting setiap pagi',
-    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
-    authorName: 'Afrizal',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    time: '10:32 AM',
-    createdAt: new Date().toISOString(),
-    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
-    votesCount: 5,
-    commentCount: 5,
-    commentsCount: 5,
-    comments: [],
-  },
-  {
-    id: 'c_stop_1',
-    columnId: 'stop',
-    content: 'Testing sering terlambat',
-    author: { name: 'Sarah Wijaya', email: 'sarah@gmail.com' },
-    authorName: 'Sarah Wijaya',
-    avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
-    time: '10:20 AM',
-    createdAt: new Date().toISOString(),
-    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }, { userId: '6' }, { userId: '7' }, { userId: '8' }],
-    votesCount: 8,
-    commentCount: 4,
-    commentsCount: 4,
-    comments: [
-      {
-        id: 'cm_stop1_1',
-        author: { name: 'Budi Santoso' },
-        authorName: 'Budi Santoso',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-        text: 'Setuju, perlu dibuat checklist sebelum sprint',
-        time: '10:25 AM',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'cm_stop1_2',
-        author: { name: 'Budi Santoso' },
-        authorName: 'Budi Santoso',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-        text: 'Setuju, perlu dibuat checklist sebelum sprint',
-        time: '10:25 AM',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'cm_stop1_3',
-        author: { name: 'Budi Santoso' },
-        authorName: 'Budi Santoso',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-        text: 'Setuju, perlu dibuat checklist sebelum sprint',
-        time: '10:25 AM',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'cm_stop1_4',
-        author: { name: 'Budi Santoso' },
-        authorName: 'Budi Santoso',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-        text: 'Setuju, perlu dibuat checklist sebelum sprint',
-        time: '10:25 AM',
-        createdAt: new Date().toISOString(),
-      },
-    ],
-  },
-  {
-    id: 'c_stop_2',
-    columnId: 'stop',
-    content: 'Mulai melakukan daily meeting setiap pagi',
-    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
-    authorName: 'Afrizal',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    time: '10:32 AM',
-    createdAt: new Date().toISOString(),
-    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
-    votesCount: 5,
-    commentCount: 5,
-    commentsCount: 5,
-    comments: [],
-  },
-  {
-    id: 'c_continue_1',
-    columnId: 'continue',
-    content: 'Mulai melakukan daily meeting setiap pagi',
-    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
-    authorName: 'Afrizal',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    time: '10:32 AM',
-    createdAt: new Date().toISOString(),
-    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
-    votesCount: 5,
-    commentCount: 5,
-    commentsCount: 5,
-    comments: [],
-  },
-  {
-    id: 'c_continue_2',
-    columnId: 'continue',
-    content: 'Mulai melakukan daily meeting setiap pagi',
-    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
-    authorName: 'Afrizal',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    time: '10:32 AM',
-    createdAt: new Date().toISOString(),
-    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
-    votesCount: 5,
-    commentCount: 5,
-    commentsCount: 5,
-    comments: [],
-  },
-  {
-    id: 'c_continue_3',
-    columnId: 'continue',
-    content: 'Mulai melakukan daily meeting setiap pagi',
-    author: { name: 'Afrizal', email: 'afrizal@gmail.com' },
-    authorName: 'Afrizal',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    time: '10:32 AM',
-    createdAt: new Date().toISOString(),
-    votes: [{ userId: '1' }, { userId: '2' }, { userId: '3' }, { userId: '4' }, { userId: '5' }],
-    votesCount: 5,
-    commentCount: 5,
-    commentsCount: 5,
-    comments: [],
-  },
-];
-
 // Template Columns Dictionary
 const TEMPLATE_COLUMNS_MAP = {
   'start-stop-continue': [
@@ -263,7 +65,7 @@ export default function RetroBoardDetail({
 }) {
   const [activeTab, setActiveTab] = useState('board');
   const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
-  const [cards, setCards] = useState(() => createInitialRetroCards());
+  const [cards, setCards] = useState([]);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState(null);
   const [members, setMembers] = useState([]);
 
@@ -297,15 +99,60 @@ export default function RetroBoardDetail({
     if (!boardId) return;
     try {
       const cardsData = await api.getCards(boardId);
-      if (Array.isArray(cardsData) && cardsData.length > 0) {
-        setCards(cardsData);
-      } else {
-        setCards(createInitialRetroCards());
+      if (Array.isArray(cardsData)) {
+        const currentUserId = currentUser?.id || currentUser?.userId || currentUser?.email;
+        const formatted = cardsData.map((c) => {
+          const authorName = c.author?.name || c.author?.email?.split('@')[0] || 'Anggota';
+          const authorEmail = c.author?.email || '';
+          const votesList = Array.isArray(c.votes) ? c.votes : [];
+          const votesCount = typeof c.votesCount === 'number' ? c.votesCount : votesList.length;
+          const hasVoted =
+            votesList.some((v) => (v.userId || v.id || v) === currentUserId) ||
+            Boolean(c.hasVoted);
+
+          return {
+            id: c.id,
+            boardId: c.boardId,
+            columnId: c.columnId || 'start',
+            content: c.content,
+            text: c.content,
+            groupId: c.groupId || null,
+            groupTitle: c.groupTitle || null,
+            author: c.author,
+            authorName,
+            authorEmail,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorEmail || authorName}`,
+            createdAt: c.createdAt,
+            time: c.createdAt
+              ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : 'Baru saja',
+            votes: votesList,
+            votesCount,
+            hasVoted,
+            comments: (c.comments || []).map((cm) => ({
+              id: cm.id,
+              cardId: c.id,
+              content: cm.content || cm.text || '',
+              text: cm.content || cm.text || '',
+              userId: cm.userId,
+              author: cm.user || cm.author,
+              authorName: cm.user?.name || cm.authorName || 'Anggota',
+              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cm.user?.email || cm.user?.name || 'Anggota'}`,
+              createdAt: cm.createdAt,
+              time: cm.createdAt
+                ? new Date(cm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : 'Baru saja',
+            })),
+            commentsCount: c.commentsCount || (c.comments ? c.comments.length : 0),
+          };
+        });
+        setCards(formatted);
       }
-    } catch {
-      // Keep existing cards
+    } catch (err) {
+      console.warn('Gagal memuat card dari backend:', err);
+      setCards([]);
     }
-  }, [boardId]);
+  }, [boardId, currentUser]);
 
   useEffect(() => {
     loadCardsFromApi();
@@ -561,6 +408,9 @@ export default function RetroBoardDetail({
       votesCount: 0,
       votedBy: [],
       hasVoted: false,
+      comments: [],
+      commentsCount: 0,
+      commentCount: 0,
     };
 
     setCards((prev) => [...prev, newCard]);
