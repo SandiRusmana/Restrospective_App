@@ -59,6 +59,19 @@ model Board {
   workspace Workspace     @relation(fields: [workspaceId], references: [id])
   columns   BoardColumn[]
   cards     Card[]
+  timer     BoardTimer?
+}
+
+model BoardTimer {
+  id        String    @id @default(uuid())
+  boardId   String    @unique
+  duration  Int       @default(300)
+  remaining Int       @default(300)
+  isRunning Boolean   @default(false)
+  startedAt DateTime?
+  pausedAt  DateTime?
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
 }
 
 model BoardColumn {

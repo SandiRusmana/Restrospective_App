@@ -46,13 +46,4 @@ export class BoardController {
   ) {
     return this.boardService.deleteBoard(userId, boardId);
   }
-
-  @Post('boards/:id/timer')
-  async updateTimer(
-    @GetUser('id') userId: string,
-    @Param('id') boardId: string,
-    @Body() timerData: any,
-  ) {
-    return this.boardService.updateTimer(userId, boardId, timerData);
-  }
 }

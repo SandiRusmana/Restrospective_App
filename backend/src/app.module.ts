@@ -11,6 +11,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PusherModule } from './pusher/pusher.module';
 import { VoteModule } from './vote/vote.module';
 import { CommentModule } from './comment/comment.module';
+import { TimerModule } from './timer/timer.module';
 import { WorkspaceModule } from './workspace/workspace.module';
 
 @Module({
@@ -49,6 +50,8 @@ import { WorkspaceModule } from './workspace/workspace.module';
     VoteModule,
     // Modul Comment Realtime
     CommentModule,
+    // Modul Timer Sesi Retrospective
+    TimerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
