@@ -20,6 +20,7 @@ model User {
   cards            Card[]
   createdInvites   WorkspaceInvite[]
   votes            Vote[]
+  comments         Comment[]
 }
 
 model Workspace {
@@ -80,10 +81,11 @@ model Card {
   groupTitle String?
   createdAt  DateTime @default(now())
 
-  board  Board       @relation(fields: [boardId], references: [id])
-  column BoardColumn @relation(fields: [columnId], references: [id])
-  author User        @relation(fields: [authorId], references: [id])
-  votes  Vote[]
+  board    Board       @relation(fields: [boardId], references: [id])
+  column   BoardColumn @relation(fields: [columnId], references: [id])
+  author   User        @relation(fields: [authorId], references: [id])
+  votes    Vote[]
+  comments Comment[]
 }
 
 model Vote {
@@ -96,6 +98,18 @@ model Vote {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([cardId, userId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  cardId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model WorkspaceInvite {

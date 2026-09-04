@@ -104,13 +104,11 @@ export default function RetroCard({
   // Determine comments count
   const commentsArray = Array.isArray(card?.comments) ? card.comments : [];
   const commentsCount =
-    commentsArray.length > 0
-      ? commentsArray.length
+    typeof card?.commentsCount === 'number'
+      ? card.commentsCount
       : typeof card?.commentCount === 'number'
       ? card.commentCount
-      : typeof card?.commentsCount === 'number'
-      ? card.commentsCount
-      : 5;
+      : commentsArray.length;
 
   // Determine vote count & voted state
   const currentUserId = currentUser?.id || currentUser?.email || 'current_user';

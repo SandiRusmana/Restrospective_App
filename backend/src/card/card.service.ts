@@ -10,7 +10,7 @@ export class CardService {
   constructor(
     private prisma: PrismaService,
     private pusher: PusherService,
-  ) {}
+  ) { }
 
   /**
    * Pengecekan Otorisasi Keanggotaan Workspace Berdasarkan Board ID
@@ -102,8 +102,8 @@ export class CardService {
     // 1. Cek Otorisasi Akses User ke Board
     await this.checkBoardAccess(userId, boardId);
 
-    // 2. Ambil semua card pada board beserta relasi author dan vote
-    const cards = await this.prisma.card.findMany({
+    // 2. Ambil semua card pada board beserta relasi author, vote, dan comments
+    const cards = await (this.prisma.card as any).findMany({
       where: { boardId },
       include: {
         author: {
@@ -118,6 +118,20 @@ export class CardService {
             userId: true,
           },
         },
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
         _count: {
           select: {
             votes: true,
@@ -129,19 +143,23 @@ export class CardService {
       },
     });
 
-    return cards.map((c) => ({
+    return cards.map((c: any) => ({
       id: c.id,
       boardId: c.boardId,
       columnId: c.columnId,
       authorId: c.authorId,
       content: c.content,
       groupId: c.groupId || null,
-      groupTitle: (c as any).groupTitle || null,
+      groupTitle: c.groupTitle || null,
       createdAt: c.createdAt,
       author: c.author,
-      votes: c.votes,
-      votesCount: c._count.votes,
-      hasVoted: c.votes.some((v) => v.userId === userId),
+      votes: c.votes || [],
+      votesCount: c._count?.votes || (Array.isArray(c.votes) ? c.votes.length : 0),
+      hasVoted: Array.isArray(c.votes)
+        ? c.votes.some((v: any) => v.userId === userId)
+        : false,
+      comments: c.comments || [],
+      commentsCount: c._count?.comments || (Array.isArray(c.comments) ? c.comments.length : 0),
     }));
   }
 

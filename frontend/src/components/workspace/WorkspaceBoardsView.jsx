@@ -225,7 +225,7 @@ export default function WorkspaceBoardsView({
                 onClick={onCreateBoardModalOpen}
               >
                 <Plus size={18} />
-                <span>Buat Workspace</span>
+                <span>Buat Board</span>
               </button>
             </div>
 
@@ -350,7 +350,7 @@ export default function WorkspaceBoardsView({
                 );
               })}
 
-              {/* Dashed Create New Board / Workspace Card */}
+              {/* Dashed Create New Board Card */}
               <div
                 className="retro-create-card-dashed"
                 onClick={onCreateBoardModalOpen}
@@ -358,7 +358,7 @@ export default function WorkspaceBoardsView({
                 <div className="dashed-plus-icon-box">
                   <Plus size={22} />
                 </div>
-                <h3 className="dashed-card-title">Buat Workspace Baru</h3>
+                <h3 className="dashed-card-title">Buat Board Baru</h3>
                 <p className="dashed-card-desc">
                   Mulai sesi retrospective baru bersama tim Anda
                 </p>

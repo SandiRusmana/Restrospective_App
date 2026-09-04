@@ -61,17 +61,22 @@ export default function CardDetailModal({
 
   if (!isOpen || !card) return null;
 
-  const authorName = card.author?.name || card.authorName || 'Sarah Wijaya';
-  const timestamp = card.time || (card.createdAt ? new Date(card.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true }) : '10:20 AM');
-  const cardText = card.content || card.text || 'Detail Catatan';
+  const authorName = card.author?.name || card.authorName || 'Anggota Tim';
+  const timestamp =
+    card.time ||
+    (card.createdAt
+      ? new Date(card.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true })
+      : 'Baru saja');
+  const cardText = card.content || card.text || '';
 
-  const votesCount = typeof card.votesCount === 'number'
-    ? card.votesCount
-    : Array.isArray(card.votes)
-    ? card.votes.length
-    : typeof card.votes === 'number'
-    ? card.votes
-    : 8;
+  const votesCount =
+    typeof card.votesCount === 'number'
+      ? card.votesCount
+      : Array.isArray(card.votes)
+      ? card.votes.length
+      : typeof card.votes === 'number'
+      ? card.votes
+      : 0;
 
   const currentUserId = currentUser?.id || currentUser?.email || 'current_user';
   const hasVoted = Boolean(
@@ -80,9 +85,17 @@ export default function CardDetailModal({
   );
 
   const comments = Array.isArray(card.comments) ? card.comments : [];
-  const commentsCount = comments.length > 0 ? comments.length : (card.commentCount || 4);
+  const commentsCount =
+    typeof card.commentsCount === 'number'
+      ? card.commentsCount
+      : typeof card.commentCount === 'number'
+      ? card.commentCount
+      : comments.length;
 
-  const userAvatar = currentUser?.avatarUrl || currentUser?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'afrizal'}`;
+  const userAvatar =
+    currentUser?.avatarUrl ||
+    currentUser?.avatar ||
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'user'}`;
 
   // Handler: Submit New Comment
   const handleSendComment = async (e) => {
