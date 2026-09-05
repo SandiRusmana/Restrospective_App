@@ -136,11 +136,7 @@ export default function LoginPage({ onLoginSuccess, onNavigateRegister }) {
               type="button" 
               className="auth-google-btn"
               onClick={() => {
-                setIsLoading(true);
-                setTimeout(() => {
-                  setIsLoading(false);
-                  onLoginSuccess({ email: 'user.google@gmail.com' });
-                }, 600);
+                window.location.href = api.getGoogleAuthUrl();
               }}
             >
               <svg className="google-icon-svg" viewBox="0 0 24 24">

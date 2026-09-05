@@ -228,9 +228,23 @@ export default function App() {
     }
   }, []);
 
-  // Initial Auth Check on Mount
+  // Initial Auth Check on Mount (termasuk deteksi callback Google OAuth)
   useEffect(() => {
     async function checkAuth() {
+      // 1. Cek apakah ada redirect token dari Google OAuth di URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenFromUrl = urlParams.get('token');
+      const authError = urlParams.get('error');
+
+      if (tokenFromUrl) {
+        localStorage.setItem('access_token', tokenFromUrl);
+        // Bersihkan parameter query dari address bar agar rapi
+        window.history.replaceState({}, document.title, window.location.pathname.replace('/auth/callback', '') || '/');
+      } else if (authError) {
+        showToast('Login dengan Google gagal atau dibatalkan.');
+        window.history.replaceState({}, document.title, window.location.pathname.replace('/auth/callback', '') || '/');
+      }
+
       const savedToken = localStorage.getItem('access_token');
       if (savedToken) {
         setIsLoadingAuth(true);
@@ -241,7 +255,7 @@ export default function App() {
             name: userData.name || userData.email.split('@')[0],
             fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
             email: userData.email,
-            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`,
+            avatarUrl: userData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`,
             isOnline: true
           };
           setUser(formattedUser);
@@ -260,7 +274,7 @@ export default function App() {
       }
     }
     checkAuth();
-  }, [fetchWorkspaces]);
+  }, [fetchWorkspaces, showToast]);
 
   // Active Workspace Object
   const activeWorkspace = useMemo(() => {

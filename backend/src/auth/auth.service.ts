@@ -62,7 +62,7 @@ export class AuthService {
       where: { email },
     });
 
-    if (!user) {
+    if (!user || !user.password) {
       throw new UnauthorizedException('Email atau password salah');
     }
 
@@ -107,6 +107,55 @@ export class AuthService {
 
     const { password: _, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  /**
+   * Validasi atau Buat User Baru dari Google OAuth
+   */
+  async validateOrCreateGoogleUser(profile: {
+    googleId: string;
+    email: string | null;
+    name?: string;
+    avatarUrl?: string | null;
+  }) {
+    if (!profile.email) {
+      throw new UnauthorizedException('Akun Google tidak memiliki alamat email yang valid');
+    }
+
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ googleId: profile.googleId }, { email: profile.email }],
+      },
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email: profile.email,
+          name: profile.name || null,
+          googleId: profile.googleId,
+          avatarUrl: profile.avatarUrl || null,
+        },
+      });
+    } else {
+      // Update googleId atau avatar jika belum ada
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId: profile.googleId,
+          avatarUrl: profile.avatarUrl || user.avatarUrl,
+          name: user.name || profile.name || null,
+        },
+      });
+    }
+
+    const token = await this.generateToken(user.id, user.email);
+    const { password: _, ...userWithoutPassword } = user;
+
+    return {
+      accessToken: token,
+      user: userWithoutPassword,
+    };
   }
 
   /**

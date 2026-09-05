@@ -58,6 +58,10 @@ export const api = {
     return request('/auth/me', { method: 'GET' });
   },
 
+  getGoogleAuthUrl() {
+    return `${API_BASE_URL}/auth/google`;
+  },
+
   logout() {
     localStorage.removeItem('access_token');
   },
