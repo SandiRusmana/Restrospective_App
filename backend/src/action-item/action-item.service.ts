@@ -79,12 +79,13 @@ export class ActionItemService {
         assigneeId: dto.assigneeId || null,
         dueDate,
         title,
-        status: 'PENDING',
+        status: dto.status || 'PENDING',
       },
       update: {
         ...(dto.assigneeId !== undefined ? { assigneeId: dto.assigneeId } : {}),
         ...(dto.dueDate !== undefined ? { dueDate } : {}),
         ...(dto.title !== undefined ? { title } : {}),
+        ...(dto.status !== undefined ? { status: dto.status } : {}),
       },
       include: {
         assignee: {

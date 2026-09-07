@@ -66,7 +66,7 @@ export class TimerService {
   /**
    * Broadcast perubahan timer via Pusher ke channel board
    */
-  private async broadcastTimerUpdate(boardId: string, timer: any) {
+  private async broadcastTimerUpdate(boardId: string, timer: any, user?: any) {
     const channels = [
       `private-board-${boardId}`,
       `board-${boardId}`,
@@ -77,6 +77,8 @@ export class TimerService {
       await this.pusher.trigger(channels, 'timer.updated', {
         timer,
         boardId,
+        user: user || null,
+        facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
         timestamp: new Date().toISOString(),
       });
     } catch (err) {
@@ -88,8 +90,14 @@ export class TimerService {
    * Mengambil Status Timer Terkini
    */
   async getTimer(userId: string, boardId: string) {
-    await this.checkBoardAccess(userId, boardId);
+    const board = await this.checkBoardAccess(userId, boardId);
     let timer = await this.getOrCreateTimer(boardId);
+
+    const owner = await this.prisma.user.findUnique({
+      where: { id: board.workspace.ownerId },
+      select: { id: true, name: true, email: true },
+    });
+    const facilitator = owner?.name || owner?.email?.split('@')[0] || 'Facilitator';
 
     // Hitung sisa waktu terkini jika timer sedang berjalan
     if (timer.isRunning && timer.startedAt) {
@@ -113,11 +121,15 @@ export class TimerService {
         return {
           ...timer,
           remaining: computedRemaining,
+          facilitator,
         };
       }
     }
 
-    return timer;
+    return {
+      ...timer,
+      facilitator,
+    };
   }
 
   /**
@@ -126,6 +138,11 @@ export class TimerService {
   async startTimer(userId: string, boardId: string) {
     await this.checkBoardAccess(userId, boardId);
     let timer = await this.getOrCreateTimer(boardId);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    });
 
     if (timer.isRunning) {
       return this.getTimer(userId, boardId);
@@ -147,8 +164,11 @@ export class TimerService {
       },
     });
 
-    await this.broadcastTimerUpdate(boardId, updatedTimer);
-    return updatedTimer;
+    await this.broadcastTimerUpdate(boardId, updatedTimer, user);
+    return {
+      ...updatedTimer,
+      facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
+    };
   }
 
   /**
@@ -158,8 +178,16 @@ export class TimerService {
     await this.checkBoardAccess(userId, boardId);
     const timer = await this.getOrCreateTimer(boardId);
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    });
+
     if (!timer.isRunning) {
-      return timer;
+      return {
+        ...timer,
+        facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
+      };
     }
 
     let computedRemaining = timer.remaining;
@@ -180,8 +208,11 @@ export class TimerService {
       },
     });
 
-    await this.broadcastTimerUpdate(boardId, updatedTimer);
-    return updatedTimer;
+    await this.broadcastTimerUpdate(boardId, updatedTimer, user);
+    return {
+      ...updatedTimer,
+      facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
+    };
   }
 
   /**
@@ -190,6 +221,11 @@ export class TimerService {
   async resetTimer(userId: string, boardId: string) {
     await this.checkBoardAccess(userId, boardId);
     const timer = await this.getOrCreateTimer(boardId);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    });
 
     const updatedTimer = await this.prisma.boardTimer.update({
       where: { id: timer.id },
@@ -201,8 +237,11 @@ export class TimerService {
       },
     });
 
-    await this.broadcastTimerUpdate(boardId, updatedTimer);
-    return updatedTimer;
+    await this.broadcastTimerUpdate(boardId, updatedTimer, user);
+    return {
+      ...updatedTimer,
+      facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
+    };
   }
 
   /**
@@ -212,6 +251,11 @@ export class TimerService {
     await this.checkBoardAccess(userId, boardId);
     const timer = await this.getOrCreateTimer(boardId);
     const { duration } = updateDurationDto;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    });
 
     const updatedTimer = await this.prisma.boardTimer.update({
       where: { id: timer.id },
@@ -224,7 +268,10 @@ export class TimerService {
       },
     });
 
-    await this.broadcastTimerUpdate(boardId, updatedTimer);
-    return updatedTimer;
+    await this.broadcastTimerUpdate(boardId, updatedTimer, user);
+    return {
+      ...updatedTimer,
+      facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
+    };
   }
 }

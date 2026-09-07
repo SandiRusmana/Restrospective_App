@@ -222,4 +222,47 @@ export const api = {
       body: JSON.stringify({ text }),
     });
   },
+
+  // Action Item API
+  async getActionItems(boardId) {
+    return request(`/boards/${boardId}/action-items`, { method: 'GET' });
+  },
+
+  async convertCardToAction(cardId, data) {
+    return request(`/cards/${cardId}/convert-to-action`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateActionItem(actionItemId, data) {
+    return request(`/action-items/${actionItemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Timer API
+  async getTimer(boardId) {
+    return request(`/boards/${boardId}/timer`, { method: 'GET' });
+  },
+
+  async startTimer(boardId) {
+    return request(`/boards/${boardId}/timer/start`, { method: 'POST' });
+  },
+
+  async pauseTimer(boardId) {
+    return request(`/boards/${boardId}/timer/pause`, { method: 'POST' });
+  },
+
+  async resetTimer(boardId) {
+    return request(`/boards/${boardId}/timer/reset`, { method: 'POST' });
+  },
+
+  async updateTimerDuration(boardId, duration) {
+    return request(`/boards/${boardId}/timer/duration`, {
+      method: 'PATCH',
+      body: JSON.stringify({ duration }),
+    });
+  },
 };

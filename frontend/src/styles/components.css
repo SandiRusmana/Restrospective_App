@@ -6387,7 +6387,37 @@
   background: #fef3c7;
   color: #d97706;
 }
+.action-status-pill.in_progress {
+  background: #dbeafe;
+  color: #2563eb;
+}
 .action-status-pill.done {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.convert-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.convert-status-badge.pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.convert-status-badge.in_progress {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.convert-status-badge.done {
   background: #dcfce7;
   color: #16a34a;
 }

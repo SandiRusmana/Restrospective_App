@@ -1,7 +1,7 @@
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateCardDto {
-  @IsUUID('4', { message: 'columnId harus berupa format UUID yang valid' })
+  @IsString({ message: 'columnId harus berupa string' })
   @IsNotEmpty({ message: 'columnId wajib diisi' })
   columnId: string;
 

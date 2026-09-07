@@ -50,13 +50,42 @@ export class CardService {
     // 1. Cek Otorisasi Akses User ke Board
     const board = await this.checkBoardAccess(userId, boardId);
 
-    // 2. Pastikan kolom yang dituju benar-benar milik board ini
-    const column = await this.prisma.boardColumn.findFirst({
+    // 2. Pastikan kolom yang dituju benar-benar milik board ini (cocokkan via id UUID atau nama kolom)
+    let column = await this.prisma.boardColumn.findFirst({
       where: {
         id: columnId,
         boardId: board.id,
       },
     });
+
+    if (!column) {
+      // Fallback 1: cocokkan dengan nama kolom (misal "Start", "Stop", "Continue")
+      column = await this.prisma.boardColumn.findFirst({
+        where: {
+          boardId: board.id,
+          name: {
+            equals: columnId,
+            mode: 'insensitive',
+          },
+        },
+      });
+    }
+
+    if (!column) {
+      // Fallback 2: cocokkan berdasarkan substring nama
+      const cleanCol = columnId.replace(/[_-]/g, ' ').toLowerCase();
+      const allColumns = await this.prisma.boardColumn.findMany({
+        where: { boardId: board.id },
+        orderBy: { order: 'asc' },
+      });
+      column =
+        allColumns.find(
+          (c) =>
+            c.name.toLowerCase() === cleanCol ||
+            c.name.toLowerCase().startsWith(cleanCol) ||
+            cleanCol.startsWith(c.name.toLowerCase()),
+        ) || null;
+    }
 
     if (!column) {
       throw new NotFoundException('Kolom tidak ditemukan di dalam board ini');
@@ -78,21 +107,42 @@ export class CardService {
             email: true,
           },
         },
+        column: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
-    // 4. Trigger Realtime Broadcast via Pusher (Broadcast ke private-board-{id} dan board-{id})
-    const channels = [`private-board-${boardId}`, `board-${boardId}`];
-    const cardToBroadcast = board.isAnonymous ? { ...card, author: null } : card;
+    const cardResponse = {
+      ...card,
+      columnType: column.name.toLowerCase(),
+      columnName: column.name,
+    };
+
+    // 4. Trigger Realtime Broadcast via Pusher (Broadcast ke semua channel board)
+    const channels = [
+      `board-${boardId}`,
+      `private-board-${boardId}`,
+      `presence-board-${boardId}`,
+    ];
+    const cardToBroadcast = board.isAnonymous
+      ? { ...cardResponse, author: null }
+      : cardResponse;
     try {
       await this.pusher.trigger(channels, 'card.created', cardToBroadcast);
     } catch (err) {
-      console.warn(`[Pusher Warn] Gagal mengirim broadcast card.created ke channels ${channels.join(', ')}:`, err.message);
+      console.warn(
+        `[Pusher Warn] Gagal mengirim broadcast card.created ke channels ${channels.join(', ')}:`,
+        err.message,
+      );
     }
 
     return {
       message: 'Card berhasil dibuat',
-      card,
+      card: cardResponse,
     };
   }
 
@@ -152,6 +202,12 @@ export class CardService {
             },
           },
         },
+        column: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         _count: {
           select: {
             votes: true,
@@ -167,6 +223,8 @@ export class CardService {
       id: c.id,
       boardId: c.boardId,
       columnId: c.columnId,
+      columnType: c.column?.name ? c.column.name.toLowerCase() : null,
+      columnName: c.column?.name || null,
       authorId: c.authorId,
       content: c.content,
       groupId: c.groupId || null,
@@ -317,7 +375,11 @@ export class CardService {
     });
 
     // 4. Trigger Realtime Broadcast via Pusher
-    const channels = [`private-board-${card.boardId}`, `board-${card.boardId}`];
+    const channels = [
+      `board-${card.boardId}`,
+      `private-board-${card.boardId}`,
+      `presence-board-${card.boardId}`,
+    ];
     try {
       await this.pusher.trigger(channels, 'card.deleted', {
         id: card.id,
