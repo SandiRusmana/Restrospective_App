@@ -73,6 +73,7 @@ export default function RetroBoardDetail({
   onShowToast,
   onUpdateBoard,
 }) {
+  const boardId = board?.id;
   const [activeTab, setActiveTab] = useState('board');
   const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
   const [cards, setCards] = useState([]);
@@ -89,14 +90,74 @@ export default function RetroBoardDetail({
   // ── Action Items State ──
   const [actionItems, setActionItems] = useState([]);
   const [convertModalCard, setConvertModalCard] = useState(null);
+  const [boardColumns, setBoardColumns] = useState(board?.columns || []);
+
+  const formatActionItem = useCallback((item) => {
+    if (!item) return null;
+    const dueDateDisplay = item.dueDate
+      ? new Date(item.dueDate).toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : null;
+
+    return {
+      ...item,
+      id: item.id,
+      cardId: item.cardId,
+      title: item.title || item.card?.content || 'Action Item',
+      status: item.status || 'PENDING',
+      dueDate: item.dueDate,
+      dueDateDisplay: item.dueDateDisplay || dueDateDisplay,
+      assignee: item.assignee || null,
+      description: item.description || '',
+    };
+  }, []);
+
+  const loadActionItemsFromApi = useCallback(async () => {
+    if (!boardId) return;
+    try {
+      const res = await api.getActionItems(boardId);
+      if (Array.isArray(res)) {
+        setActionItems(res.map(formatActionItem));
+      }
+    } catch (err) {
+      console.warn('[ActionItems] Gagal memuat action items:', err);
+    }
+  }, [boardId, formatActionItem]);
+
+  useEffect(() => {
+    if (boardId) {
+      loadActionItemsFromApi();
+    }
+  }, [boardId, loadActionItemsFromApi]);
+
+  useEffect(() => {
+    if (activeTab === 'action-items' && boardId) {
+      loadActionItemsFromApi();
+    }
+  }, [activeTab, boardId, loadActionItemsFromApi]);
 
   // Sync state when board prop changes
   useEffect(() => {
     if (board) {
       setIsAnonymous(Boolean(board.isAnonymous));
       setCurrentBoardTitle(board.title || board.name || 'Sprint 16 Retrospective');
+      if (board.columns && board.columns.length > 0) {
+        setBoardColumns(board.columns);
+      }
     }
   }, [board]);
+
+  useEffect(() => {
+    if (!boardId) return;
+    api.getBoardById(boardId).then((fullBoard) => {
+      if (fullBoard?.columns && fullBoard.columns.length > 0) {
+        setBoardColumns(fullBoard.columns);
+      }
+    }).catch(() => {});
+  }, [boardId]);
 
   // Cek apakah user saat ini adalah facilitator / admin / owner
   const isFacilitator = useMemo(() => {
@@ -123,6 +184,70 @@ export default function RetroBoardDetail({
   const [timerFacilitator, setTimerFacilitator] = useState(
     currentUser?.name || currentUser?.email?.split('@')[0] || 'Afrizal'
   );
+
+  // Helper: Apply timer data from server or Pusher
+  const applyTimerState = useCallback((data, isLiveUpdate = false) => {
+    if (!data) return;
+    const t = data.timer || data;
+
+    const totalSecs = t.duration || t.totalSeconds || 900;
+    setTimerTotal(totalSecs);
+
+    let rem =
+      typeof t.remaining === 'number'
+        ? t.remaining
+        : typeof t.remainingSeconds === 'number'
+        ? t.remainingSeconds
+        : totalSecs;
+
+    if (t.isRunning && t.startedAt) {
+      const elapsed = Math.floor((Date.now() - new Date(t.startedAt).getTime()) / 1000);
+      rem = Math.max(0, rem - elapsed);
+    }
+
+    // Jika timer sudah tidak berjalan dan sisa waktunya 0 (sesi lama sudah selesai),
+    // kembalikan ke totalSecs dan jadikan status idle saat user baru buka/refresh board
+    if (!t.isRunning && rem <= 0 && !isLiveUpdate) {
+      rem = totalSecs;
+    }
+    setTimerRemaining(rem);
+
+    const facilitatorName = data.facilitator || t.facilitator;
+    if (facilitatorName) {
+      setTimerFacilitator(facilitatorName);
+    }
+
+    let nextStatus = 'idle';
+    if (t.status) {
+      nextStatus = t.status;
+    } else if (t.isRunning) {
+      nextStatus = rem > 0 ? 'running' : (isLiveUpdate ? 'ended' : 'idle');
+    } else if (rem > 0 && rem < totalSecs) {
+      nextStatus = 'paused';
+    } else if (rem === 0 && isLiveUpdate) {
+      nextStatus = 'ended';
+    } else {
+      nextStatus = 'idle';
+    }
+
+    setTimerStatus(nextStatus);
+    // Hanya tampilkan popup modal jika timer aktif baru saja selesai (live update),
+    // bukan saat baru membuka/refresh halaman yang sesi sebelumnya sudah selesai
+    if (nextStatus === 'ended' && isLiveUpdate) {
+      setIsTimerEndedModalOpen(true);
+    }
+  }, []);
+
+  // Fetch initial timer status from server (isLiveUpdate = false agar tidak popup saat refresh)
+  useEffect(() => {
+    if (!boardId) return;
+    api
+      .getTimer(boardId)
+      .then((res) => {
+        if (res) applyTimerState(res, false);
+      })
+      .catch((err) => console.warn('[Timer] Gagal memuat timer:', err));
+  }, [boardId, applyTimerState]);
 
   // Sync facilitator if current user changes
   useEffect(() => {
@@ -152,36 +277,64 @@ export default function RetroBoardDetail({
     };
   }, [timerStatus]);
 
-  const handleStartTimer = (durationMinutes) => {
+  const handleStartTimer = async (durationMinutes) => {
     const totalSecs = Math.max(1, durationMinutes) * 60;
     setTimerTotal(totalSecs);
     setTimerRemaining(totalSecs);
     setTimerStatus('running');
     if (onShowToast) onShowToast(`Timer sesi dimulai: ${durationMinutes} menit`);
+
+    if (!boardId) return;
+    try {
+      await api.updateTimerDuration(boardId, totalSecs);
+      const res = await api.startTimer(boardId);
+      if (res) applyTimerState(res);
+    } catch (err) {
+      console.warn('Gagal start timer di server:', err);
+    }
   };
 
-  const handlePauseTimer = () => {
+  const handlePauseTimer = async () => {
     setTimerStatus('paused');
     if (onShowToast) onShowToast('Timer sesi dijeda');
+    if (!boardId) return;
+    try {
+      const res = await api.pauseTimer(boardId);
+      if (res) applyTimerState(res);
+    } catch (err) {
+      console.warn('Gagal pause timer di server:', err);
+    }
   };
 
-  const handleResumeTimer = () => {
+  const handleResumeTimer = async () => {
     setTimerStatus('running');
     if (onShowToast) onShowToast('Timer sesi dilanjutkan');
+    if (!boardId) return;
+    try {
+      const res = await api.startTimer(boardId);
+      if (res) applyTimerState(res);
+    } catch (err) {
+      console.warn('Gagal resume timer di server:', err);
+    }
   };
 
-  const handleResetTimer = () => {
+  const handleResetTimer = async () => {
     setTimerStatus('idle');
     setTimerRemaining(timerTotal);
     if (onShowToast) onShowToast('Timer sesi direset');
+    if (!boardId) return;
+    try {
+      const res = await api.resetTimer(boardId);
+      if (res) applyTimerState(res);
+    } catch (err) {
+      console.warn('Gagal reset timer di server:', err);
+    }
   };
 
   const handleChangeFacilitator = (name) => {
     setTimerFacilitator(name);
     if (onShowToast) onShowToast(`Fasilitator diubah: ${name}`);
   };
-
-  const boardId = board?.id;
 
   // Load Workspace Members from API
   useEffect(() => {
@@ -226,6 +379,8 @@ export default function RetroBoardDetail({
             id: c.id,
             boardId: c.boardId,
             columnId: c.columnId || 'start',
+            columnType: c.columnType || null,
+            columnName: c.columnName || null,
             content: c.content,
             text: c.content,
             groupId: c.groupId || null,
@@ -273,26 +428,50 @@ export default function RetroBoardDetail({
   // Hook Pusher Channels Realtime & Presence
   const { connectionStatus, onlineMembers, onlineCount } = useBoardPusher(boardId, currentUser, {
     onCardCreated: (newCard) => {
+      if (!newCard) return;
+      const authorName = newCard.author?.name || 'Anggota Tim';
+      const authorEmail = newCard.author?.email || '';
+      const formattedCard = {
+        ...newCard,
+        content: newCard.content || newCard.text || '',
+        text: newCard.content || newCard.text || '',
+        authorName,
+        authorEmail,
+        avatar:
+          newCard.author?.avatarUrl ||
+          newCard.avatar ||
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorEmail || authorName}`,
+        time: newCard.createdAt
+          ? new Date(newCard.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : 'Baru saja',
+        votes: newCard.votes || [],
+        votesCount: newCard.votesCount || (Array.isArray(newCard.votes) ? newCard.votes.length : 0),
+        hasVoted: newCard.hasVoted || false,
+        comments: newCard.comments || [],
+        commentsCount: newCard.commentsCount || 0,
+      };
+
       setCards((prev) => {
         // Jika sudah ada (berdasarkan id yang sama), jangan duplikasi
-        if (prev.some((c) => c.id === newCard.id)) return prev;
+        if (prev.some((c) => c.id === formattedCard.id)) return prev;
 
         // Jika ada temporary optimistic card dengan konten & kolom yang sama, replace
         const optIndex = prev.findIndex(
           (c) =>
             typeof c.id === 'string' &&
             c.id.startsWith('card_') &&
-            c.columnId === newCard.columnId &&
-            c.content === newCard.content
+            (c.columnId === formattedCard.columnId ||
+              c.columnId?.toLowerCase() === formattedCard.columnId?.toLowerCase()) &&
+            c.content === formattedCard.content
         );
 
         if (optIndex !== -1) {
           const next = [...prev];
-          next[optIndex] = newCard;
+          next[optIndex] = formattedCard;
           return next;
         }
 
-        return [...prev, newCard];
+        return [...prev, formattedCard];
       });
     },
 
@@ -456,12 +635,33 @@ export default function RetroBoardDetail({
     },
 
     onTimerUpdated: (timerData) => {
-      if (!timerData) return;
-      if (timerData.status) setTimerStatus(timerData.status);
-      if (typeof timerData.remainingSeconds === 'number') setTimerRemaining(timerData.remainingSeconds);
-      if (typeof timerData.totalSeconds === 'number') setTimerTotal(timerData.totalSeconds);
-      if (timerData.facilitator) setTimerFacilitator(timerData.facilitator);
-      if (timerData.status === 'ended') setIsTimerEndedModalOpen(true);
+      applyTimerState(timerData, true);
+    },
+
+    onActionItemCreated: (payload) => {
+      const item = payload?.actionItem || payload;
+      if (!item) return;
+      const formatted = formatActionItem(item);
+      setActionItems((prev) => {
+        const exists = prev.some(
+          (ai) => ai.id === formatted.id || (ai.cardId && ai.cardId === formatted.cardId)
+        );
+        if (exists) {
+          return prev.map((ai) =>
+            ai.id === formatted.id || ai.cardId === formatted.cardId ? formatted : ai
+          );
+        }
+        return [formatted, ...prev];
+      });
+    },
+
+    onActionItemUpdated: (payload) => {
+      const item = payload?.actionItem || payload;
+      if (!item) return;
+      const formatted = formatActionItem(item);
+      setActionItems((prev) =>
+        prev.map((ai) => (ai.id === formatted.id ? { ...ai, ...formatted } : ai))
+      );
     },
 
     onAnonymousUpdated: (payload) => {
@@ -591,11 +791,25 @@ export default function RetroBoardDetail({
       const res = await api.createCard(boardId, columnId, text);
       if (res?.card) {
         setCards((prev) =>
-          prev.map((c) => (c.id === tempId ? { ...c, ...res.card } : c))
+          prev.map((c) =>
+            c.id === tempId
+              ? {
+                  ...c,
+                  ...res.card,
+                  text: res.card.content || c.text,
+                  columnId: res.card.columnId || c.columnId,
+                }
+              : c
+          )
         );
       }
-    } catch {
-      // Local state already updated
+    } catch (err) {
+      console.error('[API Error] Gagal menambahkan card:', err);
+      // Hapus temporary card agar state sinkron dengan database
+      setCards((prev) => prev.filter((c) => c.id !== tempId));
+      if (onShowToast) {
+        onShowToast(`Gagal menambahkan catatan: ${err.message || 'Server error'}`);
+      }
     }
   };
 
@@ -1074,21 +1288,24 @@ export default function RetroBoardDetail({
     setConvertModalCard(card);
   };
 
-  const handleConfirmConvert = ({ card, assignee, dueDate, description }) => {
+  const handleConfirmConvert = async ({ card, assignee, dueDate, status = 'PENDING', description }) => {
     const dueDateDisplay = dueDate
-      ? new Date(dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+      ? new Date(dueDate).toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
       : null;
 
-    const newActionItem = {
+    const optimisticItem = {
       id: `ai_${Date.now()}`,
       cardId: card.id,
       title: card.content || card.text || 'Action Item',
       assignee: assignee || null,
-      dueDate: dueDateDisplay,
-      dueDateRaw: dueDate,
+      dueDate,
       dueDateDisplay,
       description: description || '',
-      status: 'PENDING',
+      status: status || 'PENDING',
       createdAt: new Date().toISOString(),
     };
 
@@ -1097,23 +1314,54 @@ export default function RetroBoardDetail({
       const existingIdx = prev.findIndex((ai) => ai.cardId === card.id);
       if (existingIdx >= 0) {
         const updated = [...prev];
-        updated[existingIdx] = newActionItem;
+        updated[existingIdx] = optimisticItem;
         return updated;
       }
-      return [...prev, newActionItem];
+      return [optimisticItem, ...prev];
     });
 
     setConvertModalCard(null);
     setActiveTab('action-items');
     if (onShowToast) onShowToast('Kartu berhasil dikonversi menjadi Action Item!');
+
+    try {
+      const isRealUuid =
+        assignee?.id &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(assignee.id);
+
+      const payload = {
+        title: card.content || card.text || 'Action Item',
+        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+        status: status || 'PENDING',
+        ...(isRealUuid ? { assigneeId: assignee.id } : {}),
+      };
+
+      const res = await api.convertCardToAction(card.id, payload);
+      if (res?.actionItem) {
+        const formatted = formatActionItem(res.actionItem);
+        setActionItems((prev) =>
+          prev.map((ai) =>
+            ai.cardId === card.id || ai.id === optimisticItem.id ? formatted : ai
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Gagal konversi ke action item:', err);
+    }
   };
 
   // Handler: Change Action Item Status
-  const handleChangeActionItemStatus = (itemId, newStatus) => {
+  const handleChangeActionItemStatus = async (itemId, newStatus) => {
     setActionItems((prev) =>
       prev.map((ai) => (ai.id === itemId ? { ...ai, status: newStatus } : ai))
     );
     if (onShowToast) onShowToast(`Status diubah menjadi ${newStatus}`);
+
+    try {
+      await api.updateActionItem(itemId, { status: newStatus });
+    } catch (err) {
+      console.error('Gagal update status action item:', err);
+    }
   };
 
   // Handler: Delete Action Item
@@ -1178,7 +1426,7 @@ export default function RetroBoardDetail({
     .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9\-]/g, '');
-  const activeColumns =
+  const templateCols =
     TEMPLATE_COLUMNS_MAP[rawTemplate] ||
     (rawTemplate.includes('mad') ||
     rawTemplate.includes('sad') ||
@@ -1193,6 +1441,37 @@ export default function RetroBoardDetail({
         rawTemplate.includes('well')
       ? TEMPLATE_COLUMNS_MAP['went-well-wrong']
       : TEMPLATE_COLUMNS_MAP['start-stop-continue']);
+
+  const columnsSource =
+    boardColumns && boardColumns.length > 0
+      ? boardColumns
+      : board?.columns && board.columns.length > 0
+      ? board.columns
+      : null;
+
+  const activeColumns =
+    columnsSource && columnsSource.length > 0
+      ? columnsSource.map((bc, idx) => {
+          const matched =
+            templateCols.find(
+              (tc) =>
+                tc.name.toLowerCase() === bc.name?.toLowerCase() ||
+                tc.id.toLowerCase() === bc.name?.toLowerCase() ||
+                tc.type.toLowerCase() === bc.name?.toLowerCase()
+            ) ||
+            templateCols[idx % templateCols.length] ||
+            {};
+          return {
+            ...matched,
+            id: bc.id,
+            dbId: bc.id,
+            templateId: matched.id || bc.name?.toLowerCase(),
+            name: bc.name || matched.name,
+            title: bc.name?.toUpperCase() || matched.title,
+            type: matched.type || bc.name?.toLowerCase(),
+          };
+        })
+      : templateCols;
 
   return (
     <div className="retro-board-full-view">
@@ -1475,24 +1754,26 @@ export default function RetroBoardDetail({
         </div>
       </div>
 
+      {/* ── Persistent Session Timer Banner (Running / Paused across ALL tabs: Board, Action Items, etc.) ── */}
+      {['running', 'paused'].includes(timerStatus) && (
+        <div className="retro-session-timer-banner-wrapper" style={{ padding: '20px 28px 0 28px' }}>
+          <SessionTimerBanner
+            status={timerStatus}
+            remainingSeconds={timerRemaining}
+            facilitator={timerFacilitator}
+            members={members}
+            onPause={handlePauseTimer}
+            onResume={handleResumeTimer}
+            onReset={handleResetTimer}
+            onChangeFacilitator={handleChangeFacilitator}
+          />
+        </div>
+      )}
+
       {/* ── Tab 1: Interactive Board Canvas (Dynamic Template Columns) ── */}
       {activeTab === 'board' && (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="retro-board-columns-container">
-            {/* Session Timer Banner Bar (Running / Paused) */}
-            {['running', 'paused'].includes(timerStatus) && (
-              <SessionTimerBanner
-                status={timerStatus}
-                remainingSeconds={timerRemaining}
-                facilitator={timerFacilitator}
-                members={members}
-                onPause={handlePauseTimer}
-                onResume={handleResumeTimer}
-                onReset={handleResetTimer}
-                onChangeFacilitator={handleChangeFacilitator}
-              />
-            )}
-
             <div
               className="retro-board-columns-grid"
               style={{
@@ -1506,8 +1787,16 @@ export default function RetroBoardDetail({
                   .filter(
                     (c) =>
                       c.columnId === col.id ||
+                      c.columnId === col.dbId ||
+                      c.columnId === col.templateId ||
+                      c.columnType === col.id ||
+                      c.columnType === col.type ||
+                      c.columnType === col.templateId ||
+                      c.columnName?.toLowerCase() === col.name?.toLowerCase() ||
                       c.columnId?.toLowerCase() === col.id?.toLowerCase() ||
-                      c.columnId?.toLowerCase() === col.type?.toLowerCase()
+                      c.columnId?.toLowerCase() === col.type?.toLowerCase() ||
+                      c.columnId?.toLowerCase() === col.name?.toLowerCase() ||
+                      c.columnId?.toLowerCase() === col.templateId?.toLowerCase()
                   )
                   .map((card) => {
                     const votesNum =

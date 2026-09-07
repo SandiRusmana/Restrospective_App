@@ -67,17 +67,20 @@ export class PusherController {
       (user as any).avatarUrl ||
       `https://api.dicebear.com/7.x/avataaars/svg?seed=${userEmail || userName}`;
 
-    const presenceData = {
-      user_id: user.id,
-      user_info: {
-        id: user.id,
-        name: userName,
-        email: userEmail,
-        avatarUrl,
-        avatar: avatarUrl,
-      },
-    };
+    if (channelName.startsWith('presence-')) {
+      const presenceData = {
+        user_id: user.id,
+        user_info: {
+          id: user.id,
+          name: userName,
+          email: userEmail,
+          avatarUrl,
+          avatar: avatarUrl,
+        },
+      };
+      return this.pusherService.authorizeChannel(socketId, channelName, presenceData);
+    }
 
-    return this.pusherService.authorizeChannel(socketId, channelName, presenceData);
+    return this.pusherService.authorizeChannel(socketId, channelName);
   }
 }

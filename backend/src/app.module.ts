@@ -13,6 +13,7 @@ import { VoteModule } from './vote/vote.module';
 import { CommentModule } from './comment/comment.module';
 import { TimerModule } from './timer/timer.module';
 import { WorkspaceModule } from './workspace/workspace.module';
+import { ActionItemModule } from './action-item/action-item.module';
 
 @Module({
   imports: [
@@ -52,6 +53,8 @@ import { WorkspaceModule } from './workspace/workspace.module';
     CommentModule,
     // Modul Timer Sesi Retrospective
     TimerModule,
+    // Modul Action Item
+    ActionItemModule,
   ],
   controllers: [AppController],
   providers: [AppService],

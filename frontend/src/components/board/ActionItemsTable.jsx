@@ -15,35 +15,44 @@ function StatusPill({ status, onChangeStatus, itemId }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const isDone = status === 'DONE';
+  const currentStatus = status || 'PENDING';
+  const statusClass = currentStatus.toLowerCase();
 
   return (
     <div className="action-status-wrapper" ref={dropdownRef}>
       <button
         type="button"
-        className={`action-status-pill ${isDone ? 'done' : 'pending'}`}
+        className={`action-status-pill ${statusClass}`}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span>{status}</span>
+        <span>{currentStatus === 'IN_PROGRESS' ? 'IN PROGRESS' : currentStatus}</span>
         <span className="action-status-chevron">▼</span>
       </button>
       {isOpen && (
         <div className="action-status-dropdown">
           <button
             type="button"
-            className={`action-status-option ${!isDone ? 'active' : ''}`}
+            className={`action-status-option ${currentStatus === 'PENDING' ? 'active' : ''}`}
             onClick={() => { onChangeStatus(itemId, 'PENDING'); setIsOpen(false); }}
           >
             PENDING
-            {!isDone && <Check size={13} />}
+            {currentStatus === 'PENDING' && <Check size={13} />}
           </button>
           <button
             type="button"
-            className={`action-status-option ${isDone ? 'active' : ''}`}
+            className={`action-status-option ${currentStatus === 'IN_PROGRESS' ? 'active' : ''}`}
+            onClick={() => { onChangeStatus(itemId, 'IN_PROGRESS'); setIsOpen(false); }}
+          >
+            IN PROGRESS
+            {currentStatus === 'IN_PROGRESS' && <Check size={13} />}
+          </button>
+          <button
+            type="button"
+            className={`action-status-option ${currentStatus === 'DONE' ? 'active' : ''}`}
             onClick={() => { onChangeStatus(itemId, 'DONE'); setIsOpen(false); }}
           >
             DONE
-            {isDone && <Check size={13} />}
+            {currentStatus === 'DONE' && <Check size={13} />}
           </button>
         </div>
       )}

@@ -77,7 +77,11 @@ export class VoteService {
     });
 
     // Broadcast realtime via Pusher ke channel board-{boardId} dan private-board-{boardId}
-    const channels = [`private-board-${card.boardId}`, `board-${card.boardId}`];
+    const channels = [
+      `board-${card.boardId}`,
+      `private-board-${card.boardId}`,
+      `presence-board-${card.boardId}`,
+    ];
     const voteData = {
       cardId,
       boardId: card.boardId,
@@ -139,7 +143,11 @@ export class VoteService {
     });
 
     // Broadcast realtime via Pusher
-    const channels = [`private-board-${card.boardId}`, `board-${card.boardId}`];
+    const channels = [
+      `board-${card.boardId}`,
+      `private-board-${card.boardId}`,
+      `presence-board-${card.boardId}`,
+    ];
     const voteData = {
       cardId,
       boardId: card.boardId,

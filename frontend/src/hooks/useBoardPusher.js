@@ -46,12 +46,15 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
 
     const presenceChannelName = `presence-board-${boardId}`;
     const privateChannelName = `private-board-${boardId}`;
+    const publicChannelName = `board-${boardId}`;
     let presenceChannel;
     let privateChannel;
+    let publicChannel;
 
     try {
       presenceChannel = pusher.subscribe(presenceChannelName);
       privateChannel = pusher.subscribe(privateChannelName);
+      publicChannel = pusher.subscribe(publicChannelName);
     } catch (err) {
       console.error(`[useBoardPusher] Gagal subscribe ke channels board:`, err);
       return;
@@ -136,8 +139,13 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       setIsConnected(false);
     });
 
+    privateChannel.bind('pusher:subscription_error', (error) => {
+      console.warn(`[useBoardPusher] Private subscription error:`, error);
+    });
+
     // Bind event-event realtime pada channel
     const bindEvents = (ch) => {
+      if (!ch) return;
       ch.bind('card.created', (data) => {
         if (handlersRef.current?.onCardCreated) handlersRef.current.onCardCreated(data);
       });
@@ -162,10 +170,17 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       ch.bind('board.anonymous.updated', (data) => {
         if (handlersRef.current?.onAnonymousUpdated) handlersRef.current.onAnonymousUpdated(data);
       });
+      ch.bind('action-item.created', (data) => {
+        if (handlersRef.current?.onActionItemCreated) handlersRef.current.onActionItemCreated(data);
+      });
+      ch.bind('action-item.updated', (data) => {
+        if (handlersRef.current?.onActionItemUpdated) handlersRef.current.onActionItemUpdated(data);
+      });
     };
 
     bindEvents(presenceChannel);
     bindEvents(privateChannel);
+    bindEvents(publicChannel);
 
     return () => {
       pusher.connection.unbind('state_change', handleStateChange);
@@ -176,6 +191,10 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       if (privateChannel) {
         privateChannel.unbind_all();
         pusher.unsubscribe(privateChannelName);
+      }
+      if (publicChannel) {
+        publicChannel.unbind_all();
+        pusher.unsubscribe(publicChannelName);
       }
     };
   }, [boardId]);

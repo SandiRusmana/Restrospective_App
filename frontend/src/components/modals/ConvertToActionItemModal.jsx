@@ -12,10 +12,13 @@ export default function ConvertToActionItemModal({
   const [selectedAssignee, setSelectedAssignee] = useState(null);
   const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
   const [dueDate, setDueDate] = useState('');
+  const [status, setStatus] = useState('PENDING');
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const assigneeDropdownRef = useRef(null);
+  const statusDropdownRef = useRef(null);
   const dateInputRef = useRef(null);
 
   // Format date helper: "2026-06-30" -> "30 Jun 2026"
@@ -60,13 +63,15 @@ export default function ConvertToActionItemModal({
             };
       setSelectedAssignee(defaultMember);
 
+      setStatus('PENDING');
       setDescription('');
       setIsAssigneeDropdownOpen(false);
+      setIsStatusDropdownOpen(false);
       setIsSubmitting(false);
     }
   }, [isOpen, members, currentUser]);
 
-  // Click outside listener for assignee dropdown
+  // Click outside listener for dropdowns
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -75,14 +80,20 @@ export default function ConvertToActionItemModal({
       ) {
         setIsAssigneeDropdownOpen(false);
       }
+      if (
+        statusDropdownRef.current &&
+        !statusDropdownRef.current.contains(e.target)
+      ) {
+        setIsStatusDropdownOpen(false);
+      }
     };
-    if (isAssigneeDropdownOpen) {
+    if (isAssigneeDropdownOpen || isStatusDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isAssigneeDropdownOpen]);
+  }, [isAssigneeDropdownOpen, isStatusDropdownOpen]);
 
   if (!isOpen || !card) return null;
 
@@ -130,6 +141,7 @@ export default function ConvertToActionItemModal({
         card,
         assignee: selectedAssignee || availableMembers[0],
         dueDate,
+        status,
         description: description.trim(),
       });
     }
@@ -274,6 +286,54 @@ export default function ConvertToActionItemModal({
                 required
               />
             </div>
+          </div>
+
+          {/* Field: Status */}
+          <div className="convert-field" ref={statusDropdownRef}>
+            <label className="convert-label">Status</label>
+            <div
+              className={`convert-select-box ${isStatusDropdownOpen ? 'open' : ''}`}
+              onClick={() => setIsStatusDropdownOpen(!isStatusDropdownOpen)}
+            >
+              <div className="convert-select-left">
+                <span className={`convert-status-badge ${status.toLowerCase()}`}>
+                  {status === 'IN_PROGRESS' ? 'IN PROGRESS' : status}
+                </span>
+              </div>
+              <ChevronDown
+                size={18}
+                className={`convert-chevron ${isStatusDropdownOpen ? 'rotated' : ''}`}
+              />
+            </div>
+
+            {isStatusDropdownOpen && (
+              <div className="convert-dropdown-list">
+                {[
+                  { value: 'PENDING', label: 'PENDING' },
+                  { value: 'IN_PROGRESS', label: 'IN PROGRESS' },
+                  { value: 'DONE', label: 'DONE' },
+                ].map((st) => {
+                  const isSelected = status === st.value;
+                  return (
+                    <div
+                      key={st.value}
+                      className={`convert-dropdown-item ${isSelected ? 'selected' : ''}`}
+                      onClick={() => {
+                        setStatus(st.value);
+                        setIsStatusDropdownOpen(false);
+                      }}
+                    >
+                      <div className="convert-select-left">
+                        <span className={`convert-status-badge ${st.value.toLowerCase()}`}>
+                          {st.label}
+                        </span>
+                      </div>
+                      {isSelected && <Check size={16} color="#5956e9" />}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Field 3: Deskripsi (opsional) */}
