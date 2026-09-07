@@ -28,7 +28,11 @@ export default function RetroCardGroup({
   onMoveColumn,
   onMoveGroupColumn,
   onOpenDetail,
+  onConvertToActionItem,
   currentUser,
+  isAnonymous = false,
+  isFacilitator = false,
+  actionItems = [],
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -327,7 +331,11 @@ export default function RetroCardGroup({
               onUngroup={onUngroupCard}
               onMoveColumn={onMoveColumn}
               onOpenDetail={onOpenDetail}
+              onConvertToActionItem={onConvertToActionItem}
               currentUser={currentUser}
+              isAnonymous={isAnonymous}
+              isFacilitator={isFacilitator}
+              actionItem={actionItems.find((ai) => ai.cardId === card.id) || null}
             />
           ))}
         </div>

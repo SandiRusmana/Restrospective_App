@@ -20,6 +20,8 @@ export default function CardDetailModal({
   onEditComment,
   onDeleteComment,
   onVoteCard,
+  isAnonymous = false,
+  isFacilitator = false,
 }) {
   const [commentInput, setCommentInput] = useState('');
   const [editingCommentId, setEditingCommentId] = useState(null);
@@ -61,7 +63,8 @@ export default function CardDetailModal({
 
   if (!isOpen || !card) return null;
 
-  const authorName = card.author?.name || card.authorName || 'Anggota Tim';
+  const originalAuthorName = card.author?.name || card.authorName || 'Anggota Tim';
+  const authorName = isAnonymous ? 'Anonymous' : originalAuthorName;
   const timestamp =
     card.time ||
     (card.createdAt
