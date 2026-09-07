@@ -19,7 +19,11 @@ export default function RetroColumn({
   onMoveColumn,
   onMoveGroupColumn,
   onOpenDetail,
+  onConvertToActionItem,
   currentUser,
+  isAnonymous = false,
+  isFacilitator = false,
+  actionItems = [],
 }) {
   const [isAdding, setIsAdding] = useState(false);
 
@@ -172,7 +176,11 @@ export default function RetroColumn({
               onMoveColumn={onMoveColumn}
               onMoveGroupColumn={onMoveGroupColumn}
               onOpenDetail={onOpenDetail}
+              onConvertToActionItem={onConvertToActionItem}
               currentUser={currentUser}
+              isAnonymous={isAnonymous}
+              isFacilitator={isFacilitator}
+              actionItems={actionItems}
             />
           ))}
 
@@ -190,7 +198,11 @@ export default function RetroColumn({
               onUngroup={onUngroupCard}
               onMoveColumn={onMoveColumn}
               onOpenDetail={onOpenDetail}
+              onConvertToActionItem={onConvertToActionItem}
               currentUser={currentUser}
+              isAnonymous={isAnonymous}
+              isFacilitator={isFacilitator}
+              actionItem={actionItems.find((ai) => ai.cardId === card.id) || null}
             />
           ))}
         </div>

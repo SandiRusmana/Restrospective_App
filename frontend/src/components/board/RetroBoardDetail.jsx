@@ -9,16 +9,21 @@ import {
   Check,
   User,
   Clock,
-  AlarmClock
+  AlarmClock,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import RetroColumn from './RetroColumn';
+import ActionItemsTable from './ActionItemsTable';
 import SessionTimerBanner from './SessionTimerBanner';
 import CardDetailModal from '../modals/CardDetailModal';
 import SessionTimerModal from '../modals/SessionTimerModal';
 import SessionTimerEndedModal from '../modals/SessionTimerEndedModal';
+import BoardSettingsModal from '../modals/BoardSettingsModal';
+import ConvertToActionItemModal from '../modals/ConvertToActionItemModal';
 
 // Template Columns Dictionary
 const TEMPLATE_COLUMNS_MAP = {
@@ -65,13 +70,49 @@ export default function RetroBoardDetail({
   onBack,
   onSwitchBoard,
   currentUser,
-  onShowToast
+  onShowToast,
+  onUpdateBoard,
 }) {
   const [activeTab, setActiveTab] = useState('board');
   const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
   const [cards, setCards] = useState([]);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState(null);
   const [members, setMembers] = useState([]);
+
+  // ── Board Settings & Anonymous Mode State ──
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isAnonymous, setIsAnonymous] = useState(Boolean(board?.isAnonymous));
+  const [currentBoardTitle, setCurrentBoardTitle] = useState(
+    board?.title || board?.name || 'Sprint 16 Retrospective'
+  );
+
+  // ── Action Items State ──
+  const [actionItems, setActionItems] = useState([]);
+  const [convertModalCard, setConvertModalCard] = useState(null);
+
+  // Sync state when board prop changes
+  useEffect(() => {
+    if (board) {
+      setIsAnonymous(Boolean(board.isAnonymous));
+      setCurrentBoardTitle(board.title || board.name || 'Sprint 16 Retrospective');
+    }
+  }, [board]);
+
+  // Cek apakah user saat ini adalah facilitator / admin / owner
+  const isFacilitator = useMemo(() => {
+    if (!currentUser) return false;
+    const currentUserId = currentUser?.id || currentUser?.userId;
+    if (workspace?.ownerId && workspace.ownerId === currentUserId) return true;
+    const myRole = workspace?.role?.toLowerCase();
+    if (['owner', 'facilitator', 'admin'].includes(myRole)) return true;
+    const member = members.find(
+      (m) => (m.id || m.userId) === currentUserId || m.email === currentUser?.email
+    );
+    if (member && ['owner', 'facilitator', 'admin'].includes(member.role?.toLowerCase())) {
+      return true;
+    }
+    return true; // Default fallback dalam sesi retro
+  }, [currentUser, workspace, members]);
 
   // ── Retro Session Timer State ──
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
@@ -422,7 +463,56 @@ export default function RetroBoardDetail({
       if (timerData.facilitator) setTimerFacilitator(timerData.facilitator);
       if (timerData.status === 'ended') setIsTimerEndedModalOpen(true);
     },
+
+    onAnonymousUpdated: (payload) => {
+      if (payload && (payload.boardId === boardId || !payload.boardId)) {
+        const newStatus = Boolean(payload.isAnonymous);
+        setIsAnonymous(newStatus);
+        if (onShowToast) {
+          onShowToast(`Mode anonymous ${newStatus ? 'diaktifkan' : 'dinonaktifkan'} oleh fasilitator`);
+        }
+        loadCardsFromApi();
+      }
+    },
   });
+
+  // Handler: Save Board Settings & Anonymous Mode
+  const handleSaveBoardSettings = async ({ boardName: newName, isAnonymous: newAnon }) => {
+    const hasAnonChanged = newAnon !== isAnonymous;
+    const hasNameChanged = Boolean(newName && newName !== currentBoardTitle);
+
+    if (hasNameChanged) {
+      setCurrentBoardTitle(newName);
+    }
+
+    if (hasAnonChanged) {
+      setIsAnonymous(newAnon);
+      try {
+        await api.updateAnonymous(boardId, newAnon);
+        if (onShowToast) {
+          onShowToast(`Mode anonymous berhasil ${newAnon ? 'diaktifkan' : 'dinonaktifkan'}`);
+        }
+      } catch (err) {
+        console.warn('Gagal update mode anonymous di server:', err);
+        if (onShowToast) {
+          onShowToast(err.message || 'Mode anonymous diperbarui secara lokal');
+        }
+      }
+    } else if (hasNameChanged) {
+      if (onShowToast) {
+        onShowToast('Pengaturan board berhasil disimpan');
+      }
+    }
+
+    if (onUpdateBoard) {
+      onUpdateBoard({
+        id: boardId,
+        name: newName || currentBoardTitle,
+        title: newName || currentBoardTitle,
+        isAnonymous: newAnon,
+      });
+    }
+  };
 
   // Sensor drag dengan activation constraint agar tidak mengganggu klik vote/menu
   const sensors = useSensors(
@@ -979,6 +1069,59 @@ export default function RetroBoardDetail({
     }
   };
 
+  // Handler: Convert Card to Action Item
+  const handleConvertToActionItem = (card) => {
+    setConvertModalCard(card);
+  };
+
+  const handleConfirmConvert = ({ card, assignee, dueDate, description }) => {
+    const dueDateDisplay = dueDate
+      ? new Date(dueDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+      : null;
+
+    const newActionItem = {
+      id: `ai_${Date.now()}`,
+      cardId: card.id,
+      title: card.content || card.text || 'Action Item',
+      assignee: assignee || null,
+      dueDate: dueDateDisplay,
+      dueDateRaw: dueDate,
+      dueDateDisplay,
+      description: description || '',
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+    };
+
+    setActionItems((prev) => {
+      // Prevent duplicates: replace if card already converted
+      const existingIdx = prev.findIndex((ai) => ai.cardId === card.id);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = newActionItem;
+        return updated;
+      }
+      return [...prev, newActionItem];
+    });
+
+    setConvertModalCard(null);
+    setActiveTab('action-items');
+    if (onShowToast) onShowToast('Kartu berhasil dikonversi menjadi Action Item!');
+  };
+
+  // Handler: Change Action Item Status
+  const handleChangeActionItemStatus = (itemId, newStatus) => {
+    setActionItems((prev) =>
+      prev.map((ai) => (ai.id === itemId ? { ...ai, status: newStatus } : ai))
+    );
+    if (onShowToast) onShowToast(`Status diubah menjadi ${newStatus}`);
+  };
+
+  // Handler: Delete Action Item
+  const handleDeleteActionItem = (itemId) => {
+    setActionItems((prev) => prev.filter((ai) => ai.id !== itemId));
+    if (onShowToast) onShowToast('Action item berhasil dihapus');
+  };
+
   // Handler: Move Entire Group Cluster to Another Column
   const handleMoveGroupColumn = async (groupId, targetColumnId) => {
     const groupCards = cards.filter((c) => c.groupId === groupId);
@@ -1004,7 +1147,7 @@ export default function RetroBoardDetail({
     }
   };
 
-  const boardTitle = board?.title || board?.name || 'Sprint 16 Retrospective';
+  const boardTitle = currentBoardTitle || board?.title || board?.name || 'Sprint 16 Retrospective';
   const wsName = workspace?.name || 'Mobile Team';
   const memberCount = members.length > 0 ? members.length : workspace?.memberCount || board?.membersCount || 1;
   const totalMemberCount = memberCount;
@@ -1253,7 +1396,12 @@ export default function RetroBoardDetail({
             )}
           </div>
 
-          <button type="button" className="btn-ghost-icon" title="Opsi board">
+          <button
+            type="button"
+            className="btn-ghost-icon"
+            title="Pengaturan board"
+            onClick={() => setIsSettingsModalOpen(true)}
+          >
             <MoreHorizontal size={18} />
           </button>
           <button
@@ -1302,6 +1450,16 @@ export default function RetroBoardDetail({
                 : 'Offline (Polling)'}
             </span>
           </div>
+
+          <button
+            type="button"
+            className={`retro-mode-anonymous-btn ${isAnonymous ? 'active' : ''}`}
+            onClick={() => setIsSettingsModalOpen(true)}
+            title="Pengaturan Mode Anonymous"
+          >
+            {isAnonymous ? <Eye size={16} /> : <EyeOff size={16} />}
+            <span>Mode Anonymous</span>
+          </button>
 
           <button
             type="button"
@@ -1387,7 +1545,11 @@ export default function RetroBoardDetail({
                     onMoveColumn={handleMoveCardColumn}
                     onMoveGroupColumn={handleMoveGroupColumn}
                     onOpenDetail={(cardToOpen) => setSelectedCardForDetail(cardToOpen)}
+                    onConvertToActionItem={handleConvertToActionItem}
                     currentUser={currentUser}
+                    isAnonymous={isAnonymous}
+                    isFacilitator={isFacilitator}
+                    actionItems={actionItems}
                   />
                 );
               })}
@@ -1407,11 +1569,11 @@ export default function RetroBoardDetail({
 
       {/* ── Tab 3: Action Items ── */}
       {activeTab === 'action-items' && (
-        <div className="retro-tab-placeholder">
-          <CheckSquare size={40} />
-          <h3>Action Items</h3>
-          <p>Daftar rencana tindakan perbaikan yang disepakati bersama tim.</p>
-        </div>
+        <ActionItemsTable
+          actionItems={actionItems}
+          onChangeStatus={handleChangeActionItemStatus}
+          onDelete={handleDeleteActionItem}
+        />
       )}
 
       {/* ── Tab 4: Aktivitas ── */}
@@ -1423,6 +1585,15 @@ export default function RetroBoardDetail({
         </div>
       )}
 
+      {/* ── Modal Pengaturan Board & Mode Anonymous ── */}
+      <BoardSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        board={{ ...board, name: currentBoardTitle, title: currentBoardTitle }}
+        isAnonymous={isAnonymous}
+        onSave={handleSaveBoardSettings}
+      />
+
       {/* ── Modal Detail Catatan & Komentar ── */}
       <CardDetailModal
         isOpen={Boolean(selectedCardForDetail)}
@@ -1433,6 +1604,8 @@ export default function RetroBoardDetail({
         onEditComment={handleEditComment}
         onDeleteComment={handleDeleteComment}
         onVoteCard={handleVoteCard}
+        isAnonymous={isAnonymous}
+        isFacilitator={isFacilitator}
       />
 
       {/* ── Modal Atur Timer Sesi ── */}
@@ -1450,6 +1623,14 @@ export default function RetroBoardDetail({
           setIsTimerEndedModalOpen(false);
           setTimerStatus('idle');
         }}
+      />
+      {/* ── Modal Convert Card to Action Item ── */}
+      <ConvertToActionItemModal
+        isOpen={Boolean(convertModalCard)}
+        onClose={() => setConvertModalCard(null)}
+        card={convertModalCard}
+        members={members}
+        onConfirm={handleConfirmConvert}
       />
     </div>
   );

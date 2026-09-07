@@ -159,6 +159,9 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       ch.bind('timer.updated', (data) => {
         if (handlersRef.current?.onTimerUpdated) handlersRef.current.onTimerUpdated(data);
       });
+      ch.bind('board.anonymous.updated', (data) => {
+        if (handlersRef.current?.onAnonymousUpdated) handlersRef.current.onAnonymousUpdated(data);
+      });
     };
 
     bindEvents(presenceChannel);

@@ -563,6 +563,17 @@ export default function App() {
               }}
               onSwitchBoard={handleOpenBoard}
               onShowToast={showToast}
+              onUpdateBoard={(updated) => {
+                setActiveBoard((prev) => (prev ? { ...prev, ...updated } : prev));
+                setWorkspaces((prevWs) =>
+                  prevWs.map((ws) => ({
+                    ...ws,
+                    boards: (ws.boards || []).map((b) =>
+                      b.id === updated.id ? { ...b, ...updated } : b
+                    ),
+                  }))
+                );
+              }}
             />
           )}
 

@@ -9,7 +9,10 @@ import {
   Flame,
   Unlink,
   ArrowRightLeft,
-  MessageSquare
+  MessageSquare,
+  User,
+  Zap,
+  Calendar
 } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -25,8 +28,12 @@ export default function RetroCard({
   onUngroup,
   onMoveColumn,
   onOpenDetail,
+  onConvertToActionItem,
   currentUser,
   isPriority: isPriorityProp,
+  isAnonymous = false,
+  isFacilitator = false,
+  actionItem = null,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(card?.content || card?.text || '');
@@ -88,12 +95,13 @@ export default function RetroCard({
     };
   }, [isMenuOpen]);
 
-  const authorName = card?.author?.name || card?.authorName || card?.author || 'Anggota Tim';
+  const originalAuthorName = card?.author?.name || card?.authorName || (typeof card?.author === 'string' ? card.author : '');
+  const authorName = isAnonymous ? 'Anonymous' : (originalAuthorName || 'Anggota Tim');
   const authorAvatar =
     card?.author?.avatarUrl ||
     card?.author?.avatar ||
     card?.avatar ||
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${card?.author?.email || authorName}`;
+    `https://api.dicebear.com/7.x/avataaars/svg?seed=${card?.author?.email || originalAuthorName || 'user'}`;
   const timestamp =
     card?.time ||
     (card?.createdAt
@@ -347,6 +355,21 @@ export default function RetroCard({
                 </div>
               )}
 
+              {/* Convert to Action Item */}
+              {isFacilitator && onConvertToActionItem && (
+                <button
+                  type="button"
+                  className="retro-menu-item retro-menu-item-convert"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onConvertToActionItem(card);
+                  }}
+                >
+                  <Zap size={13} />
+                  <span>Convert To Action Item</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 className="retro-menu-item"
@@ -371,18 +394,48 @@ export default function RetroCard({
         </div>
       </div>
 
+      {/* Action Item Badge (shown when card is converted) */}
+      {actionItem && (
+        <div className="retro-card-action-meta" onPointerDown={(e) => e.stopPropagation()}>
+          {actionItem.dueDate && (
+            <span className="retro-card-due-chip">
+              <Calendar size={10} />
+              {actionItem.dueDateDisplay || actionItem.dueDate}
+            </span>
+          )}
+          <span className={`retro-card-status-badge ${(actionItem.status || 'PENDING').toLowerCase()}`}>
+            {actionItem.status || 'PENDING'}
+          </span>
+        </div>
+      )}
+
       {/* Card Footer: Left Avatar/Author, Right Voting & Comment */}
       <div className="retro-card-footer" onPointerDown={(e) => e.stopPropagation()}>
-        <div className="retro-card-author-info">
-          <img
-            src={authorAvatar}
-            alt={authorName}
-            className="retro-card-avatar"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
-            }}
-          />
+        <div
+          className="retro-card-author-info"
+          title={
+            isAnonymous
+              ? (isFacilitator && originalAuthorName
+                  ? `Penulis asli: ${originalAuthorName} (Terlihat oleh Fasilitator)`
+                  : 'Mode Anonymous')
+              : authorName
+          }
+        >
+          {isAnonymous ? (
+            <div className="retro-anonymous-avatar">
+              <User size={15} color="#ffffff" strokeWidth={2.4} />
+            </div>
+          ) : (
+            <img
+              src={authorAvatar}
+              alt={authorName}
+              className="retro-card-avatar"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
+              }}
+            />
+          )}
           <div className="retro-card-author-meta">
             <span className="retro-card-author-name">{authorName}</span>
             <span className="retro-card-time">{timestamp}</span>
