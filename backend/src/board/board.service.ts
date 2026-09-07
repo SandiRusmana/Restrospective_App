@@ -188,7 +188,30 @@ export class BoardService {
     }
 
     // 2. Cek apakah user adalah anggota dari workspace tempat board berada
-    await this.checkWorkspaceMembership(userId, board.workspaceId);
+    const membership = await this.checkWorkspaceMembership(userId, board.workspaceId);
+
+    // Cek apakah user adalah facilitator / admin / owner
+    const isFacilitator =
+      board.workspace.ownerId === userId ||
+      membership.role === 'owner' ||
+      membership.role === 'facilitator' ||
+      membership.role === 'admin';
+
+    // Jika mode anonymous aktif dan user bukan facilitator, sembunyikan author card
+    if (board.isAnonymous && !isFacilitator) {
+      const sanitizedColumns = board.columns.map((col) => ({
+        ...col,
+        cards: col.cards.map((card) => ({
+          ...card,
+          author: null,
+        })),
+      }));
+
+      return {
+        ...board,
+        columns: sanitizedColumns,
+      };
+    }
 
     return board;
   }
@@ -233,31 +256,75 @@ export class BoardService {
   }
 
   /**
-   * Update Timer Realtime Broadcast
+   * Mengubah Status Mode Anonymous pada Board (Hanya Facilitator / Owner)
    */
-  async updateTimer(userId: string, boardId: string, timerData: any) {
+  async updateAnonymous(userId: string, boardId: string, isAnonymous?: boolean) {
+    // 1. Ambil Board dan data Workspace beserta keanggotaan user
     const board = await this.prisma.board.findUnique({
       where: { id: boardId },
+      include: {
+        workspace: {
+          include: {
+            members: {
+              where: { userId },
+            },
+          },
+        },
+      },
     });
 
     if (!board) {
       throw new NotFoundException('Board tidak ditemukan');
     }
 
-    const channels = [`private-board-${boardId}`, `board-${boardId}`];
+    const membership = board.workspace.members[0];
+    if (!membership) {
+      throw new ForbiddenException('Anda bukan anggota dari workspace ini');
+    }
+
+    // 2. Otorisasi: Hanya facilitator / admin / owner yang dapat mengubah mode anonymous
+    const isFacilitator =
+      board.workspace.ownerId === userId ||
+      membership.role === 'owner' ||
+      membership.role === 'facilitator' ||
+      membership.role === 'admin';
+
+    if (!isFacilitator) {
+      throw new ForbiddenException('Hanya facilitator atau pemilik workspace yang dapat mengubah mode anonymous');
+    }
+
+    // 3. Tentukan status baru (jika tidak dikirimkan, lakukan toggle)
+    const newStatus = isAnonymous !== undefined ? Boolean(isAnonymous) : !board.isAnonymous;
+
+    // 4. Update status isAnonymous di Database
+    const updatedBoard = await this.prisma.board.update({
+      where: { id: boardId },
+      data: { isAnonymous: newStatus },
+    });
+
+    // 5. Broadcast perubahan realtime via Pusher ke channel board
+    const channels = [
+      `board-${boardId}`,
+      `private-board-${boardId}`,
+      `presence-board-${boardId}`,
+    ];
+
     const payload = {
       boardId,
-      status: timerData?.status || 'running',
-      seconds: timerData?.seconds || 0,
-      timestamp: new Date().toISOString(),
+      isAnonymous: newStatus,
     };
 
     try {
-      await this.pusher.trigger(channels, 'timer.updated', payload);
+      await this.pusher.trigger(channels, 'board.anonymous.updated', payload);
     } catch (err) {
-      console.warn(`[Pusher Warn] Gagal broadcast timer.updated:`, err.message);
+      console.warn(`[Pusher Warn] Gagal broadcast board.anonymous.updated:`, err.message);
     }
 
-    return { message: 'Timer berhasil diperbarui', timer: payload };
+    return {
+      message: `Mode anonymous berhasil ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}`,
+      boardId,
+      isAnonymous: newStatus,
+      board: updatedBoard,
+    };
   }
 }
