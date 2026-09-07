@@ -149,7 +149,7 @@ export class BoardService {
    */
   async getBoardById(userId: string, boardId: string) {
     // 1. Cari Board
-    const board = await this.prisma.board.findUnique({
+    const board: any = await (this.prisma.board as any).findUnique({
       where: { id: boardId },
       include: {
         columns: {
@@ -164,6 +164,18 @@ export class BoardService {
                     id: true,
                     name: true,
                     email: true,
+                  },
+                },
+                actionItem: {
+                  include: {
+                    assignee: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatarUrl: true,
+                      },
+                    },
                   },
                 },
               },

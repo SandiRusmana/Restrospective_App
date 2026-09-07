@@ -23,6 +23,7 @@ model User {
   createdInvites   WorkspaceInvite[]
   votes            Vote[]
   comments         Comment[]
+  assignedActionItems ActionItem[] @relation("ActionItemAssignee")
 }
 
 model Workspace {
@@ -62,6 +63,7 @@ model Board {
   columns   BoardColumn[]
   cards     Card[]
   timer     BoardTimer?
+  actionItems ActionItem[]
 }
 
 model BoardTimer {
@@ -101,6 +103,7 @@ model Card {
   author   User        @relation(fields: [authorId], references: [id])
   votes    Vote[]
   comments Comment[]
+  actionItem ActionItem?
 }
 
 model Vote {
@@ -139,3 +142,26 @@ model WorkspaceInvite {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
 }
+
+enum ActionItemStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+}
+
+model ActionItem {
+  id         String           @id @default(uuid())
+  cardId     String           @unique
+  boardId    String
+  assigneeId String?
+  title      String?
+  dueDate    DateTime?
+  status     ActionItemStatus @default(PENDING)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  card     Card  @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  board    Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  assignee User? @relation("ActionItemAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+}
+

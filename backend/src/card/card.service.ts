@@ -140,6 +140,18 @@ export class CardService {
             createdAt: 'asc',
           },
         },
+        actionItem: {
+          include: {
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             votes: true,
@@ -168,6 +180,7 @@ export class CardService {
         : false,
       comments: c.comments || [],
       commentsCount: c._count?.comments || (Array.isArray(c.comments) ? c.comments.length : 0),
+      actionItem: c.actionItem || null,
     }));
   }
 
@@ -202,7 +215,7 @@ export class CardService {
     }
 
     // 3. Update Card di Database
-    const updatedCard = await this.prisma.card.update({
+    const updatedCard: any = await (this.prisma.card as any).update({
       where: { id: cardId },
       data: {
         ...(updateCardDto.content !== undefined ? { content: updateCardDto.content.trim() } : {}),
@@ -219,6 +232,18 @@ export class CardService {
         votes: {
           select: {
             userId: true,
+          },
+        },
+        actionItem: {
+          include: {
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
           },
         },
         _count: {
@@ -242,6 +267,7 @@ export class CardService {
       votes: updatedCard.votes,
       votesCount: updatedCard._count.votes,
       hasVoted: updatedCard.votes.some((v) => v.userId === userId),
+      actionItem: (updatedCard as any).actionItem || null,
     };
 
     // 4. Trigger Realtime Broadcast via Pusher
