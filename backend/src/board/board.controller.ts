@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BoardService } from './board.service';
 import { CreateBoardDto } from './dto/create-board.dto';
+import { UpdateAnonymousDto } from './dto/update-anonymous.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -37,6 +38,15 @@ export class BoardController {
     @Param('id') boardId: string,
   ) {
     return this.boardService.getBoardById(userId, boardId);
+  }
+
+  @Patch('boards/:id/anonymous')
+  async updateAnonymous(
+    @GetUser('id') userId: string,
+    @Param('id') boardId: string,
+    @Body() updateAnonymousDto: UpdateAnonymousDto,
+  ) {
+    return this.boardService.updateAnonymous(userId, boardId, updateAnonymousDto?.isAnonymous);
   }
 
   @Delete('boards/:id')

@@ -83,8 +83,9 @@ export class CardService {
 
     // 4. Trigger Realtime Broadcast via Pusher (Broadcast ke private-board-{id} dan board-{id})
     const channels = [`private-board-${boardId}`, `board-${boardId}`];
+    const cardToBroadcast = board.isAnonymous ? { ...card, author: null } : card;
     try {
-      await this.pusher.trigger(channels, 'card.created', card);
+      await this.pusher.trigger(channels, 'card.created', cardToBroadcast);
     } catch (err) {
       console.warn(`[Pusher Warn] Gagal mengirim broadcast card.created ke channels ${channels.join(', ')}:`, err.message);
     }
@@ -100,7 +101,14 @@ export class CardService {
    */
   async getBoardCards(userId: string, boardId: string) {
     // 1. Cek Otorisasi Akses User ke Board
-    await this.checkBoardAccess(userId, boardId);
+    const board = await this.checkBoardAccess(userId, boardId);
+    const membership = board.workspace.members[0];
+    const isFacilitator =
+      board.workspace.ownerId === userId ||
+      membership?.role === 'owner' ||
+      membership?.role === 'facilitator' ||
+      membership?.role === 'admin';
+    const shouldHideAuthor = board.isAnonymous && !isFacilitator;
 
     // 2. Ambil semua card pada board beserta relasi author, vote, dan comments
     const cards = await (this.prisma.card as any).findMany({
@@ -152,7 +160,7 @@ export class CardService {
       groupId: c.groupId || null,
       groupTitle: c.groupTitle || null,
       createdAt: c.createdAt,
-      author: c.author,
+      author: shouldHideAuthor ? null : c.author,
       votes: c.votes || [],
       votesCount: c._count?.votes || (Array.isArray(c.votes) ? c.votes.length : 0),
       hasVoted: Array.isArray(c.votes)
@@ -186,7 +194,7 @@ export class CardService {
     }
 
     // 2. Validasi Akses User ke Board
-    await this.checkBoardAccess(userId, card.boardId);
+    const board = await this.checkBoardAccess(userId, card.boardId);
 
     // Jika mengedit teks konten, pastikan user adalah pembuat card
     if (updateCardDto.content !== undefined && card.authorId !== userId) {
@@ -243,8 +251,12 @@ export class CardService {
       `presence-board-${card.boardId}`,
     ];
 
+    const cardToBroadcast = board.isAnonymous
+      ? { ...formattedCard, author: null }
+      : formattedCard;
+
     try {
-      await this.pusher.trigger(channels, 'card.updated', formattedCard);
+      await this.pusher.trigger(channels, 'card.updated', cardToBroadcast);
     } catch (err) {
       console.warn(`[Pusher Warn] Gagal mengirim broadcast card.updated ke channels:`, err.message);
     }
@@ -319,7 +331,7 @@ export class CardService {
     }
 
     // 2. Validasi Akses User ke Board
-    await this.checkBoardAccess(userId, card.boardId);
+    const board = await this.checkBoardAccess(userId, card.boardId);
 
     const targetGroupId =
       groupCardDto.groupId !== undefined ? groupCardDto.groupId : card.groupId;
@@ -386,6 +398,10 @@ export class CardService {
       `presence-board-${card.boardId}`,
     ];
 
+    const cardToBroadcast = board.isAnonymous
+      ? { ...formattedCard, author: null }
+      : formattedCard;
+
     try {
       await this.pusher.trigger(channels, 'card.grouped', {
         cardId: formattedCard.id,
@@ -393,7 +409,7 @@ export class CardService {
         columnId: formattedCard.columnId,
         groupId: formattedCard.groupId,
         groupTitle: formattedCard.groupTitle,
-        updatedCard: formattedCard,
+        updatedCard: cardToBroadcast,
       });
     } catch (err) {
       console.warn(`[Pusher Warn] Gagal mengirim broadcast card.grouped:`, err.message);
