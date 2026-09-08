@@ -190,6 +190,7 @@ export default function RetroBoardDetail({
   const [timerStatus, setTimerStatus] = useState('idle'); // 'idle' | 'running' | 'paused' | 'ended'
   const [timerTotal, setTimerTotal] = useState(15 * 60); // 15 mins in seconds
   const [timerRemaining, setTimerRemaining] = useState(15 * 60);
+  const [timerStartedById, setTimerStartedById] = useState(null);
   const [timerFacilitator, setTimerFacilitator] = useState(
     currentUser?.name || currentUser?.email?.split('@')[0] || 'Afrizal'
   );
@@ -224,6 +225,11 @@ export default function RetroBoardDetail({
     const facilitatorName = data.facilitator || t.facilitator;
     if (facilitatorName) {
       setTimerFacilitator(facilitatorName);
+    }
+
+    const starterId = data.startedById || t.startedById || data.user?.id || t.user?.id;
+    if (starterId) {
+      setTimerStartedById(starterId);
     }
 
     let nextStatus = 'idle';
@@ -291,13 +297,15 @@ export default function RetroBoardDetail({
     setTimerTotal(totalSecs);
     setTimerRemaining(totalSecs);
     setTimerStatus('running');
+    const currentUserId = currentUser?.id || currentUser?.userId;
+    setTimerStartedById(currentUserId);
+    setTimerFacilitator(currentUser?.name || currentUser?.email?.split('@')[0] || 'Anda');
     if (onShowToast) onShowToast(`Timer sesi dimulai: ${durationMinutes} menit`);
 
     if (!boardId) return;
     try {
-      await api.updateTimerDuration(boardId, totalSecs);
-      const res = await api.startTimer(boardId);
-      if (res) applyTimerState(res);
+      const res = await api.startTimer(boardId, totalSecs);
+      if (res) applyTimerState(res, true);
     } catch (err) {
       console.warn('Gagal start timer di server:', err);
     }
@@ -1831,11 +1839,17 @@ export default function RetroBoardDetail({
             status={timerStatus}
             remainingSeconds={timerRemaining}
             facilitator={timerFacilitator}
-            members={members}
+            isStarter={
+              !timerStartedById ||
+              timerStartedById === (currentUser?.id || currentUser?.userId) ||
+              (timerFacilitator && (
+                timerFacilitator.toLowerCase() === (currentUser?.name || '').toLowerCase() ||
+                timerFacilitator.toLowerCase() === (currentUser?.email?.split('@')[0] || '').toLowerCase()
+              ))
+            }
             onPause={handlePauseTimer}
             onResume={handleResumeTimer}
             onReset={handleResetTimer}
-            onChangeFacilitator={handleChangeFacilitator}
           />
         </div>
       )}

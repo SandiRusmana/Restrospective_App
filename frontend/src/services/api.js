@@ -251,8 +251,12 @@ export const api = {
     return request(`/boards/${boardId}/timer`, { method: 'GET' });
   },
 
-  async startTimer(boardId) {
-    return request(`/boards/${boardId}/timer/start`, { method: 'POST' });
+  async startTimer(boardId, duration = undefined) {
+    const options = { method: 'POST' };
+    if (typeof duration === 'number') {
+      options.body = JSON.stringify({ duration });
+    }
+    return request(`/boards/${boardId}/timer/start`, options);
   },
 
   async pauseTimer(boardId) {

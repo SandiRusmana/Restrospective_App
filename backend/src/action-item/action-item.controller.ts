@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { GetUser } from '../auth/decorators/get-user.decorator';
@@ -54,5 +55,22 @@ export class ActionItemController {
     @Param('id') boardId: string,
   ) {
     return this.actionItemService.getActionItemsByBoard(userId, boardId);
+  }
+
+  /**
+   * Mengambil Action Items Berdasarkan Workspace (dengan filter status)
+   * GET /api/workspaces/:id/action-items?status=pending
+   */
+  @Get('workspaces/:id/action-items')
+  async getActionItemsByWorkspace(
+    @GetUser('id') userId: string,
+    @Param('id') workspaceId: string,
+    @Query('status') status?: string,
+  ) {
+    return this.actionItemService.getActionItemsByWorkspace(
+      userId,
+      workspaceId,
+      status,
+    );
   }
 }

@@ -303,4 +303,80 @@ export class ActionItemService {
       },
     });
   }
+
+  /**
+   * Mengambil Seluruh Action Item pada Suatu Workspace (dengan filter status opsional)
+   * GET /api/workspaces/:id/action-items?status=pending
+   */
+  async getActionItemsByWorkspace(
+    userId: string,
+    workspaceId: string,
+    status?: string,
+  ) {
+    // 1. Cek keberadaan Workspace dan validasi keanggotaan user
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      include: {
+        members: {
+          where: { userId },
+        },
+      },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace tidak ditemukan');
+    }
+
+    const isMember = workspace.members.length > 0;
+    const isOwner = workspace.ownerId === userId;
+    if (!isMember && !isOwner) {
+      throw new ForbiddenException('Anda bukan anggota dari workspace ini');
+    }
+
+    // 2. Susun filter kondisi
+    const whereCondition: any = {
+      board: {
+        workspaceId,
+      },
+    };
+
+    if (status) {
+      whereCondition.status = status.toUpperCase();
+    }
+
+    // 3. Query Action Items dengan relasi board (board asal), assignee, dan card
+    return (this.prisma as any).actionItem.findMany({
+      where: whereCondition,
+      include: {
+        board: {
+          select: {
+            id: true,
+            name: true,
+            template: true,
+            createdAt: true,
+          },
+        },
+        card: {
+          select: {
+            id: true,
+            columnId: true,
+            content: true,
+            createdAt: true,
+          },
+        },
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: [
+        { dueDate: 'asc' },
+        { createdAt: 'desc' },
+      ],
+    });
+  }
 }

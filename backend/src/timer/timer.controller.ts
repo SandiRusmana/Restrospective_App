@@ -37,8 +37,9 @@ export class TimerController {
   async startTimer(
     @GetUser('id') userId: string,
     @Param('id') boardId: string,
+    @Body() body?: { duration?: number },
   ) {
-    return this.timerService.startTimer(userId, boardId);
+    return this.timerService.startTimer(userId, boardId, body?.duration);
   }
 
   /**
