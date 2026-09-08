@@ -18,6 +18,7 @@ import { useBoardPusher } from '../../hooks/useBoardPusher';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import RetroColumn from './RetroColumn';
 import ActionItemsTable from './ActionItemsTable';
+import PreviousSessionActionItems from './PreviousSessionActionItems';
 import SessionTimerBanner from './SessionTimerBanner';
 import CardDetailModal from '../modals/CardDetailModal';
 import SessionTimerModal from '../modals/SessionTimerModal';
@@ -92,6 +93,9 @@ export default function RetroBoardDetail({
   const [convertModalCard, setConvertModalCard] = useState(null);
   const [boardColumns, setBoardColumns] = useState(board?.columns || []);
 
+  // ── Previous Session Action Items State ──
+  const [previousSessionItems, setPreviousSessionItems] = useState([]);
+
   const formatActionItem = useCallback((item) => {
     if (!item) return null;
     const dueDateDisplay = item.dueDate
@@ -127,11 +131,28 @@ export default function RetroBoardDetail({
     }
   }, [boardId, formatActionItem]);
 
+  // Load action items dari sesi / board sebelumnya di workspace yang sama
+  const loadPreviousSessionItems = useCallback(async () => {
+    if (!boardId) return;
+    try {
+      // Coba endpoint khusus previous session jika tersedia
+      const res = await api.getPreviousSessionActionItems
+        ? await api.getPreviousSessionActionItems(boardId)
+        : null;
+      if (Array.isArray(res) && res.length > 0) {
+        setPreviousSessionItems(res.map(formatActionItem));
+      }
+    } catch (err) {
+      console.warn('[PrevSession] Gagal memuat action items sesi sebelumnya:', err);
+    }
+  }, [boardId, formatActionItem]);
+
   useEffect(() => {
     if (boardId) {
       loadActionItemsFromApi();
+      loadPreviousSessionItems();
     }
-  }, [boardId, loadActionItemsFromApi]);
+  }, [boardId, loadActionItemsFromApi, loadPreviousSessionItems]);
 
   useEffect(() => {
     if (activeTab === 'action-items' && boardId) {
@@ -1858,11 +1879,31 @@ export default function RetroBoardDetail({
 
       {/* ── Tab 3: Action Items ── */}
       {activeTab === 'action-items' && (
-        <ActionItemsTable
-          actionItems={actionItems}
-          onChangeStatus={handleChangeActionItemStatus}
-          onDelete={handleDeleteActionItem}
-        />
+        <div className="action-items-tab-content">
+          {/* Action Item dari Sesi Sebelumnya */}
+          <PreviousSessionActionItems
+            items={previousSessionItems}
+            sourceBoardName={board?.title || board?.name || 'Sprint sebelumnya'}
+            onChangeStatus={(itemId, newStatus) => {
+              setPreviousSessionItems((prev) =>
+                prev.map((ai) => (ai.id === itemId ? { ...ai, status: newStatus } : ai))
+              );
+              if (onShowToast) onShowToast(`Status diubah menjadi ${newStatus}`);
+              // Sync ke API jika diperlukan
+              api.updateActionItem && api.updateActionItem(itemId, { status: newStatus }).catch(() => {});
+            }}
+            onDelete={(itemId) => {
+              setPreviousSessionItems((prev) => prev.filter((ai) => ai.id !== itemId));
+              if (onShowToast) onShowToast('Action item sesi sebelumnya dihapus');
+            }}
+          />
+          {/* Action Items Sesi Ini */}
+          <ActionItemsTable
+            actionItems={actionItems}
+            onChangeStatus={handleChangeActionItemStatus}
+            onDelete={handleDeleteActionItem}
+          />
+        </div>
       )}
 
       {/* ── Tab 4: Aktivitas ── */}
