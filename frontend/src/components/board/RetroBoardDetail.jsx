@@ -83,6 +83,15 @@ export default function RetroBoardDetail({
   // ── Board Settings & Anonymous Mode State ──
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isAnonymous, setIsAnonymous] = useState(Boolean(board?.isAnonymous));
+  // Mode Anonymous Personal (per-user): Setiap anggota maupun facilitator dapat mengaktifkannya untuk diri sendiri
+  const [isMyAnonymous, setIsMyAnonymous] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`retro_anon_${boardId}_${currentUser?.id || currentUser?.email || 'user'}`);
+      return saved !== null ? saved === 'true' : Boolean(board?.isAnonymous);
+    } catch {
+      return Boolean(board?.isAnonymous);
+    }
+  });
   const [currentBoardTitle, setCurrentBoardTitle] = useState(
     board?.title || board?.name || 'Sprint 16 Retrospective'
   );
@@ -367,8 +376,18 @@ export default function RetroBoardDetail({
       if (Array.isArray(cardsData)) {
         const currentUserId = currentUser?.id || currentUser?.userId || currentUser?.email;
         const formatted = cardsData.map((c) => {
-          const authorName = c.author?.name || c.author?.email?.split('@')[0] || 'Anggota';
-          const authorEmail = c.author?.email || '';
+          const isOwner =
+            Boolean(c.isOwner) ||
+            (c.authorId && c.authorId === currentUserId) ||
+            (c.author?.id && c.author.id === currentUserId) ||
+            (c.author?.email && currentUser?.email && c.author.email === currentUser.email);
+          const authorName = isOwner
+            ? 'Anda'
+            : (c.author?.name || c.author?.email?.split('@')[0] || 'Anggota');
+          const authorEmail = c.author?.email || (isOwner ? (currentUser?.email || '') : '');
+          const authorAvatar = isOwner && (currentUser?.avatarUrl || currentUser?.avatar)
+            ? (currentUser.avatarUrl || currentUser.avatar)
+            : (c.author?.avatarUrl || c.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorEmail || authorName}`);
           const votesList = Array.isArray(c.votes) ? c.votes : [];
           const votesCount = typeof c.votesCount === 'number' ? c.votesCount : votesList.length;
           const hasVoted =
@@ -385,10 +404,13 @@ export default function RetroBoardDetail({
             text: c.content,
             groupId: c.groupId || null,
             groupTitle: c.groupTitle || null,
+            authorId: c.authorId,
+            isOwner,
+            isAnonymous: Boolean(c.isAnonymous),
             author: c.author,
             authorName,
             authorEmail,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorEmail || authorName}`,
+            avatar: authorAvatar,
             createdAt: c.createdAt,
             time: c.createdAt
               ? new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -429,18 +451,32 @@ export default function RetroBoardDetail({
   const { connectionStatus, onlineMembers, onlineCount } = useBoardPusher(boardId, currentUser, {
     onCardCreated: (newCard) => {
       if (!newCard) return;
-      const authorName = newCard.author?.name || 'Anggota Tim';
-      const authorEmail = newCard.author?.email || '';
+      const currentUserId = currentUser?.id || currentUser?.userId || currentUser?.email;
+      const isOwner =
+        Boolean(newCard.isOwner) ||
+        (newCard.authorId && newCard.authorId === currentUserId) ||
+        (newCard.author?.id && newCard.author.id === currentUserId) ||
+        (newCard.author?.email && currentUser?.email && newCard.author.email === currentUser.email);
+      const authorName = isOwner
+        ? 'Anda'
+        : (newCard.author?.name || 'Anggota Tim');
+      const authorEmail = newCard.author?.email || (isOwner ? (currentUser?.email || '') : '');
+      const authorAvatar = isOwner && (currentUser?.avatarUrl || currentUser?.avatar)
+        ? (currentUser.avatarUrl || currentUser.avatar)
+        : (newCard.author?.avatarUrl ||
+           newCard.author?.avatar ||
+           newCard.avatar ||
+           `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorEmail || authorName}`);
       const formattedCard = {
         ...newCard,
         content: newCard.content || newCard.text || '',
         text: newCard.content || newCard.text || '',
+        authorId: newCard.authorId,
+        isOwner,
+        isAnonymous: Boolean(newCard.isAnonymous),
         authorName,
         authorEmail,
-        avatar:
-          newCard.author?.avatarUrl ||
-          newCard.avatar ||
-          `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorEmail || authorName}`,
+        avatar: authorAvatar,
         time: newCard.createdAt
           ? new Date(newCard.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           : 'Baru saja',
@@ -676,6 +712,26 @@ export default function RetroBoardDetail({
     },
   });
 
+  // Handler: Toggle Personal Anonymous Mode
+  const handleToggleMyAnonymous = () => {
+    const nextState = !isMyAnonymous;
+    setIsMyAnonymous(nextState);
+    try {
+      localStorage.setItem(
+        `retro_anon_${boardId}_${currentUser?.id || currentUser?.email || 'user'}`,
+        String(nextState)
+      );
+    } catch {}
+
+    if (onShowToast) {
+      if (nextState) {
+        onShowToast('Mode Anonymous aktif untuk Anda. Catatan yang Anda buat akan bersifat anonim.');
+      } else {
+        onShowToast('Mode Anonymous dinonaktifkan. Catatan Anda akan menampilkan nama Anda.');
+      }
+    }
+  };
+
   // Handler: Save Board Settings & Anonymous Mode
   const handleSaveBoardSettings = async ({ boardName: newName, isAnonymous: newAnon }) => {
     const hasAnonChanged = newAnon !== isAnonymous;
@@ -687,6 +743,13 @@ export default function RetroBoardDetail({
 
     if (hasAnonChanged) {
       setIsAnonymous(newAnon);
+      setIsMyAnonymous(newAnon);
+      try {
+        localStorage.setItem(
+          `retro_anon_${boardId}_${currentUser?.id || currentUser?.email || 'user'}`,
+          String(newAnon)
+        );
+      } catch {}
       try {
         await api.updateAnonymous(boardId, newAnon);
         if (onShowToast) {
@@ -695,7 +758,7 @@ export default function RetroBoardDetail({
       } catch (err) {
         console.warn('Gagal update mode anonymous di server:', err);
         if (onShowToast) {
-          onShowToast(err.message || 'Mode anonymous diperbarui secara lokal');
+          onShowToast(err.message || 'Mode anonymous diperbarui');
         }
       }
     } else if (hasNameChanged) {
@@ -760,6 +823,7 @@ export default function RetroBoardDetail({
       hour12: true,
     });
 
+    const isCardAnon = Boolean(isMyAnonymous);
     const tempId = `card_${Date.now()}`;
     const newCard = {
       id: tempId,
@@ -770,6 +834,8 @@ export default function RetroBoardDetail({
         name: authorName,
         email: currentUser?.email || '',
       },
+      isOwner: true,
+      isAnonymous: isCardAnon,
       authorName,
       avatar: defaultAvatar,
       time: formattedTime,
@@ -788,7 +854,7 @@ export default function RetroBoardDetail({
 
     // Async sync with API
     try {
-      const res = await api.createCard(boardId, columnId, text);
+      const res = await api.createCard(boardId, columnId, text, isCardAnon);
       if (res?.card) {
         setCards((prev) =>
           prev.map((c) =>
@@ -1455,9 +1521,9 @@ export default function RetroBoardDetail({
           const matched =
             templateCols.find(
               (tc) =>
-                tc.name.toLowerCase() === bc.name?.toLowerCase() ||
-                tc.id.toLowerCase() === bc.name?.toLowerCase() ||
-                tc.type.toLowerCase() === bc.name?.toLowerCase()
+                tc?.name?.toLowerCase() === bc?.name?.toLowerCase() ||
+                tc?.id?.toLowerCase() === bc?.name?.toLowerCase() ||
+                tc?.type?.toLowerCase() === bc?.name?.toLowerCase()
             ) ||
             templateCols[idx % templateCols.length] ||
             {};
@@ -1732,11 +1798,15 @@ export default function RetroBoardDetail({
 
           <button
             type="button"
-            className={`retro-mode-anonymous-btn ${isAnonymous ? 'active' : ''}`}
-            onClick={() => setIsSettingsModalOpen(true)}
-            title="Pengaturan Mode Anonymous"
+            className={`retro-mode-anonymous-btn ${isMyAnonymous ? 'active' : ''}`}
+            onClick={handleToggleMyAnonymous}
+            title={
+              isMyAnonymous
+                ? 'Mode Anonymous Aktif: Catatan yang Anda buat akan bersifat anonim (Klik untuk nonaktifkan)'
+                : 'Mode Anonymous Nonaktif: Klik untuk mengaktifkan mode anonim untuk Anda'
+            }
           >
-            {isAnonymous ? <Eye size={16} /> : <EyeOff size={16} />}
+            {isMyAnonymous ? <Eye size={16} /> : <EyeOff size={16} />}
             <span>Mode Anonymous</span>
           </button>
 

@@ -166,10 +166,14 @@ export const api = {
     return request(`/boards/${boardId}/cards`, { method: 'GET' });
   },
 
-  async createCard(boardId, columnId, content) {
+  async createCard(boardId, columnId, content, isAnonymous = undefined) {
+    const payload = { columnId, content };
+    if (typeof isAnonymous === 'boolean') {
+      payload.isAnonymous = isAnonymous;
+    }
     return request(`/boards/${boardId}/cards`, {
       method: 'POST',
-      body: JSON.stringify({ columnId, content }),
+      body: JSON.stringify(payload),
     });
   },
 

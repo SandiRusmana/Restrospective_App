@@ -92,12 +92,20 @@ export class CardService {
     }
 
     // 3. Simpan Card ke Database
+    // Mode anonymous pada kartu: jika dikirim spesifik oleh pengguna (per-person anonymous mode),
+    // gunakan nilai tersebut. Jika tidak ditentukan, fallback ke board.isAnonymous.
+    const isCardAnonymous =
+      typeof createCardDto.isAnonymous === 'boolean'
+        ? createCardDto.isAnonymous
+        : Boolean(board.isAnonymous);
+
     const card = await this.prisma.card.create({
       data: {
         boardId: board.id,
         columnId: column.id,
         authorId: userId,
         content: content.trim(),
+        isAnonymous: isCardAnonymous,
       },
       include: {
         author: {
@@ -120,6 +128,8 @@ export class CardService {
       ...card,
       columnType: column.name.toLowerCase(),
       columnName: column.name,
+      isAnonymous: isCardAnonymous,
+      isOwner: true,
     };
 
     // 4. Trigger Realtime Broadcast via Pusher (Broadcast ke semua channel board)
@@ -128,9 +138,9 @@ export class CardService {
       `private-board-${boardId}`,
       `presence-board-${boardId}`,
     ];
-    const cardToBroadcast = board.isAnonymous
-      ? { ...cardResponse, author: null }
-      : cardResponse;
+    const cardToBroadcast = isCardAnonymous
+      ? { ...cardResponse, author: null, isAnonymous: true }
+      : { ...cardResponse, isAnonymous: false };
     try {
       await this.pusher.trigger(channels, 'card.created', cardToBroadcast);
     } catch (err) {
@@ -158,7 +168,6 @@ export class CardService {
       membership?.role === 'owner' ||
       membership?.role === 'facilitator' ||
       membership?.role === 'admin';
-    const shouldHideAuthor = board.isAnonymous && !isFacilitator;
 
     // 2. Ambil semua card pada board beserta relasi author, vote, dan comments
     const cards = await (this.prisma.card as any).findMany({
@@ -219,27 +228,38 @@ export class CardService {
       },
     });
 
-    return cards.map((c: any) => ({
-      id: c.id,
-      boardId: c.boardId,
-      columnId: c.columnId,
-      columnType: c.column?.name ? c.column.name.toLowerCase() : null,
-      columnName: c.column?.name || null,
-      authorId: c.authorId,
-      content: c.content,
-      groupId: c.groupId || null,
-      groupTitle: c.groupTitle || null,
-      createdAt: c.createdAt,
-      author: shouldHideAuthor ? null : c.author,
-      votes: c.votes || [],
-      votesCount: c._count?.votes || (Array.isArray(c.votes) ? c.votes.length : 0),
-      hasVoted: Array.isArray(c.votes)
-        ? c.votes.some((v: any) => v.userId === userId)
-        : false,
-      comments: c.comments || [],
-      commentsCount: c._count?.comments || (Array.isArray(c.comments) ? c.comments.length : 0),
-      actionItem: c.actionItem || null,
-    }));
+    return cards.map((c: any) => {
+      const isOwner = c.authorId === userId;
+      // Kartu hanya disamarkan (anonim) jika kartu itu sendiri dibuat dalam mode anonymous (c.isAnonymous === true)
+      // DAN jika pengguna yang melihat bukan pemilik kartu itu sendiri (!isOwner).
+      // Kartu yang dibuat sebelum mode anonymous (c.isAnonymous === false) TETAP menampilkan nama dan identitas aslinya.
+      const isCardAnonymous = Boolean(c.isAnonymous);
+      const shouldHideAuthor = isCardAnonymous && !isOwner;
+
+      return {
+        id: c.id,
+        boardId: c.boardId,
+        columnId: c.columnId,
+        columnType: c.column?.name ? c.column.name.toLowerCase() : null,
+        columnName: c.column?.name || null,
+        authorId: shouldHideAuthor ? null : c.authorId,
+        isOwner,
+        isAnonymous: isCardAnonymous,
+        content: c.content,
+        groupId: c.groupId || null,
+        groupTitle: c.groupTitle || null,
+        createdAt: c.createdAt,
+        author: shouldHideAuthor ? null : c.author,
+        votes: c.votes || [],
+        votesCount: c._count?.votes || (Array.isArray(c.votes) ? c.votes.length : 0),
+        hasVoted: Array.isArray(c.votes)
+          ? c.votes.some((v: any) => v.userId === userId)
+          : false,
+        comments: c.comments || [],
+        commentsCount: c._count?.comments || (Array.isArray(c.comments) ? c.comments.length : 0),
+        actionItem: c.actionItem || null,
+      };
+    });
   }
 
   /**
