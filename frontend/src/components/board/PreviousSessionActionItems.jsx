@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Calendar, Check, MoreVertical, Trash2, ChevronUp, Info } from 'lucide-react';
+import { Clock, Calendar, Check, MoreVertical, Trash2, ChevronUp, Info, Layout } from 'lucide-react';
 
 // ── Status Pill (reusable untuk sesi sebelumnya) ──
 function PrevStatusPill({ status, onChangeStatus, itemId }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpwards, setOpenUpwards] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -12,7 +13,14 @@ function PrevStatusPill({ status, onChangeStatus, itemId }) {
         setIsOpen(false);
       }
     };
-    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      if (dropdownRef.current) {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        setOpenUpwards(spaceBelow < 160);
+      }
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
@@ -24,24 +32,28 @@ function PrevStatusPill({ status, onChangeStatus, itemId }) {
       <button
         type="button"
         className={`prev-status-pill ${statusClass}`}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
       >
         <span>{currentStatus === 'IN_PROGRESS' ? 'IN PROGRESS' : currentStatus}</span>
         <span className="prev-status-chevron">▼</span>
       </button>
       {isOpen && (
-        <div className="prev-status-dropdown">
+        <div className={`prev-status-dropdown ${openUpwards ? 'open-upwards' : ''}`}>
           {['PENDING', 'IN_PROGRESS', 'DONE'].map((s) => (
             <button
               key={s}
               type="button"
               className={`prev-status-option ${currentStatus === s ? 'active' : ''}`}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 onChangeStatus(itemId, s);
                 setIsOpen(false);
               }}
             >
-              {s === 'IN_PROGRESS' ? 'IN PROGRESS' : s}
+              <span>{s === 'IN_PROGRESS' ? 'IN PROGRESS' : s}</span>
               {currentStatus === s && <Check size={13} />}
             </button>
           ))}
@@ -66,10 +78,21 @@ function PrevActionItemRow({ item, onChangeStatus, onDelete }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
 
+  const boardTitle = item.boardName || item.board?.name || item.board?.title || 'Sesi Sebelumnya';
+  const isDone = item.status === 'DONE';
+
   return (
-    <tr className="prev-ai-row">
+    <tr className={`prev-ai-row ${isDone ? 'is-done' : ''}`}>
       <td className="prev-ai-cell prev-ai-cell-title">
-        <span className="prev-ai-title-text">{item.title}</span>
+        <span className={`prev-ai-title-text ${isDone ? 'done-text' : ''}`}>
+          {item.title}
+        </span>
+      </td>
+      <td className="prev-ai-cell prev-ai-cell-board">
+        <span className="prev-ai-board-badge" title={boardTitle}>
+          <Layout size={12} className="prev-ai-board-icon" />
+          <span>{boardTitle}</span>
+        </span>
       </td>
       <td className="prev-ai-cell prev-ai-cell-assignee">
         <div className="prev-ai-assignee-info">
@@ -103,33 +126,35 @@ function PrevActionItemRow({ item, onChangeStatus, onDelete }) {
           itemId={item.id}
         />
       </td>
-      <td className="prev-ai-cell prev-ai-cell-actions">
-        <div className="prev-ai-actions-wrapper" ref={menuRef}>
-          <button
-            type="button"
-            className="prev-ai-menu-btn"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Opsi action item sesi sebelumnya"
-          >
-            <MoreVertical size={18} />
-          </button>
-          {isMenuOpen && (
-            <div className="prev-ai-menu-dropdown">
-              <button
-                type="button"
-                className="prev-ai-menu-option prev-ai-menu-option-delete"
-                onClick={() => {
-                  onDelete(item.id);
-                  setIsMenuOpen(false);
-                }}
-              >
-                <Trash2 size={14} />
-                <span>Hapus</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </td>
+      {onDelete && (
+        <td className="prev-ai-cell prev-ai-cell-actions">
+          <div className="prev-ai-actions-wrapper" ref={menuRef}>
+            <button
+              type="button"
+              className="prev-ai-menu-btn"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Opsi action item sesi sebelumnya"
+            >
+              <MoreVertical size={18} />
+            </button>
+            {isMenuOpen && (
+              <div className="prev-ai-menu-dropdown">
+                <button
+                  type="button"
+                  className="prev-ai-menu-option prev-ai-menu-option-delete"
+                  onClick={() => {
+                    onDelete(item.id);
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  <Trash2 size={14} />
+                  <span>Hapus</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </td>
+      )}
     </tr>
   );
 }
@@ -137,17 +162,83 @@ function PrevActionItemRow({ item, onChangeStatus, onDelete }) {
 // ── Komponen Utama ──
 export default function PreviousSessionActionItems({
   items = [],
-  sourceBoardName = 'Sprint sebelumnya',
   onChangeStatus,
   onDelete,
 }) {
   const [isVisible, setIsVisible] = useState(true);
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
-  // Hanya tampilkan jika ada item
-  if (!items || items.length === 0) return null;
+  const pendingCount = items.filter((i) => i.status !== 'DONE').length;
+
+  // Auto-dismiss setelah jeda 2-3 detik ketika semua item berstatus DONE
+  useEffect(() => {
+    if (items.length > 0 && pendingCount === 0) {
+      const fadeTimer = setTimeout(() => {
+        setIsFadingOut(true);
+      }, 2000);
+
+      const dismissTimer = setTimeout(() => {
+        setIsDismissed(true);
+      }, 2500);
+
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(dismissTimer);
+      };
+    } else {
+      setIsFadingOut(false);
+      setIsDismissed(false);
+    }
+  }, [pendingCount, items.length]);
+
+  // Hanya tampilkan jika ada item dan belum di-dismiss otomatis
+  if (isDismissed || !items || items.length === 0) return null;
+
+  // ── Mode Kompak Ramping (Saat Disembunyikan) ──
+  if (!isVisible) {
+    return (
+      <div
+        className={`prev-session-ai-compact ${isFadingOut ? 'fade-out' : ''}`}
+        onClick={() => setIsVisible(true)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === 'Enter' && setIsVisible(true)}
+      >
+        <div className="prev-session-ai-compact-left">
+          <div className="prev-session-ai-compact-icon-box">
+            <Clock size={16} className="prev-session-ai-compact-icon" />
+          </div>
+          <span className="prev-session-ai-compact-text">
+            <strong>{pendingCount} action item</strong> dari sesi sebelumnya belum selesai
+          </span>
+          {pendingCount > 0 ? (
+            <span className="prev-session-badge prev-session-badge-pending">
+              {pendingCount} Belum Selesai
+            </span>
+          ) : (
+            <span className="prev-session-badge prev-session-badge-done">
+              Semua Selesai 🎉 (Menutup...)
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          className="prev-session-ai-compact-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsVisible(true);
+          }}
+        >
+          <span>Buka Review</span>
+          <ChevronUp size={14} style={{ transform: 'rotate(180deg)' }} />
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="prev-session-ai-wrapper">
+    <div className={`prev-session-ai-wrapper ${isFadingOut ? 'fade-out' : ''}`}>
       {/* ── Header Banner ── */}
       <div className="prev-session-ai-header">
         <div className="prev-session-ai-header-left">
@@ -155,69 +246,70 @@ export default function PreviousSessionActionItems({
             <Clock size={22} className="prev-session-ai-icon" />
           </div>
           <div className="prev-session-ai-header-info">
-            <h3 className="prev-session-ai-title">Action Item dari Sesi Sebelumnya</h3>
+            <div className="prev-session-ai-title-row">
+              <h3 className="prev-session-ai-title">Action Item dari Sesi Sebelumnya</h3>
+              {pendingCount > 0 ? (
+                <span className="prev-session-badge prev-session-badge-pending">
+                  {pendingCount} Belum Selesai
+                </span>
+              ) : (
+                <span className="prev-session-badge prev-session-badge-done">
+                  Semua Selesai 🎉 (Menutup...)
+                </span>
+              )}
+            </div>
             <p className="prev-session-ai-subtitle">
-              Berikut adalah action item yang masih pending dari{' '}
-              <strong>{sourceBoardName}</strong> (dalam workspace yang sama).
+              {pendingCount === 0
+                ? 'Semua action item sesi sebelumnya telah diselesaikan! Banner ini akan menutup otomatis...'
+                : 'Berikut adalah action item yang masih pending dari sesi retrospective sebelumnya (dalam workspace yang sama).'}
             </p>
           </div>
         </div>
         <button
           type="button"
           className="prev-session-ai-toggle-btn"
-          onClick={() => setIsVisible(!isVisible)}
+          onClick={() => setIsVisible(false)}
         >
-          {isVisible ? (
-            <>
-              <span>Sembunyikan</span>
-              <ChevronUp size={14} />
-            </>
-          ) : (
-            <>
-              <span>Tampilkan</span>
-              <ChevronUp size={14} style={{ transform: 'rotate(180deg)' }} />
-            </>
-          )}
+          <span>Sembunyikan</span>
+          <ChevronUp size={14} />
         </button>
       </div>
 
       {/* ── Tabel ── */}
-      {isVisible && (
-        <>
-          <div className="prev-session-ai-table-wrapper">
-            <table className="prev-session-ai-table">
-              <thead>
-                <tr className="prev-ai-thead-row">
-                  <th className="prev-ai-th prev-ai-th-title">Judul</th>
-                  <th className="prev-ai-th prev-ai-th-assignee">Assignee</th>
-                  <th className="prev-ai-th prev-ai-th-due">Due Date</th>
-                  <th className="prev-ai-th prev-ai-th-status">Status</th>
-                  <th className="prev-ai-th prev-ai-th-actions">Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <PrevActionItemRow
-                    key={item.id}
-                    item={item}
-                    onChangeStatus={onChangeStatus}
-                    onDelete={onDelete}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <div className="prev-session-ai-table-wrapper">
+        <table className="prev-session-ai-table">
+          <thead>
+            <tr className="prev-ai-thead-row">
+              <th className="prev-ai-th prev-ai-th-title">Judul</th>
+              <th className="prev-ai-th prev-ai-th-board">Board Asal</th>
+              <th className="prev-ai-th prev-ai-th-assignee">Assignee</th>
+              <th className="prev-ai-th prev-ai-th-due">Due Date</th>
+              <th className="prev-ai-th prev-ai-th-status">Status</th>
+              {onDelete && <th className="prev-ai-th prev-ai-th-actions">Aksi</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <PrevActionItemRow
+                key={item.id}
+                item={item}
+                onChangeStatus={onChangeStatus}
+                onDelete={onDelete}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-          {/* ── Info Footer ── */}
-          <div className="prev-session-ai-info-bar">
-            <Info size={14} className="prev-session-ai-info-icon" />
-            <span>
-              Hanya menampilkan action item yang masih pending dari sesi sebelumnya. Setelah
-              diselesaikan, status dapat diubah langsung dari sini
-            </span>
-          </div>
-        </>
-      )}
+      {/* ── Info Footer ── */}
+      <div className="prev-session-ai-info-bar">
+        <Info size={14} className="prev-session-ai-info-icon" />
+        <span>
+          {pendingCount === 0
+            ? 'Hebat! Semua action item sesi sebelumnya sudah tuntas dikerjakan.'
+            : 'Hanya menampilkan action item yang belum selesai dari sesi sebelumnya. Setelah diselesaikan, status dapat diubah langsung dari sini.'}
+        </span>
+      </div>
     </div>
   );
 }

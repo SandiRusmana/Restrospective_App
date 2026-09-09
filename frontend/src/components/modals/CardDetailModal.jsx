@@ -63,13 +63,29 @@ export default function CardDetailModal({
 
   if (!isOpen || !card) return null;
 
-  const originalAuthorName = card.author?.name || card.authorName || 'Anggota Tim';
-  const authorName = isAnonymous ? 'Anonymous' : originalAuthorName;
+  const isAuthor =
+    Boolean(card.isOwner) ||
+    card.author?.id === currentUser?.id ||
+    card.authorId === currentUser?.id ||
+    card.authorEmail === currentUser?.email ||
+    card.author === currentUser?.name;
+
+  const originalAuthorName = isAuthor
+    ? 'Anda'
+    : (card.author?.name || card.authorName || 'Anggota Tim');
+
+  const isCardAnonymous = Boolean(card.isAnonymous);
+
+  const authorName = isCardAnonymous
+    ? (isAuthor ? 'Anda' : 'Anonymous')
+    : (isAuthor ? 'Anda' : originalAuthorName);
+
   const timestamp =
     card.time ||
     (card.createdAt
       ? new Date(card.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true })
       : 'Baru saja');
+
   const cardText = card.content || card.text || '';
 
   const votesCount =
@@ -190,9 +206,24 @@ export default function CardDetailModal({
         <div className="retro-detail-content-section">
           <h3 className="retro-detail-card-text">{cardText}</h3>
           
-          <div className="retro-detail-meta">
+          <div className="retro-detail-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span className="retro-detail-meta-label">Dibuat oleh:</span>
             <span className="retro-detail-meta-author">{authorName}</span>
+            {isCardAnonymous && isAuthor && (
+              <span
+                style={{
+                  fontSize: '10px',
+                  padding: '1px 5px',
+                  borderRadius: '4px',
+                  backgroundColor: '#e0e7ff',
+                  color: '#4338ca',
+                  fontWeight: 600,
+                }}
+                title="Ditampilkan sebagai Anonymous bagi anggota lain"
+              >
+                Anonim
+              </span>
+            )}
             <span className="retro-detail-meta-bullet">•</span>
             <span className="retro-detail-meta-time">{timestamp}</span>
           </div>

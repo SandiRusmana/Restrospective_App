@@ -95,13 +95,39 @@ export default function RetroCard({
     };
   }, [isMenuOpen]);
 
-  const originalAuthorName = card?.author?.name || card?.authorName || (typeof card?.author === 'string' ? card.author : '');
-  const authorName = isAnonymous ? 'Anonymous' : (originalAuthorName || 'Anggota Tim');
+  // Kartu hanya anonim jika kartu ini sendiri dibuat dalam mode anonim (card.isAnonymous === true).
+  // Kartu yang sudah dibuat sebelum masuk mode anonim tetap menampilkan identitas aslinya.
+  const isCardAnonymous = Boolean(card?.isAnonymous);
+
+  const isAuthor =
+    Boolean(card?.isOwner) ||
+    (!currentUser?.id
+      ? false
+      : card?.author?.id === currentUser?.id ||
+        card?.authorId === currentUser?.id ||
+        card?.authorEmail === currentUser?.email ||
+        card?.author === currentUser?.name);
+
+  const originalAuthorName =
+    isAuthor
+      ? 'Anda'
+      : (card?.author?.name || card?.authorName || (typeof card?.author === 'string' ? card.author : ''));
+
+  // Di mode anonymous: jika kartu ini anonim, tampilkan 'Anda' bagi pembuat dan 'Anonymous' bagi anggota lain
+  // Jika kartu ini BUKAN anonim, tampilkan nama asli
+  const authorName = isCardAnonymous
+    ? (isAuthor ? 'Anda' : 'Anonymous')
+    : (isAuthor ? 'Anda' : (originalAuthorName || 'Anggota Tim'));
+
   const authorAvatar =
-    card?.author?.avatarUrl ||
-    card?.author?.avatar ||
-    card?.avatar ||
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${card?.author?.email || originalAuthorName || 'user'}`;
+    isAuthor && (currentUser?.avatarUrl || currentUser?.avatar)
+      ? (currentUser.avatarUrl || currentUser.avatar)
+      : isCardAnonymous
+      ? null
+      : (card?.author?.avatarUrl ||
+         card?.author?.avatar ||
+         card?.avatar ||
+         `https://api.dicebear.com/7.x/avataaars/svg?seed=${card?.author?.email || originalAuthorName || 'user'}`);
   const timestamp =
     card?.time ||
     (card?.createdAt
@@ -180,11 +206,6 @@ export default function RetroCard({
     }
   };
 
-  const isAuthor =
-    !currentUser?.id ||
-    card?.author?.id === currentUser?.id ||
-    card?.authorId === currentUser?.id ||
-    card?.author === currentUser?.name;
 
   if (isEditing) {
     return (
@@ -414,14 +435,14 @@ export default function RetroCard({
         <div
           className="retro-card-author-info"
           title={
-            isAnonymous
-              ? (isFacilitator && originalAuthorName
-                  ? `Penulis asli: ${originalAuthorName} (Terlihat oleh Fasilitator)`
+            isCardAnonymous
+              ? (isAuthor
+                  ? 'Kartu Anda (Ditampilkan sebagai Anonymous bagi anggota lain)'
                   : 'Mode Anonymous')
-              : authorName
+              : (isAuthor ? 'Kartu Anda' : authorName)
           }
         >
-          {isAnonymous ? (
+          {isCardAnonymous && !isAuthor ? (
             <div className="retro-anonymous-avatar">
               <User size={15} color="#ffffff" strokeWidth={2.4} />
             </div>
@@ -437,7 +458,24 @@ export default function RetroCard({
             />
           )}
           <div className="retro-card-author-meta">
-            <span className="retro-card-author-name">{authorName}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span className="retro-card-author-name">{authorName}</span>
+              {isCardAnonymous && isAuthor && (
+                <span
+                  style={{
+                    fontSize: '10px',
+                    padding: '1px 5px',
+                    borderRadius: '4px',
+                    backgroundColor: '#e0e7ff',
+                    color: '#4338ca',
+                    fontWeight: 600,
+                  }}
+                  title="Ditampilkan sebagai Anonymous bagi anggota lain"
+                >
+                  Anonim
+                </span>
+              )}
+            </div>
             <span className="retro-card-time">{timestamp}</span>
           </div>
         </div>

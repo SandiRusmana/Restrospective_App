@@ -294,16 +294,7 @@ export class BoardService {
       throw new ForbiddenException('Anda bukan anggota dari workspace ini');
     }
 
-    // 2. Otorisasi: Hanya facilitator / admin / owner yang dapat mengubah mode anonymous
-    const isFacilitator =
-      board.workspace.ownerId === userId ||
-      membership.role === 'owner' ||
-      membership.role === 'facilitator' ||
-      membership.role === 'admin';
-
-    if (!isFacilitator) {
-      throw new ForbiddenException('Hanya facilitator atau pemilik workspace yang dapat mengubah mode anonymous');
-    }
+    // 2. Otorisasi: Dapat diakses oleh semua anggota workspace (baik facilitator maupun anggota)
 
     // 3. Tentukan status baru (jika tidak dikirimkan, lakukan toggle)
     const newStatus = isAnonymous !== undefined ? Boolean(isAnonymous) : !board.isAnonymous;

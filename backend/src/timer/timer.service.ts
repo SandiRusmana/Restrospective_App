@@ -77,6 +77,7 @@ export class TimerService {
       await this.pusher.trigger(channels, 'timer.updated', {
         timer,
         boardId,
+        startedById: timer?.startedById || user?.id || null,
         user: user || null,
         facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
         timestamp: new Date().toISOString(),
@@ -93,11 +94,22 @@ export class TimerService {
     const board = await this.checkBoardAccess(userId, boardId);
     let timer = await this.getOrCreateTimer(boardId);
 
-    const owner = await this.prisma.user.findUnique({
-      where: { id: board.workspace.ownerId },
-      select: { id: true, name: true, email: true },
-    });
-    const facilitator = owner?.name || owner?.email?.split('@')[0] || 'Facilitator';
+    let facilitator = 'Facilitator';
+    if (timer.startedById) {
+      const starter = await this.prisma.user.findUnique({
+        where: { id: timer.startedById },
+        select: { id: true, name: true, email: true },
+      });
+      if (starter) {
+        facilitator = starter.name || starter.email?.split('@')[0] || 'Facilitator';
+      }
+    } else {
+      const owner = await this.prisma.user.findUnique({
+        where: { id: board.workspace.ownerId },
+        select: { id: true, name: true, email: true },
+      });
+      facilitator = owner?.name || owner?.email?.split('@')[0] || 'Facilitator';
+    }
 
     // Hitung sisa waktu terkini jika timer sedang berjalan
     if (timer.isRunning && timer.startedAt) {
@@ -121,6 +133,7 @@ export class TimerService {
         return {
           ...timer,
           remaining: computedRemaining,
+          startedById: timer.startedById || null,
           facilitator,
         };
       }
@@ -128,6 +141,7 @@ export class TimerService {
 
     return {
       ...timer,
+      startedById: timer.startedById || null,
       facilitator,
     };
   }
@@ -135,7 +149,7 @@ export class TimerService {
   /**
    * Memulai / Melanjutkan Timer (Start / Resume)
    */
-  async startTimer(userId: string, boardId: string) {
+  async startTimer(userId: string, boardId: string, duration?: number) {
     await this.checkBoardAccess(userId, boardId);
     let timer = await this.getOrCreateTimer(boardId);
 
@@ -144,29 +158,30 @@ export class TimerService {
       select: { id: true, name: true, email: true },
     });
 
-    if (timer.isRunning) {
-      return this.getTimer(userId, boardId);
-    }
+    const durationToSet = duration && duration > 0 ? duration : timer.duration;
 
-    // Jika waktu sebelumnya sudah 0, mulai ulang dari duration
-    let remainingToSet = timer.remaining;
+    // Jika durasi baru ditentukan atau waktu sebelumnya sudah 0, gunakan durationToSet
+    let remainingToSet = duration && duration > 0 ? duration : timer.remaining;
     if (remainingToSet <= 0) {
-      remainingToSet = timer.duration;
+      remainingToSet = durationToSet;
     }
 
-    const updatedTimer = await this.prisma.boardTimer.update({
+    const updatedTimer = await (this.prisma as any).boardTimer.update({
       where: { id: timer.id },
       data: {
+        duration: durationToSet,
         isRunning: true,
         remaining: remainingToSet,
         startedAt: new Date(),
         pausedAt: null,
+        startedById: userId,
       },
     });
 
     await this.broadcastTimerUpdate(boardId, updatedTimer, user);
     return {
       ...updatedTimer,
+      startedById: userId,
       facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
     };
   }
@@ -175,8 +190,17 @@ export class TimerService {
    * Menjeda Timer (Pause)
    */
   async pauseTimer(userId: string, boardId: string) {
-    await this.checkBoardAccess(userId, boardId);
+    const board = await this.checkBoardAccess(userId, boardId);
     const timer = await this.getOrCreateTimer(boardId);
+
+    // Hanya yang memulai timer atau owner workspace yang berhak menjeda (pause)
+    const isStarter = timer.startedById ? timer.startedById === userId : true;
+    const isOwner = board.workspace.ownerId === userId;
+    if (!isStarter && !isOwner) {
+      throw new ForbiddenException(
+        'Hanya pengguna yang memulai timer yang dapat menjeda sesi ini',
+      );
+    }
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -186,6 +210,7 @@ export class TimerService {
     if (!timer.isRunning) {
       return {
         ...timer,
+        startedById: timer.startedById || null,
         facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
       };
     }
@@ -211,6 +236,7 @@ export class TimerService {
     await this.broadcastTimerUpdate(boardId, updatedTimer, user);
     return {
       ...updatedTimer,
+      startedById: timer.startedById || userId,
       facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
     };
   }
@@ -219,8 +245,17 @@ export class TimerService {
    * Mereset Timer ke Durasi Awal
    */
   async resetTimer(userId: string, boardId: string) {
-    await this.checkBoardAccess(userId, boardId);
+    const board = await this.checkBoardAccess(userId, boardId);
     const timer = await this.getOrCreateTimer(boardId);
+
+    // Hanya yang memulai timer atau owner workspace yang berhak mereset timer
+    const isStarter = timer.startedById ? timer.startedById === userId : true;
+    const isOwner = board.workspace.ownerId === userId;
+    if (!isStarter && !isOwner) {
+      throw new ForbiddenException(
+        'Hanya pengguna yang memulai timer yang dapat mereset sesi ini',
+      );
+    }
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -240,6 +275,7 @@ export class TimerService {
     await this.broadcastTimerUpdate(boardId, updatedTimer, user);
     return {
       ...updatedTimer,
+      startedById: timer.startedById || userId,
       facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
     };
   }

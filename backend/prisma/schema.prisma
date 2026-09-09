@@ -67,13 +67,14 @@ model Board {
 }
 
 model BoardTimer {
-  id        String    @id @default(uuid())
-  boardId   String    @unique
-  duration  Int       @default(300)
-  remaining Int       @default(300)
-  isRunning Boolean   @default(false)
-  startedAt DateTime?
-  pausedAt  DateTime?
+  id          String    @id @default(uuid())
+  boardId     String    @unique
+  duration    Int       @default(300)
+  remaining   Int       @default(300)
+  isRunning   Boolean   @default(false)
+  startedAt   DateTime?
+  pausedAt    DateTime?
+  startedById String?
 
   board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
 }
@@ -94,6 +95,7 @@ model Card {
   columnId   String
   authorId   String
   content    String
+  isAnonymous Boolean  @default(false)
   groupId    String?
   groupTitle String?
   createdAt  DateTime @default(now())

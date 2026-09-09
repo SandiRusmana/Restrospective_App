@@ -3,6 +3,7 @@ import { MoreVertical, Calendar, Check, Trash2, Edit2 } from 'lucide-react';
 
 function StatusPill({ status, onChangeStatus, itemId }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpwards, setOpenUpwards] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -11,7 +12,14 @@ function StatusPill({ status, onChangeStatus, itemId }) {
         setIsOpen(false);
       }
     };
-    if (isOpen) document.addEventListener('mousedown', handleClickOutside);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      if (dropdownRef.current) {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        setOpenUpwards(spaceBelow < 160);
+      }
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
@@ -29,7 +37,7 @@ function StatusPill({ status, onChangeStatus, itemId }) {
         <span className="action-status-chevron">▼</span>
       </button>
       {isOpen && (
-        <div className="action-status-dropdown">
+        <div className={`action-status-dropdown ${openUpwards ? 'open-upwards' : ''}`}>
           <button
             type="button"
             className={`action-status-option ${currentStatus === 'PENDING' ? 'active' : ''}`}
@@ -62,6 +70,7 @@ function StatusPill({ status, onChangeStatus, itemId }) {
 
 function ActionItemRow({ item, onChangeStatus, onDelete }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuUpwards, setMenuUpwards] = useState(false);
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -70,14 +79,23 @@ function ActionItemRow({ item, onChangeStatus, onDelete }) {
         setIsMenuOpen(false);
       }
     };
-    if (isMenuOpen) document.addEventListener('mousedown', handleClickOutside);
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      if (menuRef.current) {
+        const rect = menuRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        setMenuUpwards(spaceBelow < 120);
+      }
+    }
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
 
+  const isDone = item.status === 'DONE';
+
   return (
-    <tr className="action-items-row">
+    <tr className={`action-items-row ${isDone ? 'is-done' : ''}`}>
       <td className="action-items-cell action-items-cell-title">
-        <span className="action-item-title-text">{item.title}</span>
+        <span className={`action-item-title-text ${isDone ? 'done-text' : ''}`}>{item.title}</span>
       </td>
       <td className="action-items-cell action-items-cell-assignee">
         <div className="action-item-assignee-info">
@@ -122,7 +140,7 @@ function ActionItemRow({ item, onChangeStatus, onDelete }) {
             <MoreVertical size={18} />
           </button>
           {isMenuOpen && (
-            <div className="action-item-menu-dropdown">
+            <div className={`action-item-menu-dropdown ${menuUpwards ? 'open-upwards' : ''}`}>
               <button
                 type="button"
                 className="action-item-menu-option action-item-menu-option-delete"

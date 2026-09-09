@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateCardDto {
   @IsString({ message: 'columnId harus berupa string' })
@@ -8,4 +8,8 @@ export class CreateCardDto {
   @IsString({ message: 'content card harus berupa text' })
   @IsNotEmpty({ message: 'content card tidak boleh kosong' })
   content: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isAnonymous?: boolean;
 }

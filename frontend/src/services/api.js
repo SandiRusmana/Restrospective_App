@@ -166,10 +166,14 @@ export const api = {
     return request(`/boards/${boardId}/cards`, { method: 'GET' });
   },
 
-  async createCard(boardId, columnId, content) {
+  async createCard(boardId, columnId, content, isAnonymous = undefined) {
+    const payload = { columnId, content };
+    if (typeof isAnonymous === 'boolean') {
+      payload.isAnonymous = isAnonymous;
+    }
     return request(`/boards/${boardId}/cards`, {
       method: 'POST',
-      body: JSON.stringify({ columnId, content }),
+      body: JSON.stringify(payload),
     });
   },
 
@@ -242,13 +246,26 @@ export const api = {
     });
   },
 
+  async getWorkspaceActionItems(workspaceId, status = 'pending') {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return request(`/workspaces/${workspaceId}/action-items${query}`, { method: 'GET' });
+  },
+
+  async getPreviousSessionActionItems(workspaceId, status = 'pending') {
+    return this.getWorkspaceActionItems(workspaceId, status);
+  },
+
   // Timer API
   async getTimer(boardId) {
     return request(`/boards/${boardId}/timer`, { method: 'GET' });
   },
 
-  async startTimer(boardId) {
-    return request(`/boards/${boardId}/timer/start`, { method: 'POST' });
+  async startTimer(boardId, duration = undefined) {
+    const options = { method: 'POST' };
+    if (typeof duration === 'number') {
+      options.body = JSON.stringify({ duration });
+    }
+    return request(`/boards/${boardId}/timer/start`, options);
   },
 
   async pauseTimer(boardId) {
