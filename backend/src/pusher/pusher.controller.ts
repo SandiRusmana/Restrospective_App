@@ -40,14 +40,18 @@ export class PusherController {
       const boardId = match[1];
       const board = await this.prisma.board.findUnique({
         where: { id: boardId },
-        select: { workspaceId: true },
+        select: {
+          workspaceId: true,
+          workspace: { select: { ownerId: true } },
+        },
       });
 
       if (!board) {
         throw new NotFoundException('Board tidak ditemukan');
       }
 
-      // Pastikan user adalah anggota dari workspace yang menaungi board ini
+      // Pastikan user adalah anggota atau owner dari workspace yang menaungi board ini
+      const isOwner = board.workspace?.ownerId === user.id;
       const membership = await this.prisma.workspaceMember.findFirst({
         where: {
           workspaceId: board.workspaceId,
@@ -55,7 +59,7 @@ export class PusherController {
         },
       });
 
-      if (!membership) {
+      if (!membership && !isOwner) {
         throw new ForbiddenException('Anda tidak memiliki akses ke channel board ini');
       }
     }

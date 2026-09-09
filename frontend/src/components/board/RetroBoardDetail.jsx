@@ -119,6 +119,8 @@ export default function RetroBoardDetail({
       ...item,
       id: item.id,
       cardId: item.cardId,
+      boardId: item.boardId || item.board?.id,
+      boardName: item.board?.name || item.board?.title || item.boardName || 'Sesi Sebelumnya',
       title: item.title || item.card?.content || 'Action Item',
       status: item.status || 'PENDING',
       dueDate: item.dueDate,
@@ -142,19 +144,39 @@ export default function RetroBoardDetail({
 
   // Load action items dari sesi / board sebelumnya di workspace yang sama
   const loadPreviousSessionItems = useCallback(async () => {
-    if (!boardId) return;
+    const wsId = workspace?.id || board?.workspaceId;
+    if (!wsId) return;
     try {
-      // Coba endpoint khusus previous session jika tersedia
-      const res = await api.getPreviousSessionActionItems
-        ? await api.getPreviousSessionActionItems(boardId)
-        : null;
-      if (Array.isArray(res) && res.length > 0) {
-        setPreviousSessionItems(res.map(formatActionItem));
+      const res = await api.getWorkspaceActionItems(wsId, 'pending');
+      if (Array.isArray(res)) {
+        // Filter action items dari sesi/board sebelumnya di workspace yang sama
+        const prevItems = res
+          .filter((item) => (item.boardId || item.board?.id) !== boardId)
+          .map(formatActionItem);
+        setPreviousSessionItems(prevItems);
       }
     } catch (err) {
       console.warn('[PrevSession] Gagal memuat action items sesi sebelumnya:', err);
     }
-  }, [boardId, formatActionItem]);
+  }, [workspace?.id, board?.workspaceId, boardId, formatActionItem]);
+
+  const handleUpdatePreviousSessionStatus = useCallback(
+    async (itemId, newStatus) => {
+      setPreviousSessionItems((prev) =>
+        prev.map((ai) => (ai.id === itemId ? { ...ai, status: newStatus } : ai))
+      );
+      if (onShowToast) {
+        onShowToast(`Status action item diubah menjadi ${newStatus === 'IN_PROGRESS' ? 'IN PROGRESS' : newStatus}`);
+      }
+      try {
+        await api.updateActionItem(itemId, { status: newStatus });
+      } catch (err) {
+        console.error('[PrevSession] Gagal update status action item:', err);
+        if (onShowToast) onShowToast('Gagal memperbarui status action item ke server');
+      }
+    },
+    [onShowToast]
+  );
 
   useEffect(() => {
     if (boardId) {
@@ -166,8 +188,9 @@ export default function RetroBoardDetail({
   useEffect(() => {
     if (activeTab === 'action-items' && boardId) {
       loadActionItemsFromApi();
+      loadPreviousSessionItems();
     }
-  }, [activeTab, boardId, loadActionItemsFromApi]);
+  }, [activeTab, boardId, loadActionItemsFromApi, loadPreviousSessionItems]);
 
   // Sync state when board prop changes
   useEffect(() => {
@@ -1877,7 +1900,18 @@ export default function RetroBoardDetail({
 
       {/* ── Tab 1: Interactive Board Canvas (Dynamic Template Columns) ── */}
       {activeTab === 'board' && (
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <>
+          {/* Action Item Pending dari Sesi Sebelumnya (Awal Sesi Baru) */}
+          {previousSessionItems && previousSessionItems.length > 0 && (
+            <div className="retro-prev-session-ai-board-wrapper" style={{ padding: '0 28px 16px 28px' }}>
+              <PreviousSessionActionItems
+                items={previousSessionItems}
+                onChangeStatus={handleUpdatePreviousSessionStatus}
+              />
+            </div>
+          )}
+
+          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="retro-board-columns-container">
             <div
               className="retro-board-columns-grid"
@@ -1950,6 +1984,7 @@ export default function RetroBoardDetail({
             </div>
           </div>
         </DndContext>
+        </>
       )}
 
       {/* ── Tab 2: Diskusi ── */}
@@ -1967,19 +2002,7 @@ export default function RetroBoardDetail({
           {/* Action Item dari Sesi Sebelumnya */}
           <PreviousSessionActionItems
             items={previousSessionItems}
-            sourceBoardName={board?.title || board?.name || 'Sprint sebelumnya'}
-            onChangeStatus={(itemId, newStatus) => {
-              setPreviousSessionItems((prev) =>
-                prev.map((ai) => (ai.id === itemId ? { ...ai, status: newStatus } : ai))
-              );
-              if (onShowToast) onShowToast(`Status diubah menjadi ${newStatus}`);
-              // Sync ke API jika diperlukan
-              api.updateActionItem && api.updateActionItem(itemId, { status: newStatus }).catch(() => {});
-            }}
-            onDelete={(itemId) => {
-              setPreviousSessionItems((prev) => prev.filter((ai) => ai.id !== itemId));
-              if (onShowToast) onShowToast('Action item sesi sebelumnya dihapus');
-            }}
+            onChangeStatus={handleUpdatePreviousSessionStatus}
           />
           {/* Action Items Sesi Ini */}
           <ActionItemsTable

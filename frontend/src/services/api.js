@@ -246,6 +246,15 @@ export const api = {
     });
   },
 
+  async getWorkspaceActionItems(workspaceId, status = 'pending') {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return request(`/workspaces/${workspaceId}/action-items${query}`, { method: 'GET' });
+  },
+
+  async getPreviousSessionActionItems(workspaceId, status = 'pending') {
+    return this.getWorkspaceActionItems(workspaceId, status);
+  },
+
   // Timer API
   async getTimer(boardId) {
     return request(`/boards/${boardId}/timer`, { method: 'GET' });

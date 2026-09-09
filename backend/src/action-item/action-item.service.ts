@@ -341,7 +341,12 @@ export class ActionItemService {
     };
 
     if (status) {
-      whereCondition.status = status.toUpperCase();
+      const upperStatus = status.toUpperCase();
+      if (upperStatus === 'PENDING') {
+        whereCondition.status = { in: ['PENDING', 'IN_PROGRESS'] };
+      } else {
+        whereCondition.status = upperStatus;
+      }
     }
 
     // 3. Query Action Items dengan relasi board (board asal), assignee, dan card
