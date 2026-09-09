@@ -1873,6 +1873,17 @@ export default function RetroBoardDetail({
             <AlarmClock size={16} />
             <span>Mulai Timer</span>
           </button>
+          <button
+            type="button"
+            className={`retro-export-pdf-btn ${
+              timerStatus === 'running' ? 'active-running' : ''
+            }`}
+            onClick={() => setIsExportModalOpen(true)}
+            title="Export PDF"
+          >
+            <FileText size={16} />
+            <span>Export PDF</span>
+          </button>
         </div>
       </div>
 
