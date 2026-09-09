@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Avatar from '../common/Avatar';
 import Badge from '../common/Badge';
+import BoardHistoryPage from '../board/BoardHistoryPage';
 
 export default function WorkspaceBoardsView({
   workspace,
@@ -199,6 +200,13 @@ export default function WorkspaceBoardsView({
             </button>
             <button
               type="button"
+              className={`ws-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+              onClick={() => setActiveTab('history')}
+            >
+              History
+            </button>
+            <button
+              type="button"
               className={`ws-tab-btn ${activeTab === 'pengaturan' ? 'active' : ''}`}
               onClick={() => setActiveTab('pengaturan')}
             >
@@ -364,6 +372,17 @@ export default function WorkspaceBoardsView({
                 </p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Tab History: History Board */}
+        {activeTab === 'history' && (
+          <div className="ws-history-tab-content">
+            <BoardHistoryPage
+              workspace={workspace}
+              currentUser={currentUser}
+              onSelectBoard={onOpenBoard}
+            />
           </div>
         )}
 

@@ -133,8 +133,12 @@ export const api = {
   },
 
   // Board API
-  async getBoards(workspaceId) {
-    return request(`/workspaces/${workspaceId}/boards`, { method: 'GET' });
+  async getBoards(workspaceId, query = {}) {
+    const params = new URLSearchParams();
+    if (query?.page) params.append('page', query.page);
+    if (query?.limit) params.append('limit', query.limit);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return request(`/workspaces/${workspaceId}/boards${qs}`, { method: 'GET' });
   },
 
   async getBoardById(boardId) {
