@@ -14,6 +14,7 @@ import {
   EyeOff,
   FileDown,
   Loader2,
+  BarChart2,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
@@ -22,6 +23,7 @@ import RetroColumn from './RetroColumn';
 import ActionItemsTable from './ActionItemsTable';
 import PreviousSessionActionItems from './PreviousSessionActionItems';
 import SessionTimerBanner from './SessionTimerBanner';
+import DashboardSummaryView from './DashboardSummaryView';
 import CardDetailModal from '../modals/CardDetailModal';
 import SessionTimerModal from '../modals/SessionTimerModal';
 import SessionTimerEndedModal from '../modals/SessionTimerEndedModal';
@@ -62,6 +64,7 @@ const TEMPLATE_COLUMNS_MAP = {
 // Board navigation tabs
 const BOARD_TABS = [
   { id: 'board', label: 'Board', icon: LayoutGrid },
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
   { id: 'diskusi', label: 'Diskusi', icon: MessageSquare },
   { id: 'action-items', label: 'Action Items', icon: CheckSquare },
   { id: 'aktivitas', label: 'Aktivitas', icon: Activity },
@@ -2007,6 +2010,17 @@ export default function RetroBoardDetail({
           </div>
         </DndContext>
         </>
+      )}
+
+      {/* ── Tab: Dashboard Summary ── */}
+      {activeTab === 'dashboard' && (
+        <DashboardSummaryView
+          workspace={workspace}
+          board={board}
+          currentUser={currentUser}
+          onShowToast={onShowToast}
+          onSwitchBoard={onSwitchBoard}
+        />
       )}
 
       {/* ── Tab 2: Diskusi ── */}
