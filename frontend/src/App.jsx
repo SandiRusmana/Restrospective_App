@@ -423,6 +423,9 @@ export default function App() {
 
   // Handler: Open Retrospective Board
   const handleOpenBoard = (board) => {
+    if (board?.workspaceId && board.workspaceId !== activeWorkspaceId) {
+      setActiveWorkspaceId(board.workspaceId);
+    }
     setActiveBoard(board);
     setDashboardView('board-detail');
     setActiveNav('my-boards');

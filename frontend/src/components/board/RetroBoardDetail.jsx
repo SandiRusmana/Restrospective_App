@@ -12,6 +12,8 @@ import {
   AlarmClock,
   Eye,
   EyeOff,
+  FileDown,
+  Loader2,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
@@ -101,6 +103,7 @@ export default function RetroBoardDetail({
   const [actionItems, setActionItems] = useState([]);
   const [convertModalCard, setConvertModalCard] = useState(null);
   const [boardColumns, setBoardColumns] = useState(board?.columns || []);
+  const [isExporting, setIsExporting] = useState(false);
 
   // ── Previous Session Action Items State ──
   const [previousSessionItems, setPreviousSessionItems] = useState([]);
@@ -855,6 +858,29 @@ export default function RetroBoardDetail({
   const handleShare = () => {
     if (navigator?.clipboard) navigator.clipboard.writeText(window.location.href);
     if (onShowToast) onShowToast('Link board berhasil disalin!');
+  };
+
+  // Handler: Export Retro Board to PDF
+  const handleExportPdf = async () => {
+    if (!board?.id || isExporting) return;
+    setIsExporting(true);
+    try {
+      const { blob, filename } = await api.exportBoardPdf(board.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename || `Retro_${board.name || 'Board'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      if (onShowToast) onShowToast('Hasil retrospective berhasil diekspor ke PDF!');
+    } catch (err) {
+      console.error('Gagal mengekspor PDF:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal mengekspor PDF');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Handler: Add Card
@@ -1661,7 +1687,7 @@ export default function RetroBoardDetail({
                   >
                     Pindah Board di {wsName}
                   </div>
-                  {workspace.boards.map((b) => (
+                  {(workspace?.boards || []).map((b) => (
                     <button
                       key={b.id}
                       type="button"
@@ -1803,6 +1829,21 @@ export default function RetroBoardDetail({
           </button>
           <button
             type="button"
+            className="btn-export-board"
+            onClick={handleExportPdf}
+            disabled={isExporting}
+            title="Ekspor hasil retrospective ke file PDF"
+          >
+            {isExporting ? (
+              <Loader2 size={16} className="btn-export-spinner" />
+            ) : (
+              <FileDown size={16} />
+            )}
+            <span>{isExporting ? 'Mengekspor...' : 'Export PDF'}</span>
+          </button>
+
+          <button
+            type="button"
             className="btn-share-board"
             onClick={handleShare}
           >
@@ -1872,17 +1913,6 @@ export default function RetroBoardDetail({
           >
             <AlarmClock size={16} />
             <span>Mulai Timer</span>
-          </button>
-          <button
-            type="button"
-            className={`retro-export-pdf-btn ${
-              timerStatus === 'running' ? 'active-running' : ''
-            }`}
-            onClick={() => setIsExportModalOpen(true)}
-            title="Export PDF"
-          >
-            <FileText size={16} />
-            <span>Export PDF</span>
           </button>
         </div>
       </div>

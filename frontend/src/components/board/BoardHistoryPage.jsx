@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Copy,
   Trash2,
+  FileDown,
 } from 'lucide-react';
 import { api } from '../../services/api';
 
@@ -78,6 +79,7 @@ export default function BoardHistoryPage({
   const [isYearDropdownOpen, setIsYearDropdownOpen] = useState(false);
   const [activeMenuBoardId, setActiveMenuBoardId] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [exportingBoardId, setExportingBoardId] = useState(null);
 
   const yearDropdownRef = useRef(null);
   const actionMenuRef = useRef(null);
@@ -203,6 +205,27 @@ export default function BoardHistoryPage({
     }
     return pages;
   }, [currentPage, meta.totalPages]);
+
+  const handleExportRowPdf = async (boardItem) => {
+    if (!boardItem?.id || exportingBoardId) return;
+    setExportingBoardId(boardItem.id);
+    try {
+      const { blob, filename } = await api.exportBoardPdf(boardItem.id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename || `Retro_${boardItem.name || 'Board'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Gagal mengekspor PDF:', err);
+    } finally {
+      setExportingBoardId(null);
+      setActiveMenuBoardId(null);
+    }
+  };
 
   const defaultAvatar =
     currentUser?.avatar ||
@@ -440,6 +463,19 @@ export default function BoardHistoryPage({
                               >
                                 <Copy size={14} />
                                 <span>Salin link board</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="board-row-menu-item"
+                                onClick={() => handleExportRowPdf(b)}
+                                disabled={exportingBoardId === b.id}
+                              >
+                                {exportingBoardId === b.id ? (
+                                  <Loader2 size={14} className="board-history-spinner" />
+                                ) : (
+                                  <FileDown size={14} />
+                                )}
+                                <span>{exportingBoardId === b.id ? 'Mengekspor PDF...' : 'Export PDF'}</span>
                               </button>
                             </div>
                           )}

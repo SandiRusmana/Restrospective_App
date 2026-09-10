@@ -14,6 +14,7 @@ import { CommentModule } from './comment/comment.module';
 import { TimerModule } from './timer/timer.module';
 import { WorkspaceModule } from './workspace/workspace.module';
 import { ActionItemModule } from './action-item/action-item.module';
+import { ExportModule } from './export/export.module';
 
 @Module({
   imports: [
@@ -55,6 +56,8 @@ import { ActionItemModule } from './action-item/action-item.module';
     TimerModule,
     // Modul Action Item
     ActionItemModule,
+    // Modul Export PDF Retrospective
+    ExportModule,
   ],
   controllers: [AppController],
   providers: [AppService],

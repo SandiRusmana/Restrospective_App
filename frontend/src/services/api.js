@@ -165,6 +165,31 @@ export const api = {
     });
   },
 
+  async exportBoardPdf(boardId) {
+    const token = localStorage.getItem('access_token');
+    const headers = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const response = await fetch(`${API_BASE_URL}/boards/${boardId}/export`, {
+      method: 'GET',
+      headers,
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || 'Gagal mengekspor PDF board');
+    }
+    const blob = await response.blob();
+    const disposition = response.headers.get('content-disposition');
+    let filename = `Retro_${boardId}_${new Date().toISOString().slice(0, 10)}.pdf`;
+    if (disposition && disposition.indexOf('filename=') !== -1) {
+      const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+      if (matches != null && matches[1]) {
+        filename = matches[1].replace(/['"]/g, '');
+      }
+    }
+    return { blob, filename };
+  },
+
   // Card API
   async getCards(boardId) {
     return request(`/boards/${boardId}/cards`, { method: 'GET' });
