@@ -15,6 +15,7 @@ import {
   FileDown,
   Loader2,
   BarChart2,
+  Gamepad2,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
@@ -29,6 +30,8 @@ import SessionTimerModal from '../modals/SessionTimerModal';
 import SessionTimerEndedModal from '../modals/SessionTimerEndedModal';
 import BoardSettingsModal from '../modals/BoardSettingsModal';
 import ConvertToActionItemModal from '../modals/ConvertToActionItemModal';
+import IcebreakerSelectModal from '../modals/IcebreakerSelectModal';
+import IcebreakerOverlay from './IcebreakerOverlay';
 
 // Template Columns Dictionary
 const TEMPLATE_COLUMNS_MAP = {
@@ -107,6 +110,10 @@ export default function RetroBoardDetail({
   const [convertModalCard, setConvertModalCard] = useState(null);
   const [boardColumns, setBoardColumns] = useState(board?.columns || []);
   const [isExporting, setIsExporting] = useState(false);
+
+  // ── Icebreaker State ──
+  const [isIcebreakerSelectModalOpen, setIsIcebreakerSelectModalOpen] = useState(false);
+  const [activeIcebreaker, setActiveIcebreaker] = useState(null);
 
   // ── Previous Session Action Items State ──
   const [previousSessionItems, setPreviousSessionItems] = useState([]);
@@ -768,7 +775,121 @@ export default function RetroBoardDetail({
         loadCardsFromApi();
       }
     },
+
+    onIcebreakerStarted: (session) => {
+      setActiveIcebreaker(session);
+      if (onShowToast) {
+        onShowToast(`Fasilitator memulai sesi Icebreaker: ${session.title || 'Emoji Mood'}!`);
+      }
+    },
+
+    onIcebreakerVoted: (data) => {
+      setActiveIcebreaker((prev) => {
+        if (!prev) return prev;
+        const updatedVotes = data.votes || {
+          ...prev.votes,
+          [data.userId]: {
+            userId: data.userId,
+            userName: data.userName,
+            avatarUrl: data.avatarUrl,
+            optionId: data.optionId,
+          },
+        };
+        return { ...prev, votes: updatedVotes };
+      });
+    },
+
+    onIcebreakerSkipped: (session) => {
+      setActiveIcebreaker(session);
+      if (onShowToast) {
+        onShowToast('Pertanyaan icebreaker diganti oleh fasilitator');
+      }
+    },
+
+    onIcebreakerRevealed: (session) => {
+      setActiveIcebreaker(session);
+      if (onShowToast) {
+        onShowToast('Kunci jawaban dibuka oleh fasilitator!');
+      }
+    },
+
+    onIcebreakerEnded: () => {
+      setActiveIcebreaker((prev) => (prev ? { ...prev, status: 'ended' } : null));
+      if (onShowToast) {
+        onShowToast('Sesi icebreaker telah selesai!');
+      }
+    },
   });
+
+  // Check initial active icebreaker session on mount
+  useEffect(() => {
+    if (!boardId) return;
+    api
+      .getIcebreakerState(boardId)
+      .then((res) => {
+        if (res?.active && res.session) {
+          setActiveIcebreaker(res.session);
+        }
+      })
+      .catch(() => {});
+  }, [boardId]);
+
+  // Handler: Start Icebreaker Game
+  const handleStartIcebreaker = async (gameType, totalQuestions = 5) => {
+    setIsIcebreakerSelectModalOpen(false);
+    try {
+      const session = await api.startIcebreaker(boardId, gameType, totalQuestions);
+      setActiveIcebreaker(session);
+      if (onShowToast) {
+        onShowToast(`Icebreaker "${session.title}" dimulai (${totalQuestions} soal)!`);
+      }
+    } catch (err) {
+      console.error('Gagal memulai icebreaker:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal memulai icebreaker');
+    }
+  };
+
+  // Handler: Submit Icebreaker Vote
+  const handleVoteIcebreaker = async (optionId) => {
+    try {
+      await api.submitIcebreakerVote(boardId, optionId);
+    } catch (err) {
+      console.error('Gagal kirim vote icebreaker:', err);
+    }
+  };
+
+  // Handler: Reveal Icebreaker Answer
+  const handleRevealIcebreaker = async () => {
+    try {
+      const session = await api.revealIcebreaker(boardId);
+      setActiveIcebreaker(session);
+    } catch (err) {
+      console.error('Gagal membuka jawaban icebreaker:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal membuka jawaban');
+    }
+  };
+
+  // Handler: Skip Icebreaker Question
+  const handleSkipIcebreaker = async () => {
+    try {
+      const session = await api.skipIcebreaker(boardId);
+      setActiveIcebreaker(session);
+    } catch (err) {
+      console.error('Gagal skip icebreaker:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal skip icebreaker');
+    }
+  };
+
+  // Handler: End Icebreaker Session
+  const handleEndIcebreaker = async () => {
+    try {
+      await api.endIcebreaker(boardId);
+      setActiveIcebreaker((prev) => (prev ? { ...prev, status: 'ended' } : null));
+    } catch (err) {
+      console.error('Gagal mengakhiri icebreaker:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal mengakhiri icebreaker');
+    }
+  };
 
   // Handler: Toggle Personal Anonymous Mode
   const handleToggleMyAnonymous = () => {
@@ -1873,6 +1994,18 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-tabs-right">
+          {isFacilitator && (
+            <button
+              type="button"
+              className="retro-icebreaker-btn"
+              onClick={() => setIsIcebreakerSelectModalOpen(true)}
+              title="Mulai Sesi Icebreaker"
+            >
+              <Gamepad2 size={16} />
+              <span>Icebreaker</span>
+            </button>
+          )}
+
           <button
             type="button"
             className={`retro-mode-anonymous-btn ${isMyAnonymous ? 'active' : ''}`}
@@ -2105,6 +2238,28 @@ export default function RetroBoardDetail({
         members={members}
         onConfirm={handleConfirmConvert}
       />
+
+      {/* ── Modal Pilihan Icebreaker (Facilitator) ── */}
+      <IcebreakerSelectModal
+        isOpen={isIcebreakerSelectModalOpen}
+        onClose={() => setIsIcebreakerSelectModalOpen(false)}
+        onStartGame={handleStartIcebreaker}
+      />
+
+      {/* ── Overlay Sesi Icebreaker Aktif / Selesai (Semua Anggota) ── */}
+      {activeIcebreaker && (
+        <IcebreakerOverlay
+          session={activeIcebreaker}
+          isFacilitator={isFacilitator}
+          currentUser={currentUser}
+          totalMembers={totalMemberCount}
+          onVote={handleVoteIcebreaker}
+          onReveal={handleRevealIcebreaker}
+          onSkip={handleSkipIcebreaker}
+          onEnd={handleEndIcebreaker}
+          onClose={() => setActiveIcebreaker(null)}
+        />
+      )}
     </div>
   );
 }

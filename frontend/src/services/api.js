@@ -322,4 +322,43 @@ export const api = {
       body: JSON.stringify({ duration }),
     });
   },
+
+  // Icebreaker API
+  async startIcebreaker(boardId, gameType = 'fakta-hoaks', totalQuestions = 5) {
+    return request(`/boards/${boardId}/icebreaker/start`, {
+      method: 'POST',
+      body: JSON.stringify({ gameType, totalQuestions }),
+    });
+  },
+
+  async submitIcebreakerVote(boardId, optionId) {
+    return request(`/boards/${boardId}/icebreaker/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ optionId }),
+    });
+  },
+
+  async skipIcebreaker(boardId) {
+    return request(`/boards/${boardId}/icebreaker/skip`, {
+      method: 'POST',
+    });
+  },
+
+  async endIcebreaker(boardId) {
+    return request(`/boards/${boardId}/icebreaker/end`, {
+      method: 'POST',
+    });
+  },
+
+  async revealIcebreaker(boardId) {
+    return request(`/boards/${boardId}/icebreaker/reveal`, {
+      method: 'POST',
+    });
+  },
+
+  async getIcebreakerState(boardId) {
+    return request(`/boards/${boardId}/icebreaker/state`, {
+      method: 'GET',
+    });
+  },
 };

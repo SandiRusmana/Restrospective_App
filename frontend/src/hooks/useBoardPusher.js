@@ -176,6 +176,21 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       ch.bind('action-item.updated', (data) => {
         if (handlersRef.current?.onActionItemUpdated) handlersRef.current.onActionItemUpdated(data);
       });
+      ch.bind('icebreaker.started', (data) => {
+        if (handlersRef.current?.onIcebreakerStarted) handlersRef.current.onIcebreakerStarted(data);
+      });
+      ch.bind('icebreaker.voted', (data) => {
+        if (handlersRef.current?.onIcebreakerVoted) handlersRef.current.onIcebreakerVoted(data);
+      });
+      ch.bind('icebreaker.skipped', (data) => {
+        if (handlersRef.current?.onIcebreakerSkipped) handlersRef.current.onIcebreakerSkipped(data);
+      });
+      ch.bind('icebreaker.revealed', (data) => {
+        if (handlersRef.current?.onIcebreakerRevealed) handlersRef.current.onIcebreakerRevealed(data);
+      });
+      ch.bind('icebreaker.ended', (data) => {
+        if (handlersRef.current?.onIcebreakerEnded) handlersRef.current.onIcebreakerEnded(data);
+      });
     };
 
     bindEvents(presenceChannel);
