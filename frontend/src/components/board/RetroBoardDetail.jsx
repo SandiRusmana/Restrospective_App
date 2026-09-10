@@ -14,6 +14,7 @@ import {
   EyeOff,
   FileDown,
   Loader2,
+  BarChart2,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
@@ -22,6 +23,7 @@ import RetroColumn from './RetroColumn';
 import ActionItemsTable from './ActionItemsTable';
 import PreviousSessionActionItems from './PreviousSessionActionItems';
 import SessionTimerBanner from './SessionTimerBanner';
+import DashboardSummaryView from './DashboardSummaryView';
 import CardDetailModal from '../modals/CardDetailModal';
 import SessionTimerModal from '../modals/SessionTimerModal';
 import SessionTimerEndedModal from '../modals/SessionTimerEndedModal';
@@ -62,6 +64,7 @@ const TEMPLATE_COLUMNS_MAP = {
 // Board navigation tabs
 const BOARD_TABS = [
   { id: 'board', label: 'Board', icon: LayoutGrid },
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
   { id: 'diskusi', label: 'Diskusi', icon: MessageSquare },
   { id: 'action-items', label: 'Action Items', icon: CheckSquare },
   { id: 'aktivitas', label: 'Aktivitas', icon: Activity },
@@ -503,7 +506,7 @@ export default function RetroBoardDetail({
   }, [loadCardsFromApi]);
 
   // Hook Pusher Channels Realtime & Presence
-  const { connectionStatus, onlineMembers, onlineCount } = useBoardPusher(boardId, currentUser, {
+  const { onlineMembers, onlineCount } = useBoardPusher(boardId, currentUser, {
     onCardCreated: (newCard) => {
       if (!newCard) return;
       const currentUserId = currentUser?.id || currentUser?.userId || currentUser?.email;
@@ -1870,25 +1873,6 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-tabs-right">
-          <div
-            className={`retro-realtime-badge ${
-              connectionStatus === 'connected' ? '' : connectionStatus
-            }`}
-          >
-            <span
-              className={`retro-realtime-dot ${
-                connectionStatus === 'connected' ? '' : connectionStatus
-              }`}
-            ></span>
-            <span>
-              {connectionStatus === 'connected'
-                ? 'Terhubung secara real-time'
-                : connectionStatus === 'connecting'
-                ? 'Menghubungkan...'
-                : 'Offline (Polling)'}
-            </span>
-          </div>
-
           <button
             type="button"
             className={`retro-mode-anonymous-btn ${isMyAnonymous ? 'active' : ''}`}
@@ -2026,6 +2010,17 @@ export default function RetroBoardDetail({
           </div>
         </DndContext>
         </>
+      )}
+
+      {/* ── Tab: Dashboard Summary ── */}
+      {activeTab === 'dashboard' && (
+        <DashboardSummaryView
+          workspace={workspace}
+          board={board}
+          currentUser={currentUser}
+          onShowToast={onShowToast}
+          onSwitchBoard={onSwitchBoard}
+        />
       )}
 
       {/* ── Tab 2: Diskusi ── */}
