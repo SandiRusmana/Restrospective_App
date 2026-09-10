@@ -284,6 +284,17 @@ export const api = {
     return this.getWorkspaceActionItems(workspaceId, status);
   },
 
+  // Dashboard Summary API
+  async getDashboardSummary(workspaceId, { startDate, endDate } = {}) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return request(`/workspaces/${workspaceId}/dashboard-summary${queryString}`, {
+      method: 'GET',
+    });
+  },
+
   // Timer API
   async getTimer(boardId) {
     return request(`/boards/${boardId}/timer`, { method: 'GET' });

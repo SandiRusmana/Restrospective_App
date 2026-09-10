@@ -503,7 +503,7 @@ export default function RetroBoardDetail({
   }, [loadCardsFromApi]);
 
   // Hook Pusher Channels Realtime & Presence
-  const { connectionStatus, onlineMembers, onlineCount } = useBoardPusher(boardId, currentUser, {
+  const { onlineMembers, onlineCount } = useBoardPusher(boardId, currentUser, {
     onCardCreated: (newCard) => {
       if (!newCard) return;
       const currentUserId = currentUser?.id || currentUser?.userId || currentUser?.email;
@@ -1870,25 +1870,6 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-tabs-right">
-          <div
-            className={`retro-realtime-badge ${
-              connectionStatus === 'connected' ? '' : connectionStatus
-            }`}
-          >
-            <span
-              className={`retro-realtime-dot ${
-                connectionStatus === 'connected' ? '' : connectionStatus
-              }`}
-            ></span>
-            <span>
-              {connectionStatus === 'connected'
-                ? 'Terhubung secara real-time'
-                : connectionStatus === 'connecting'
-                ? 'Menghubungkan...'
-                : 'Offline (Polling)'}
-            </span>
-          </div>
-
           <button
             type="button"
             className={`retro-mode-anonymous-btn ${isMyAnonymous ? 'active' : ''}`}
