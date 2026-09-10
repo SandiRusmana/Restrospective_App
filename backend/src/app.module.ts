@@ -16,6 +16,7 @@ import { WorkspaceModule } from './workspace/workspace.module';
 import { ActionItemModule } from './action-item/action-item.module';
 import { ExportModule } from './export/export.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { IcebreakerModule } from './icebreaker/icebreaker.module';
 
 @Module({
   imports: [
@@ -61,6 +62,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ExportModule,
     // Modul Dashboard Summary Action Item
     DashboardModule,
+    // Modul Icebreaker Sesi Retrospective
+    IcebreakerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

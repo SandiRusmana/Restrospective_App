@@ -1,0 +1,825 @@
+/* ==========================================================================
+   Icebreaker Modal & Overlay Styles (Screen 19)
+   ========================================================================== */
+
+/* Top Action Header Button */
+.retro-icebreaker-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  border: 1.5px solid #5956e9;
+  background-color: #ffffff;
+  color: #5956e9;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.retro-icebreaker-btn:hover {
+  background-color: #f5f3ff;
+  border-color: #4b48d6;
+}
+
+/* Modal Backdrop */
+.icebreaker-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Modal Box: Selection */
+.icebreaker-select-modal {
+  background-color: #ffffff;
+  border-radius: 16px;
+  width: 720px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.15), 0 10px 20px -5px rgba(0, 0, 0, 0.08);
+  animation: modalPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.icebreaker-select-header {
+  margin-bottom: 20px;
+}
+
+.icebreaker-select-icon-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.icebreaker-select-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.icebreaker-select-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.icebreaker-select-section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 14px 0;
+}
+
+/* 5 Games Grid */
+.icebreaker-games-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.icebreaker-game-card {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  background-color: #ffffff;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.icebreaker-game-card:hover {
+  border-color: #cbd5e1;
+  background-color: #fafbfc;
+  transform: translateY(-2px);
+}
+
+.icebreaker-game-card.selected {
+  border-color: #5956e9;
+  background-color: #f5f3ff;
+  box-shadow: 0 0 0 2px rgba(89, 86, 233, 0.18);
+}
+
+.icebreaker-game-emoji {
+  font-size: 38px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.icebreaker-game-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+}
+
+.icebreaker-game-desc {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+  margin: 0 0 12px 0;
+  min-height: 34px;
+}
+
+.icebreaker-game-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  color: #64748b;
+  margin-top: auto;
+}
+
+.icebreaker-game-card.selected .icebreaker-game-pill {
+  background-color: #ede9fe;
+  color: #5956e9;
+}
+
+/* Question Count Selector Section */
+.icebreaker-question-count-section {
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.icebreaker-question-count-section .icebreaker-select-section-label {
+  margin-bottom: 10px;
+}
+
+.icebreaker-question-count-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icebreaker-count-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icebreaker-count-btn:hover {
+  border-color: #cbd5e1;
+  background-color: #fafbfc;
+  transform: translateY(-1px);
+}
+
+.icebreaker-count-btn.selected {
+  border-color: #5956e9;
+  background-color: #f5f3ff;
+  box-shadow: 0 0 0 2px rgba(89, 86, 233, 0.18);
+}
+
+.icebreaker-count-number {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.icebreaker-count-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.icebreaker-count-btn.selected .icebreaker-count-number,
+.icebreaker-count-btn.selected .icebreaker-count-label {
+  color: #5956e9;
+}
+
+/* Modal Action Buttons */
+.icebreaker-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.icebreaker-btn-cancel {
+  padding: 8px 18px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icebreaker-btn-cancel:hover {
+  background-color: #f1f5f9;
+}
+
+.icebreaker-btn-start {
+  padding: 8px 24px;
+  background-color: #5956e9;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icebreaker-btn-start:hover:not(:disabled) {
+  background-color: #4b48d6;
+}
+
+.icebreaker-btn-start:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Icebreaker Interactive Overlay (Images 3, 4, 5)
+   ========================================================================== */
+
+.icebreaker-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(5px);
+  z-index: 9995;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.icebreaker-overlay-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  width: 660px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  position: relative;
+  animation: modalPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+}
+
+/* Close Icon Button */
+.icebreaker-overlay-close-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icebreaker-overlay-close-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Header Badges Row */
+.icebreaker-header-badges-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* Pill Badge: ICEBREAKER */
+.icebreaker-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background-color: #f5f3ff;
+  color: #5956e9;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+/* 20s Question Timer Badge */
+.icebreaker-timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background-color: #f1f5f9;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.icebreaker-timer-badge.urgent {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+  animation: urgentPulse 0.9s infinite alternate ease-in-out;
+}
+
+@keyframes urgentPulse {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+  to {
+    transform: scale(1.08);
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.3);
+  }
+}
+
+.icebreaker-overlay-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+}
+
+.icebreaker-overlay-question {
+  font-size: 15px;
+  font-weight: 500;
+  color: #334155;
+  line-height: 1.5;
+  margin: 0 0 22px 0;
+  padding: 0 8px;
+}
+
+/* Cinema Screen Emoji Showcase (Tebak Film dari Emoji) */
+.icebreaker-emoji-cinema-box {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1.5px solid #334155;
+  border-radius: 16px;
+  padding: 24px 20px 18px 20px;
+  margin: 0 auto 22px auto;
+  max-width: 520px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.35), inset 0 1px 1px rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.icebreaker-emoji-cinema-clues {
+  font-size: 52px;
+  line-height: 1.3;
+  letter-spacing: 16px;
+  text-indent: 16px; /* balances letter-spacing visually */
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  user-select: none;
+  transition: transform 0.2s ease;
+}
+
+.icebreaker-emoji-cinema-clues:hover {
+  transform: scale(1.05);
+}
+
+.icebreaker-emoji-cinema-hint {
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 540px) {
+  .icebreaker-emoji-cinema-clues {
+    font-size: 38px;
+    letter-spacing: 10px;
+    text-indent: 10px;
+  }
+}
+
+/* 2 Options Layout (Fakta/Hoaks & Would You Rather) */
+.icebreaker-wyr-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+/* 4 Options Layout (Tebak Lagu, Film, Receh) */
+.icebreaker-trivia-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+@media (max-width: 540px) {
+  .icebreaker-wyr-options-grid,
+  .icebreaker-trivia-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Option Card */
+.icebreaker-option-card {
+  border: 1.5px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  background-color: #ffffff;
+  box-shadow: 0 2px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.15s ease;
+  text-align: center;
+  position: relative;
+  width: 100%;
+}
+
+.icebreaker-option-card:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background-color: #fafbfc;
+  transform: translateY(-2px);
+}
+
+.icebreaker-option-card.selected {
+  border-color: #5956e9;
+  background-color: #f5f3ff;
+  box-shadow: 0 0 0 2px rgba(89, 86, 233, 0.2);
+}
+
+.icebreaker-option-card.correct {
+  border-color: #22c55e !important;
+  background-color: #f0fdf4 !important;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25) !important;
+}
+
+.icebreaker-option-card.wrong {
+  border-color: #fca5a5 !important;
+  background-color: #fef2f2 !important;
+}
+
+.icebreaker-option-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.icebreaker-option-emoji {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.icebreaker-badge-correct {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: #dcfce7;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.icebreaker-badge-wrong {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.icebreaker-option-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.4;
+}
+
+/* Avatar Stack under chosen option */
+.icebreaker-option-voters {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  margin-top: 4px;
+}
+
+.icebreaker-voter-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid #ffffff;
+  object-fit: cover;
+  margin-left: -6px;
+}
+
+.icebreaker-voter-avatar:first-child {
+  margin-left: 0;
+}
+
+.icebreaker-voter-more {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+/* Explanation Box (Trivia Reveal) */
+.icebreaker-explanation-box {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  text-align: left;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.icebreaker-explanation-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #166534;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.icebreaker-explanation-text {
+  font-size: 13px;
+  color: #14532d;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Progress Bar Row */
+.icebreaker-progress-container {
+  margin-bottom: 22px;
+}
+
+.icebreaker-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.icebreaker-progress-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.icebreaker-progress-pct {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5956e9;
+}
+
+.icebreaker-progress-bar-track {
+  width: 100%;
+  height: 8px;
+  background-color: #f1f5f9;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.icebreaker-progress-bar-fill {
+  height: 100%;
+  background-color: #5956e9;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Auto-advance Countdown Banner */
+.icebreaker-countdown-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #5956e9;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.icebreaker-countdown-icon {
+  animation: spinSlow 3s linear infinite;
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Footer Facilitator Buttons (Image 3) */
+.icebreaker-facilitator-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icebreaker-btn-reveal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 42px;
+  padding: 0 16px;
+  background-color: #eef2ff;
+  border: 1.5px solid #c7d2fe;
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icebreaker-btn-reveal:hover {
+  background-color: #e0e7ff;
+  border-color: #a5b4fc;
+}
+
+.icebreaker-btn-skip {
+  flex: 1;
+  height: 42px;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icebreaker-btn-skip:hover {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.icebreaker-btn-end {
+  flex: 1;
+  height: 42px;
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icebreaker-btn-end:hover {
+  background-color: #dc2626;
+}
+
+/* Footer Member Biasa Box (Image 4) */
+.icebreaker-waiting-box {
+  background-color: #fafbfc;
+  border: 1px solid #f1f5f9;
+  border-radius: 8px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   State Selesai Celebration Modal (Image 5)
+   ========================================================================== */
+
+.icebreaker-celebration-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  width: 460px;
+  max-width: 95vw;
+  padding: 36px 28px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  position: relative;
+  text-align: center;
+  animation: modalPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.icebreaker-celebration-icon-circle {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background-color: #f5f3ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px auto;
+  font-size: 42px;
+}
+
+.icebreaker-celebration-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.icebreaker-celebration-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 24px 0;
+}
+
+.icebreaker-btn-return-board {
+  padding: 10px 28px;
+  background-color: #5956e9;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 170px;
+}
+
+.icebreaker-btn-return-board:hover {
+  background-color: #4b48d6;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
