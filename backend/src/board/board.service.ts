@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PusherService } from '../pusher/pusher.service';
 import { getAllTemplates, getTemplateColumns } from './constants/retro-templates';
 import { CreateBoardDto } from './dto/create-board.dto';
+import { GetBoardsQueryDto } from './dto/get-boards-query.dto';
 
 @Injectable()
 export class BoardService {
@@ -32,7 +33,23 @@ export class BoardService {
     });
 
     if (!membership) {
-      throw new ForbiddenException('Anda bukan anggota dari workspace ini');
+      // Periksa apakah user adalah owner dari workspace
+      const workspace = await this.prisma.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { ownerId: true },
+      });
+
+      if (!workspace || workspace.ownerId !== userId) {
+        throw new ForbiddenException('Anda bukan anggota dari workspace ini');
+      }
+
+      return {
+        id: 'owner',
+        workspaceId,
+        userId,
+        role: 'owner',
+        joinedAt: new Date(),
+      };
     }
 
     return membership;
@@ -98,15 +115,25 @@ export class BoardService {
   }
 
   /**
-   * Mengambil Semua Board di Workspace Tertentu
+   * Mengambil Semua Board di Workspace Tertentu (Mendukung Pagination & Hitungan Card + Action Item)
    */
-  async getWorkspaceBoards(userId: string, workspaceId: string) {
+  async getWorkspaceBoards(userId: string, workspaceId: string, query?: GetBoardsQueryDto) {
     // 1. Pastikan user adalah anggota workspace
     await this.checkWorkspaceMembership(userId, workspaceId);
 
-    // 2. Ambil daftar board
-    const boards = await this.prisma.board.findMany({
-      where: { workspaceId },
+    const hasPagination = query && (query.page !== undefined || query.limit !== undefined);
+    const page = query?.page ? Math.max(1, Number(query.page)) : 1;
+    const limit = query?.limit ? Math.max(1, Number(query.limit)) : 10;
+    const skip = (page - 1) * limit;
+
+    const where = { workspaceId };
+
+    // 2. Ambil total count jika pagination diminta
+    const total = await this.prisma.board.count({ where });
+
+    // 3. Susun query findMany dengan skip, take, dan _count untuk cards & actionItems
+    const findArgs: any = {
+      where,
       include: {
         columns: {
           orderBy: {
@@ -116,15 +143,23 @@ export class BoardService {
         _count: {
           select: {
             cards: true,
+            actionItems: true,
           },
         },
       },
       orderBy: {
         createdAt: 'desc',
       },
-    });
+    };
 
-    return boards.map((b) => ({
+    if (hasPagination) {
+      findArgs.skip = skip;
+      findArgs.take = limit;
+    }
+
+    const boards = await (this.prisma as any).board.findMany(findArgs);
+
+    const mappedBoards = (boards as any[]).map((b: any) => ({
       id: b.id,
       name: b.name,
       template: b.template,
@@ -132,16 +167,34 @@ export class BoardService {
       voteLimit: b.voteLimit,
       workspaceId: b.workspaceId,
       columns: b.columns,
-      cardsCount: b._count.cards,
+      cardsCount: b._count?.cards ?? 0,
+      actionItemsCount: b._count?.actionItems ?? 0,
       createdAt: b.createdAt,
     }));
+
+    if (hasPagination) {
+      const totalPages = Math.ceil(total / limit);
+      return {
+        data: mappedBoards,
+        meta: {
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1,
+        },
+      };
+    }
+
+    return mappedBoards;
   }
 
   /**
    * Alias untuk getWorkspaceBoards jika dipanggil oleh controller lain
    */
-  async getBoardsByWorkspace(userId: string, workspaceId: string) {
-    return this.getWorkspaceBoards(userId, workspaceId);
+  async getBoardsByWorkspace(userId: string, workspaceId: string, query?: GetBoardsQueryDto) {
+    return this.getWorkspaceBoards(userId, workspaceId, query);
   }
 
   /**
