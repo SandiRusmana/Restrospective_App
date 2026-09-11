@@ -110,6 +110,22 @@ export class AuthService {
   }
 
   /**
+   * Update Profil User (Nama, Avatar)
+   */
+  async updateProfile(userId: string, data: { name?: string; avatarUrl?: string }) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.avatarUrl !== undefined ? { avatarUrl: data.avatarUrl } : {}),
+      },
+    });
+
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  /**
    * Validasi atau Buat User Baru dari Google OAuth
    */
   async validateOrCreateGoogleUser(profile: {
