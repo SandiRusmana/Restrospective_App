@@ -20,6 +20,10 @@ import {
   Link,
   Copy,
   Edit,
+  Lock,
+  Unlock,
+  CheckCircle,
+  X,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
@@ -36,6 +40,7 @@ import BoardSettingsModal from '../modals/BoardSettingsModal';
 import ConvertToActionItemModal from '../modals/ConvertToActionItemModal';
 import IcebreakerSelectModal from '../modals/IcebreakerSelectModal';
 import IcebreakerOverlay from './IcebreakerOverlay';
+import RevealCardsModal from '../modals/RevealCardsModal';
 
 // Template Columns Dictionary
 const TEMPLATE_COLUMNS_MAP = {
@@ -151,6 +156,16 @@ export default function RetroBoardDetail({
   // ── Icebreaker State ──
   const [isIcebreakerSelectModalOpen, setIsIcebreakerSelectModalOpen] = useState(false);
   const [activeIcebreaker, setActiveIcebreaker] = useState(null);
+
+  // ── Private Note Feature State ──
+  // isPrivateMode: true selama card masih tersembunyi dari anggota lain
+  // isRevealed: true setelah fasilitator melakukan reveal
+  // showRevealModal: konfirmasi sebelum reveal
+  // showRevealedBanner: banner sukses setelah reveal (auto-dismiss 5 detik)
+  const [isPrivateMode, setIsPrivateMode] = useState(true);
+  const [isRevealed, setIsRevealed] = useState(false);
+  const [showRevealModal, setShowRevealModal] = useState(false);
+  const [showRevealedBanner, setShowRevealedBanner] = useState(false);
 
   // ── Previous Session Action Items State ──
   const [previousSessionItems, setPreviousSessionItems] = useState([]);
@@ -992,6 +1007,18 @@ export default function RetroBoardDetail({
       });
     }
   };
+
+  // ── Handler: Reveal Cards ──
+  // Ubah state isPrivateMode → false dan isRevealed → true,
+  // lalu tampilkan banner sukses selama 5 detik.
+  const handleRevealCards = useCallback(() => {
+    setIsPrivateMode(false);
+    setIsRevealed(true);
+    setShowRevealedBanner(true);
+    if (onShowToast) onShowToast('Semua card berhasil di-reveal ke seluruh anggota tim!');
+    // Auto-dismiss "Cards Revealed" banner setelah 5 detik
+    setTimeout(() => setShowRevealedBanner(false), 5000);
+  }, [onShowToast]);
 
   // Sensor drag dengan activation constraint agar tidak mengganggu klik vote/menu
   const sensors = useSensors(
@@ -2137,6 +2164,27 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-tabs-right">
+          {/* ── Reveal Cards Button (Private Mode) ── */}
+          {!isReadOnly && isFacilitator && isPrivateMode && !isRevealed && (
+            <button
+              type="button"
+              className="btn-reveal-cards"
+              onClick={() => setShowRevealModal(true)}
+              title={`Reveal ${cards.filter(c => c.isOwner).length} card ke seluruh anggota tim`}
+            >
+              <Eye size={15} />
+              <span>Reveal Cards ({cards.filter(c => c.isOwner).length})</span>
+            </button>
+          )}
+
+          {/* ── Revealed indicator badge (setelah reveal) ── */}
+          {!isReadOnly && isRevealed && (
+            <div className="private-mode-waiting-badge" style={{ background: 'rgba(22,163,74,0.10)', borderColor: 'rgba(22,163,74,0.25)', color: '#16a34a' }}>
+              <Unlock size={12} />
+              Cards Revealed
+            </div>
+          )}
+
           {!isReadOnly && isFacilitator && (
             <button
               type="button"
@@ -2207,6 +2255,48 @@ export default function RetroBoardDetail({
             onResume={handleResumeTimer}
             onReset={handleResetTimer}
           />
+        </div>
+      )}
+
+      {/* ── Private Mode Banner (cards masih tersembunyi, menunggu reveal) ── */}
+      {isPrivateMode && !isRevealed && !isReadOnly && activeTab === 'board' && (
+        <div className="private-mode-banner" style={{ marginTop: '16px' }}>
+          <div className="private-mode-banner-left">
+            <div className="private-mode-banner-icon">
+              <Lock size={16} color="#ffffff" strokeWidth={2.2} />
+            </div>
+            <div className="private-mode-banner-text">
+              <strong>Private Mode</strong>
+              <p>Feedback kamu masih privat sampai fasilitator melakukan reveal.</p>
+            </div>
+          </div>
+          <div className="private-mode-banner-right">
+            <div className="private-mode-waiting-badge">
+              <span className="private-mode-waiting-dot" />
+              Menunggu Reveal
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cards Revealed Banner (sukses setelah reveal) ── */}
+      {showRevealedBanner && activeTab === 'board' && (
+        <div className="cards-revealed-banner" style={{ marginTop: '16px' }}>
+          <div className="cards-revealed-banner-icon">
+            <CheckCircle size={17} color="#ffffff" strokeWidth={2.2} />
+          </div>
+          <div className="cards-revealed-banner-text">
+            <strong>Cards Revealed</strong>
+            <p>Semua feedback sekarang dapat dilihat oleh anggota.</p>
+          </div>
+          <button
+            type="button"
+            className="cards-revealed-banner-close"
+            onClick={() => setShowRevealedBanner(false)}
+            title="Tutup"
+          >
+            <X size={15} />
+          </button>
         </div>
       )}
 
@@ -2291,6 +2381,8 @@ export default function RetroBoardDetail({
                     isFacilitator={isFacilitator}
                     isReadOnly={isReadOnly}
                     actionItems={actionItems}
+                    isPrivateMode={isPrivateMode}
+                    isRevealed={isRevealed}
                   />
                 );
               })}
@@ -2399,6 +2491,14 @@ export default function RetroBoardDetail({
         isOpen={isIcebreakerSelectModalOpen}
         onClose={() => setIsIcebreakerSelectModalOpen(false)}
         onStartGame={handleStartIcebreaker}
+      />
+
+      {/* ── Modal Konfirmasi Reveal Cards (Private Note Feature) ── */}
+      <RevealCardsModal
+        isOpen={showRevealModal}
+        onClose={() => setShowRevealModal(false)}
+        onConfirm={handleRevealCards}
+        privateCount={cards.filter(c => c.isOwner).length}
       />
 
       {/* ── Overlay Sesi Icebreaker Aktif / Selesai (Semua Anggota) ── */}
