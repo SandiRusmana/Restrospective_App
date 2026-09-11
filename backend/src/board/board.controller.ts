@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BoardService } from './board.service';
@@ -37,7 +37,7 @@ export class BoardController {
   @Get('boards/:id')
   async getBoardById(
     @GetUser('id') userId: string,
-    @Param('id') boardId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
   ) {
     return this.boardService.getBoardById(userId, boardId);
   }
@@ -45,7 +45,7 @@ export class BoardController {
   @Patch('boards/:id/anonymous')
   async updateAnonymous(
     @GetUser('id') userId: string,
-    @Param('id') boardId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
     @Body() updateAnonymousDto: UpdateAnonymousDto,
   ) {
     return this.boardService.updateAnonymous(userId, boardId, updateAnonymousDto?.isAnonymous);
@@ -54,7 +54,7 @@ export class BoardController {
   @Delete('boards/:id')
   async deleteBoard(
     @GetUser('id') userId: string,
-    @Param('id') boardId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
   ) {
     return this.boardService.deleteBoard(userId, boardId);
   }

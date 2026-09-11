@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   MoreHorizontal,
   MessageSquare,
@@ -16,6 +16,10 @@ import {
   Loader2,
   BarChart2,
   Gamepad2,
+  Share2,
+  Link,
+  Copy,
+  Edit,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
@@ -104,6 +108,39 @@ export default function RetroBoardDetail({
   const [currentBoardTitle, setCurrentBoardTitle] = useState(
     board?.title || board?.name || 'Sprint 16 Retrospective'
   );
+
+  // ── Read-Only Mode State & Share Dropdown ──
+  const [isReadOnly, setIsReadOnly] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('readOnly') === 'true' || Boolean(board?.initialReadOnly);
+    } catch {
+      return Boolean(board?.initialReadOnly);
+    }
+  });
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const shareMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target)) {
+        setIsShareMenuOpen(false);
+      }
+    };
+    if (isShareMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isShareMenuOpen]);
+
+  // Synchronize isReadOnly state if prop board changes
+  useEffect(() => {
+    if (board?.initialReadOnly !== undefined) {
+      setIsReadOnly(Boolean(board.initialReadOnly));
+    }
+  }, [board?.initialReadOnly]);
 
   // ── Action Items State ──
   const [actionItems, setActionItems] = useState([]);
@@ -978,10 +1015,47 @@ export default function RetroBoardDetail({
     );
   }, [cards]);
 
-  // Handler: Share Board Link
-  const handleShare = () => {
-    if (navigator?.clipboard) navigator.clipboard.writeText(window.location.href);
-    if (onShowToast) onShowToast('Link board berhasil disalin!');
+  // Handler: Toggle Read-Only Mode
+  const handleToggleReadOnly = () => {
+    const nextState = !isReadOnly;
+    setIsReadOnly(nextState);
+    try {
+      const url = new URL(window.location.href);
+      if (nextState) {
+        url.searchParams.set('readOnly', 'true');
+      } else {
+        url.searchParams.delete('readOnly');
+      }
+      window.history.replaceState({}, '', url.pathname + url.search);
+    } catch {}
+    if (onShowToast) {
+      onShowToast(
+        nextState
+          ? 'Mode Baca Saja (Read-Only) aktif'
+          : 'Mode Interaktif (Edit) aktif'
+      );
+    }
+  };
+
+  // Handler: Share Board Link (Interactive or Read-Only)
+  const handleCopyBoardLink = (asReadOnly = false) => {
+    const origin = window.location.origin;
+    const targetBoardId = board?.id || boardId;
+    const url = asReadOnly
+      ? `${origin}/board/${targetBoardId}?readOnly=true`
+      : `${origin}/board/${targetBoardId}`;
+
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(url);
+    }
+    setIsShareMenuOpen(false);
+    if (onShowToast) {
+      onShowToast(
+        asReadOnly
+          ? 'Link Mode Baca Saja (Read-Only) berhasil disalin!'
+          : 'Link Board Retrospective berhasil disalin!'
+      );
+    }
   };
 
   // Handler: Export Retro Board to PDF
@@ -1910,6 +1984,15 @@ export default function RetroBoardDetail({
               <span className="retro-meta-sep">·</span>
               <Clock size={14} className="retro-meta-icon" />
               <span className="retro-meta-date">{dateText}</span>
+              {isReadOnly && (
+                <>
+                  <span className="retro-meta-sep">·</span>
+                  <span className="retro-readonly-badge" title="Mode Baca Saja Aktif">
+                    <Eye size={12} />
+                    <span>Mode Baca Saja</span>
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1943,14 +2026,28 @@ export default function RetroBoardDetail({
             )}
           </div>
 
+          {/* Toggle Read-Only Mode Button */}
           <button
             type="button"
-            className="btn-ghost-icon"
-            title="Pengaturan board"
-            onClick={() => setIsSettingsModalOpen(true)}
+            className={`btn-toggle-readonly ${isReadOnly ? 'active-readonly' : ''}`}
+            onClick={handleToggleReadOnly}
+            title={isReadOnly ? 'Beralih ke Mode Interaktif (Bisa Edit & Vote)' : 'Beralih ke Mode Baca Saja (Terkunci)'}
           >
-            <MoreHorizontal size={18} />
+            {isReadOnly ? <Edit size={14} /> : <Eye size={14} />}
+            <span>{isReadOnly ? 'Mode Edit' : 'Mode Baca'}</span>
           </button>
+
+          {!isReadOnly && (
+            <button
+              type="button"
+              className="btn-ghost-icon"
+              title="Pengaturan board"
+              onClick={() => setIsSettingsModalOpen(true)}
+            >
+              <MoreHorizontal size={18} />
+            </button>
+          )}
+
           <button
             type="button"
             className="btn-export-board"
@@ -1966,13 +2063,59 @@ export default function RetroBoardDetail({
             <span>{isExporting ? 'Mengekspor...' : 'Export PDF'}</span>
           </button>
 
-          <button
-            type="button"
-            className="btn-share-board"
-            onClick={handleShare}
-          >
-            + Bagikan Board
-          </button>
+          {/* Share Dropdown Button */}
+          <div className="retro-share-wrapper" ref={shareMenuRef}>
+            <button
+              type="button"
+              className="btn-share-board"
+              onClick={() => setIsShareMenuOpen((prev) => !prev)}
+              title="Bagikan URL Board Retro"
+            >
+              <Share2 size={14} />
+              <span>+ Bagikan Board</span>
+            </button>
+
+            {isShareMenuOpen && (
+              <div className="retro-share-dropdown">
+                <div className="retro-share-dropdown-header">
+                  <div className="retro-share-title">Bagikan Board Retrospective</div>
+                  <div className="retro-share-subtitle">Akses aman hanya untuk anggota workspace ini</div>
+                </div>
+
+                <div className="retro-share-options">
+                  <button
+                    type="button"
+                    className="retro-share-option-btn"
+                    onClick={() => handleCopyBoardLink(false)}
+                  >
+                    <div className="retro-share-opt-icon edit-icon">
+                      <Link size={15} />
+                    </div>
+                    <div className="retro-share-opt-content">
+                      <div className="retro-share-opt-title">Salin Link Board (Interaktif)</div>
+                      <div className="retro-share-opt-desc">Bisa menambah kartu, vote, & berdiskusi</div>
+                    </div>
+                    <Copy size={13} className="retro-share-copy-indicator" />
+                  </button>
+
+                  <button
+                    type="button"
+                    className="retro-share-option-btn"
+                    onClick={() => handleCopyBoardLink(true)}
+                  >
+                    <div className="retro-share-opt-icon readonly-icon">
+                      <Eye size={15} />
+                    </div>
+                    <div className="retro-share-opt-content">
+                      <div className="retro-share-opt-title">Salin Link Mode Baca Saja</div>
+                      <div className="retro-share-opt-desc">Hanya melihat kartu tanpa opsi edit atau vote</div>
+                    </div>
+                    <Copy size={13} className="retro-share-copy-indicator" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1994,7 +2137,7 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-tabs-right">
-          {isFacilitator && (
+          {!isReadOnly && isFacilitator && (
             <button
               type="button"
               className="retro-icebreaker-btn"
@@ -2006,31 +2149,42 @@ export default function RetroBoardDetail({
             </button>
           )}
 
-          <button
-            type="button"
-            className={`retro-mode-anonymous-btn ${isMyAnonymous ? 'active' : ''}`}
-            onClick={handleToggleMyAnonymous}
-            title={
-              isMyAnonymous
-                ? 'Mode Anonymous Aktif: Catatan yang Anda buat akan bersifat anonim (Klik untuk nonaktifkan)'
-                : 'Mode Anonymous Nonaktif: Klik untuk mengaktifkan mode anonim untuk Anda'
-            }
-          >
-            {isMyAnonymous ? <Eye size={16} /> : <EyeOff size={16} />}
-            <span>Mode Anonymous</span>
-          </button>
+          {!isReadOnly && (
+            <button
+              type="button"
+              className={`retro-mode-anonymous-btn ${isMyAnonymous ? 'active' : ''}`}
+              onClick={handleToggleMyAnonymous}
+              title={
+                isMyAnonymous
+                  ? 'Mode Anonymous Aktif: Catatan yang Anda buat akan bersifat anonim (Klik untuk nonaktifkan)'
+                  : 'Mode Anonymous Nonaktif: Klik untuk mengaktifkan mode anonim untuk Anda'
+              }
+            >
+              {isMyAnonymous ? <Eye size={16} /> : <EyeOff size={16} />}
+              <span>Mode Anonymous</span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            className={`retro-mulai-timer-btn ${
-              timerStatus === 'running' ? 'active-running' : ''
-            }`}
-            onClick={() => setIsTimerModalOpen(true)}
-            title="Atur & Mulai Timer Sesi"
-          >
-            <AlarmClock size={16} />
-            <span>Mulai Timer</span>
-          </button>
+          {!isReadOnly && (
+            <button
+              type="button"
+              className={`retro-mulai-timer-btn ${
+                timerStatus === 'running' ? 'active-running' : ''
+              }`}
+              onClick={() => setIsTimerModalOpen(true)}
+              title="Atur & Mulai Timer Sesi"
+            >
+              <AlarmClock size={16} />
+              <span>Mulai Timer</span>
+            </button>
+          )}
+
+          {isReadOnly && (
+            <div className="retro-readonly-tabs-hint">
+              <Eye size={14} />
+              <span>Mode Baca Saja</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2069,7 +2223,7 @@ export default function RetroBoardDetail({
             </div>
           )}
 
-          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <DndContext sensors={isReadOnly ? [] : sensors} onDragEnd={handleDragEnd}>
           <div className="retro-board-columns-container">
             <div
               className="retro-board-columns-grid"
@@ -2135,6 +2289,7 @@ export default function RetroBoardDetail({
                     currentUser={currentUser}
                     isAnonymous={isAnonymous}
                     isFacilitator={isFacilitator}
+                    isReadOnly={isReadOnly}
                     actionItems={actionItems}
                   />
                 );

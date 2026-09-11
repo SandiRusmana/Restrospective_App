@@ -243,6 +243,18 @@ export class BoardService {
             id: true,
             name: true,
             ownerId: true,
+            members: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -252,7 +264,7 @@ export class BoardService {
       throw new NotFoundException('Board tidak ditemukan');
     }
 
-    // 2. Cek apakah user adalah anggota dari workspace tempat board berada
+    // 2. Cek apakah user adalah anggota dari workspace tempat board berada (Pihak luar ditolak 403 Forbidden)
     const membership = await this.checkWorkspaceMembership(userId, board.workspaceId);
 
     // Cek apakah user adalah facilitator / admin / owner
@@ -261,6 +273,12 @@ export class BoardService {
       membership.role === 'owner' ||
       membership.role === 'facilitator' ||
       membership.role === 'admin';
+
+    const baseResult = {
+      ...board,
+      userRole: membership.role,
+      isFacilitator,
+    };
 
     // Jika mode anonymous aktif dan user bukan facilitator, sembunyikan author card
     if (board.isAnonymous && !isFacilitator) {
@@ -273,12 +291,12 @@ export class BoardService {
       }));
 
       return {
-        ...board,
+        ...baseResult,
         columns: sanitizedColumns,
       };
     }
 
-    return board;
+    return baseResult;
   }
 
   /**

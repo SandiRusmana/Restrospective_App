@@ -32,6 +32,7 @@ export default function RetroCardGroup({
   currentUser,
   isAnonymous = false,
   isFacilitator = false,
+  isReadOnly = false,
   actionItems = [],
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -86,7 +87,7 @@ export default function RetroCardGroup({
       cards,
       columnId: currentColumnId,
     },
-    disabled: isEditingTitle,
+    disabled: isEditingTitle || isReadOnly,
   });
 
   // Droppable zone for the group so cards can be dragged directly into it
@@ -97,7 +98,7 @@ export default function RetroCardGroup({
       groupId,
       columnId: currentColumnId,
     },
-    disabled: isGroupDragging,
+    disabled: isGroupDragging || isReadOnly,
   });
 
   const setCombinedRef = (node) => {
@@ -234,7 +235,8 @@ export default function RetroCardGroup({
               </button>
             </div>
 
-            {/* 3-Dots Dropdown Menu for Group Operations */}
+            {/* 3-Dots Dropdown Menu for Group Operations (Hidden in Read-Only Mode) */}
+            {!isReadOnly && (
             <div
               className="retro-card-actions-wrapper"
               ref={menuRef}
@@ -311,6 +313,7 @@ export default function RetroCardGroup({
                 </div>
               )}
             </div>
+            )}
           </>
         )}
       </div>
@@ -335,13 +338,14 @@ export default function RetroCardGroup({
               currentUser={currentUser}
               isAnonymous={isAnonymous}
               isFacilitator={isFacilitator}
+              isReadOnly={isReadOnly}
               actionItem={actionItems.find((ai) => ai.cardId === card.id) || null}
             />
           ))}
         </div>
       )}
 
-      {isOver && (
+      {!isReadOnly && isOver && (
         <div className="retro-group-drop-indicator">
           + Lepaskan di sini untuk menggabungkan ke grup
         </div>
