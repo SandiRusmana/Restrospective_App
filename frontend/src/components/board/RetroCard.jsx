@@ -33,6 +33,7 @@ export default function RetroCard({
   isPriority: isPriorityProp,
   isAnonymous = false,
   isFacilitator = false,
+  isReadOnly = false,
   actionItem = null,
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -57,7 +58,7 @@ export default function RetroCard({
       columnId: card.columnId,
       groupId: card.groupId,
     },
-    disabled: isEditing,
+    disabled: isEditing || isReadOnly,
   });
 
   // DnD Droppable hook (for dropping another card onto this card to create/expand a cluster)
@@ -166,6 +167,7 @@ export default function RetroCard({
 
   const handleVoteClick = (e) => {
     if (e) e.stopPropagation();
+    if (isReadOnly) return;
     setIsVoteAnimating(true);
     setTimeout(() => setIsVoteAnimating(false), 400);
     if (onVote) {
@@ -290,129 +292,114 @@ export default function RetroCard({
           <p className="retro-card-text">{cardText}</p>
         </div>
 
-        {/* 3-Dots Menu Dropdown */}
-        <div
-          className="retro-card-actions-wrapper"
-          ref={menuRef}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            className="btn-retro-card-menu"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMenuOpen(!isMenuOpen);
-            }}
-            title="Opsi Catatan"
+        {/* 3-Dots Menu Dropdown (Hidden in Read-Only Mode) */}
+        {!isReadOnly && (
+          <div
+            className="retro-card-actions-wrapper"
+            ref={menuRef}
+            onPointerDown={(e) => e.stopPropagation()}
           >
-            <MoreVertical size={16} />
-          </button>
+            <button
+              type="button"
+              className="btn-retro-card-menu"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+              }}
+              title="Opsi Catatan"
+            >
+              <MoreVertical size={16} />
+            </button>
 
-          {isMenuOpen && (
-            <div className="retro-card-menu-dropdown">
-              {isAuthor && (
+            {isMenuOpen && (
+              <div className="retro-card-menu-dropdown">
+                {isAuthor && (
+                  <button
+                    type="button"
+                    className="retro-menu-item"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsEditing(true);
+                    }}
+                  >
+                    <Edit2 size={13} />
+                    <span>Edit Catatan</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   className="retro-menu-item"
                   onClick={() => {
-                    setIsMenuOpen(false);
-                    setIsEditing(true);
+                    handleCopy();
                   }}
                 >
-                  <Edit2 size={13} />
-                  <span>Edit Catatan</span>
+                  <Copy size={13} />
+                  <span>{isCopied ? 'Tersalin!' : 'Salin Teks'}</span>
                 </button>
-              )}
 
-              <button
-                type="button"
-                className="retro-menu-item"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  if (onOpenDetail) onOpenDetail(card);
-                }}
-              >
-                <MessageSquare size={13} />
-                <span>Detail & Komentar</span>
-              </button>
-
-              {(isInGroup || Boolean(card.groupId)) && onUngroup && (
-                <button
-                  type="button"
-                  className="retro-menu-item"
-                  onClick={handleUngroup}
-                >
-                  <Unlink size={13} />
-                  <span>Keluarkan dari Grup</span>
-                </button>
-              )}
-
-              {/* Move to another column submenu */}
-              {columns && columns.length > 1 && onMoveColumn && (
-                <div className="retro-menu-move-section">
-                  <div className="retro-menu-move-header">
-                    <ArrowRightLeft size={12} />
-                    <span>Pindahkan ke:</span>
+                {columns.length > 1 && (
+                  <div className="retro-menu-sub-section">
+                    <span className="retro-menu-sub-title">Pindah Kolom</span>
+                    {columns
+                      .filter((col) => col.id !== card.columnId && col.type !== card.columnId)
+                      .map((col) => (
+                        <button
+                          key={col.id}
+                          type="button"
+                          className="retro-menu-item"
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            if (onMoveColumn) onMoveColumn(card.id, col.id);
+                          }}
+                        >
+                          <ArrowRightLeft size={13} />
+                          <span>Ke {col.title || col.name}</span>
+                        </button>
+                      ))}
                   </div>
-                  {columns
-                    .filter((col) => col.id !== card.columnId && col.type !== card.columnId)
-                    .map((col) => (
-                      <button
-                        key={col.id}
-                        type="button"
-                        className="retro-menu-move-item"
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          onMoveColumn(card.id, col.id);
-                        }}
-                      >
-                        <span
-                          className="retro-menu-col-dot"
-                          style={{ backgroundColor: col.color || '#2563eb' }}
-                        />
-                        <span>{col.title || col.name}</span>
-                      </button>
-                    ))}
-                </div>
-              )}
+                )}
 
-              {/* Convert to Action Item */}
-              {isFacilitator && onConvertToActionItem && (
-                <button
-                  type="button"
-                  className="retro-menu-item retro-menu-item-convert"
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    onConvertToActionItem(card);
-                  }}
-                >
-                  <Zap size={13} />
-                  <span>Convert To Action Item</span>
-                </button>
-              )}
+                {isInGroup && (
+                  <button
+                    type="button"
+                    className="retro-menu-item"
+                    onClick={handleUngroup}
+                  >
+                    <Unlink size={13} />
+                    <span>Keluarkan dari Grup</span>
+                  </button>
+                )}
 
-              <button
-                type="button"
-                className="retro-menu-item"
-                onClick={handleCopy}
-              >
-                {isCopied ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
-                <span>{isCopied ? 'Tersalin!' : 'Salin Teks'}</span>
-              </button>
+                {/* Konversi ke Action Item */}
+                {!actionItem && onConvertToActionItem && (
+                  <button
+                    type="button"
+                    className="retro-menu-item"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onConvertToActionItem(card);
+                    }}
+                  >
+                    <Zap size={13} color="#5956e9" />
+                    <span>Jadikan Action Item</span>
+                  </button>
+                )}
 
-              {isAuthor && (
-                <button
-                  type="button"
-                  className="retro-menu-item retro-menu-item-delete"
-                  onClick={handleDelete}
-                >
-                  <Trash2 size={13} />
-                  <span>Hapus Catatan</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+                {(isAuthor || isFacilitator) && (
+                  <button
+                    type="button"
+                    className="retro-menu-item retro-menu-item-delete"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 size={13} />
+                    <span>Hapus Catatan</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Action Item Badge (shown when card is converted) */}
@@ -486,9 +473,16 @@ export default function RetroCard({
             type="button"
             className={`btn-retro-vote ${hasVoted ? 'voted' : ''} ${isPriority ? 'priority' : ''} ${
               isVoteAnimating ? 'vote-pop' : ''
-            }`}
+            } ${isReadOnly ? 'readonly' : ''}`}
             onClick={handleVoteClick}
-            title={hasVoted ? 'Batalkan vote Anda' : 'Beri vote (+1)'}
+            disabled={isReadOnly}
+            title={
+              isReadOnly
+                ? 'Mode Baca Saja (Voting dinonaktifkan)'
+                : hasVoted
+                ? 'Batalkan vote Anda'
+                : 'Beri vote (+1)'
+            }
           >
             <ThumbsUp
               size={15}

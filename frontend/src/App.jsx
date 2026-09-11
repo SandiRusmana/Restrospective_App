@@ -1,6 +1,12 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { LayoutGrid, List, Search, ArrowLeft, Loader2 } from 'lucide-react';
+import { LayoutGrid, List, Search, ArrowLeft, Loader2, ShieldAlert, AlertCircle, SearchX, Compass } from 'lucide-react';
 import { api } from './services/api';
+
+// Helper: Ekstraksi UUID board dari format /board/:uuid
+const getBoardIdFromPath = (path) => {
+  const match = (path || '').match(/^\/board\/([0-9a-fA-F-]{36})/);
+  return match ? match[1] : null;
+};
 
 // Sidebar Navigation Items
 const sidebarNavItems = [
@@ -58,6 +64,10 @@ export default function App() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isToastVisible, setIsToastVisible] = useState(false);
+
+  // Direct Board URL & Authorization Error State
+  const [boardAccessError, setBoardAccessError] = useState(null);
+  const [isBoardDirectLoading, setIsBoardDirectLoading] = useState(false);
 
   // Trigger Toast Notification
   const showToast = useCallback((message) => {
@@ -228,7 +238,54 @@ export default function App() {
     }
   }, []);
 
-  // Initial Auth Check on Mount (termasuk deteksi callback Google OAuth)
+  // Handler: Load Board Directly by UUID (Mendukung URL /board/:uuid)
+  const loadBoardDirectly = useCallback(async (boardId, queryReadOnly = false) => {
+    setIsBoardDirectLoading(true);
+    setBoardAccessError(null);
+    try {
+      const boardData = await api.getBoardById(boardId);
+      if (boardData) {
+        const formattedBoard = {
+          ...boardData,
+          title: boardData.name || boardData.title,
+          name: boardData.name || boardData.title,
+          workspaceId: boardData.workspaceId,
+          userRole: boardData.userRole,
+          isFacilitator: boardData.isFacilitator,
+          initialReadOnly: queryReadOnly,
+        };
+
+        setActiveBoard(formattedBoard);
+        if (boardData.workspaceId) {
+          setActiveWorkspaceId(boardData.workspaceId);
+        }
+        setDashboardView('board-detail');
+        setActiveNav('my-boards');
+
+        // Pastikan URL di address bar sinkron
+        const qs = queryReadOnly ? '?readOnly=true' : '';
+        window.history.replaceState({}, '', `/board/${boardId}${qs}`);
+      }
+    } catch (err) {
+      console.error('Gagal membuka board:', err);
+      const status = err.status || (err.message?.includes('403') ? 403 : err.message?.includes('404') ? 404 : 500);
+      let message = err.message || 'Gagal memuat board';
+      if (status === 403) {
+        message = 'Anda bukan anggota dari workspace pemilik board ini. Pihak luar tidak diperkenankan mengakses board retrospective ini.';
+      } else if (status === 404 || status === 400) {
+        message = 'Board tidak ditemukan atau format URL salah. Pastikan UUID board valid dan terdaftar di workspace Anda.';
+      }
+      setBoardAccessError({
+        status,
+        message,
+      });
+      setDashboardView('board-error');
+    } finally {
+      setIsBoardDirectLoading(false);
+    }
+  }, []);
+
+  // Initial Auth Check on Mount (termasuk deteksi callback Google OAuth & Deep Link /board/:uuid)
   useEffect(() => {
     async function checkAuth() {
       // 1. Cek apakah ada redirect token dari Google OAuth di URL
@@ -246,6 +303,10 @@ export default function App() {
       }
 
       const savedToken = localStorage.getItem('access_token');
+      const initialPath = window.location.pathname;
+      const initialBoardUuid = getBoardIdFromPath(initialPath);
+      const isInitialReadOnly = urlParams.get('readOnly') === 'true';
+
       if (savedToken) {
         setIsLoadingAuth(true);
         try {
@@ -261,6 +322,27 @@ export default function App() {
           setUser(formattedUser);
           setCurrentPage('dashboard');
           await fetchWorkspaces(formattedUser);
+
+          // Cek apakah ada redirect target setelah login dari sessionStorage atau URL langsung
+          const redirectAfter = sessionStorage.getItem('redirect_after_login');
+          const targetBoardUuid = redirectAfter ? getBoardIdFromPath(redirectAfter) : initialBoardUuid;
+          const targetReadOnly = redirectAfter
+            ? new URLSearchParams(redirectAfter.split('?')[1] || '').get('readOnly') === 'true'
+            : isInitialReadOnly;
+
+          if (redirectAfter) {
+            sessionStorage.removeItem('redirect_after_login');
+          }
+
+          if (targetBoardUuid) {
+            await loadBoardDirectly(targetBoardUuid, targetReadOnly);
+          } else if (initialPath.startsWith('/board/')) {
+            setBoardAccessError({
+              status: 404,
+              message: 'Format URL board tidak valid atau ID board tidak ditemukan. Pastikan URL board memiliki format UUID v4 yang sesuai.',
+            });
+            setDashboardView('board-error');
+          }
         } catch {
           api.logout();
           setUser(null);
@@ -269,12 +351,46 @@ export default function App() {
           setIsLoadingAuth(false);
         }
       } else {
+        // Belum login tapi mengakses link /board/:uuid
+        if (initialBoardUuid) {
+          sessionStorage.setItem('redirect_after_login', window.location.pathname + window.location.search);
+        }
         setCurrentPage('login');
         setIsLoadingAuth(false);
       }
     }
     checkAuth();
-  }, [fetchWorkspaces, showToast]);
+  }, [fetchWorkspaces, loadBoardDirectly, showToast]);
+
+  // Listener Popstate: Sinkronisasi Tombol Back/Forward Browser
+  useEffect(() => {
+    const handlePopState = () => {
+      const bId = getBoardIdFromPath(window.location.pathname);
+      const isReadOnly = new URLSearchParams(window.location.search).get('readOnly') === 'true';
+      if (bId) {
+        if (activeBoard?.id === bId) {
+          setDashboardView('board-detail');
+          setBoardAccessError(null);
+        } else {
+          loadBoardDirectly(bId, isReadOnly);
+        }
+      } else if (window.location.pathname.startsWith('/board/')) {
+        setBoardAccessError({
+          status: 404,
+          message: 'Format URL board tidak valid atau ID board tidak ditemukan.',
+        });
+        setDashboardView('board-error');
+      } else {
+        setActiveBoard(null);
+        setBoardAccessError(null);
+        setDashboardView('workspace-detail');
+        setActiveNav('workspace');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeBoard, loadBoardDirectly]);
 
   // Active Workspace Object
   const activeWorkspace = useMemo(() => {
@@ -311,6 +427,17 @@ export default function App() {
     setCurrentPage('dashboard');
     setDashboardView('workspace-detail');
     await fetchWorkspaces(formattedUser);
+
+    // Cek apakah ada redirect ke board
+    const redirectPath = sessionStorage.getItem('redirect_after_login');
+    if (redirectPath) {
+      sessionStorage.removeItem('redirect_after_login');
+      const targetBoardId = getBoardIdFromPath(redirectPath);
+      const isReadOnly = new URLSearchParams(redirectPath.split('?')[1] || '').get('readOnly') === 'true';
+      if (targetBoardId) {
+        await loadBoardDirectly(targetBoardId, isReadOnly);
+      }
+    }
   };
 
   const handleRegisterSuccess = async (userData) => {
@@ -327,6 +454,17 @@ export default function App() {
     setCurrentPage('dashboard');
     setDashboardView('workspace-detail');
     await fetchWorkspaces(formattedUser);
+
+    // Cek apakah ada redirect ke board
+    const redirectPath = sessionStorage.getItem('redirect_after_login');
+    if (redirectPath) {
+      sessionStorage.removeItem('redirect_after_login');
+      const targetBoardId = getBoardIdFromPath(redirectPath);
+      const isReadOnly = new URLSearchParams(redirectPath.split('?')[1] || '').get('readOnly') === 'true';
+      if (targetBoardId) {
+        await loadBoardDirectly(targetBoardId, isReadOnly);
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -422,14 +560,29 @@ export default function App() {
   };
 
   // Handler: Open Retrospective Board
-  const handleOpenBoard = (board) => {
+  const handleOpenBoard = (board, readOnly = false) => {
     if (board?.workspaceId && board.workspaceId !== activeWorkspaceId) {
       setActiveWorkspaceId(board.workspaceId);
     }
-    setActiveBoard(board);
+    setActiveBoard({
+      ...board,
+      initialReadOnly: readOnly,
+    });
+    setBoardAccessError(null);
     setDashboardView('board-detail');
     setActiveNav('my-boards');
+    const qs = readOnly ? '?readOnly=true' : '';
+    window.history.pushState({}, '', `/board/${board.id}${qs}`);
     showToast(`Membuka sesi: ${board.title || board.name}`);
+  };
+
+  // Handler: Back to Workspace / Dashboard (Reset URL ke /)
+  const handleBackToWorkspace = () => {
+    setActiveBoard(null);
+    setBoardAccessError(null);
+    setDashboardView('workspace-detail');
+    setActiveNav('workspace');
+    window.history.pushState({}, '', '/');
   };
 
   // Handler: Update Workspace Info
@@ -554,16 +707,96 @@ export default function App() {
             </div>
           )}
 
+          {/* Loading Indicator during Direct Board Load */}
+          {isBoardDirectLoading && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 40px)', color: '#64748b', width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', textAlign: 'center' }}>
+                <Loader2 size={40} color="#5956e9" style={{ animation: 'spin 1s linear infinite' }} />
+                <div>
+                  <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Memvalidasi & Memuat Board...</h3>
+                  <span style={{ fontSize: '14px', color: '#64748b' }}>Memverifikasi izin akses workspace Anda</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Access Denied (403) or Not Found (404) Screen */}
+          {boardAccessError && (
+            <div className="board-access-error-container">
+              <div className="board-access-error-card">
+                <div className={`board-access-error-icon-box ${boardAccessError.status === 403 ? 'forbidden' : 'not-found'}`}>
+                  {boardAccessError.status === 403 ? (
+                    <ShieldAlert size={44} />
+                  ) : (
+                    <SearchX size={44} />
+                  )}
+                </div>
+
+                <div className={`board-access-error-badge ${boardAccessError.status === 403 ? 'forbidden' : 'not-found'}`}>
+                  {boardAccessError.status === 403 ? '403 · Akses Ditolak' : '404 · Board Tidak Ditemukan'}
+                </div>
+
+                <h2 className="board-access-error-title">
+                  {boardAccessError.status === 403 ? 'Akses Board Dibatasi' : 'Sesi Board Tidak Ditemukan'}
+                </h2>
+
+                <p className="board-access-error-desc">
+                  {boardAccessError.message}
+                </p>
+
+                {boardAccessError.status === 403 ? (
+                  <div className="board-access-error-tip">
+                    <strong>Catatan Keamanan:</strong> Retrospective ini bersifat privat. Hanya anggota workspace yang terdaftar dan telah diautentikasi yang diizinkan untuk melihat serta berpartisipasi dalam sesi ini.
+                  </div>
+                ) : (
+                  <div className="board-access-error-tip not-found-tip">
+                    <strong>Kemungkinan Penyebab:</strong>
+                    <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px', color: '#475569', fontSize: '12px', lineHeight: '1.6' }}>
+                      <li>UUID board salah disalin atau URL terpotong.</li>
+                      <li>Board telah dihapus oleh fasilitator atau pemilik workspace.</li>
+                      <li>Board berada pada workspace yang berbeda atau akun lain.</li>
+                    </ul>
+                  </div>
+                )}
+
+                <div className="board-access-error-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleBackToWorkspace}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontWeight: 600, borderRadius: '8px' }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Kembali ke Dashboard</span>
+                  </button>
+
+                  {boardAccessError.status === 404 && (
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => {
+                        setBoardAccessError(null);
+                        setDashboardView('all-workspaces');
+                        window.history.pushState({}, '', '/');
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontWeight: 600, borderRadius: '8px' }}
+                    >
+                      <Compass size={16} />
+                      <span>Jelajahi Workspace Lain</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Interactive Retrospective Board View (When a board is opened) */}
-          {dashboardView === 'board-detail' && activeBoard && !isLoadingAuth && (
+          {dashboardView === 'board-detail' && activeBoard && !isLoadingAuth && !boardAccessError && (
             <RetroBoardDetail 
               workspace={activeWorkspace}
               board={activeBoard}
               currentUser={user}
-              onBack={() => {
-                setDashboardView('workspace-detail');
-                setActiveNav('workspace');
-              }}
+              onBack={handleBackToWorkspace}
               onSwitchBoard={handleOpenBoard}
               onShowToast={showToast}
               onUpdateBoard={(updated) => {

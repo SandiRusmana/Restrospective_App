@@ -23,6 +23,7 @@ export default function RetroColumn({
   currentUser,
   isAnonymous = false,
   isFacilitator = false,
+  isReadOnly = false,
   actionItems = [],
 }) {
   const [isAdding, setIsAdding] = useState(false);
@@ -33,6 +34,7 @@ export default function RetroColumn({
       type: 'column',
       columnId: column.id,
     },
+    disabled: isReadOnly,
   });
 
   const handleSaveCard = (text) => {
@@ -134,21 +136,23 @@ export default function RetroColumn({
         </span>
       </div>
 
-      {/* ── "+ Tambah Catatan" Button ── */}
-      <button
-        type="button"
-        className="btn-column-add-note"
-        onClick={() => setIsAdding(true)}
-        style={{
-          border: `1.5px solid ${column.border || column.color || '#cbd5e1'}`,
-          color: column.color || '#2563eb',
-        }}
-      >
-        + Tambah Catatan
-      </button>
+      {/* ── "+ Tambah Catatan" Button (Hidden in Read-Only Mode) ── */}
+      {!isReadOnly && (
+        <button
+          type="button"
+          className="btn-column-add-note"
+          onClick={() => setIsAdding(true)}
+          style={{
+            border: `1.5px solid ${column.border || column.color || '#cbd5e1'}`,
+            color: column.color || '#2563eb',
+          }}
+        >
+          + Tambah Catatan
+        </button>
+      )}
 
       {/* ── Active Inline Card Creation Form ── */}
-      {isAdding && (
+      {!isReadOnly && isAdding && (
         <RetroCardInput
           onSave={handleSaveCard}
           onCancel={() => setIsAdding(false)}
@@ -180,6 +184,7 @@ export default function RetroColumn({
               currentUser={currentUser}
               isAnonymous={isAnonymous}
               isFacilitator={isFacilitator}
+              isReadOnly={isReadOnly}
               actionItems={actionItems}
             />
           ))}
@@ -202,6 +207,7 @@ export default function RetroColumn({
               currentUser={currentUser}
               isAnonymous={isAnonymous}
               isFacilitator={isFacilitator}
+              isReadOnly={isReadOnly}
               actionItem={actionItems.find((ai) => ai.cardId === card.id) || null}
             />
           ))}
