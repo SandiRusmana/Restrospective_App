@@ -25,6 +25,8 @@ export default function RetroColumn({
   isFacilitator = false,
   isReadOnly = false,
   actionItems = [],
+  isPrivateMode = false,
+  isRevealed = false,
 }) {
   const [isAdding, setIsAdding] = useState(false);
 
@@ -43,11 +45,16 @@ export default function RetroColumn({
   };
 
   // Organize cards into standalone and grouped clusters
+  // Saat private mode aktif & belum reveal: tampilkan HANYA card milik user saat ini
+  const visibleCards = isPrivateMode && !isRevealed
+    ? cards.filter(c => c.isOwner)
+    : cards;
+
   const { standaloneCards, groupedCardsMap } = useMemo(() => {
     const standalone = [];
     const grouped = {};
 
-    cards.forEach((card) => {
+    visibleCards.forEach((card) => {
       if (card.groupId) {
         if (!grouped[card.groupId]) {
           grouped[card.groupId] = [];
@@ -59,7 +66,7 @@ export default function RetroColumn({
     });
 
     return { standaloneCards: standalone, groupedCardsMap: grouped };
-  }, [cards]);
+  }, [visibleCards]);
 
   // Render icon with column theme color
   const renderColumnIcon = () => {
@@ -132,7 +139,8 @@ export default function RetroColumn({
             color: column.badgeColor || column.color || '#334155',
           }}
         >
-          {cards.length}
+          {/* Saat private mode, tampilkan hanya jumlah card milik user */}
+          {isPrivateMode && !isRevealed ? visibleCards.length : cards.length}
         </span>
       </div>
 
@@ -161,7 +169,7 @@ export default function RetroColumn({
       )}
 
       {/* ── Cards & Group Clusters List ── */}
-      {cards.length > 0 && (
+      {visibleCards.length > 0 && (
         <div className="retro-column-cards-list">
           {/* Render Groups First */}
           {Object.entries(groupedCardsMap).map(([groupId, groupCards]) => (
@@ -209,13 +217,33 @@ export default function RetroColumn({
               isFacilitator={isFacilitator}
               isReadOnly={isReadOnly}
               actionItem={actionItems.find((ai) => ai.cardId === card.id) || null}
+              isPrivateMode={isPrivateMode}
+              isRevealed={isRevealed}
             />
           ))}
         </div>
       )}
 
-      {/* ── Empty State ── */}
-      {cards.length === 0 && (
+      {/* ── Empty State: Private Mode (card anggota lain tersembunyi) ── */}
+      {isPrivateMode && !isRevealed && visibleCards.length === 0 && (
+        <div className="retro-private-empty-state">
+          <div className="retro-private-empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="5" y="2" width="14" height="20" rx="2" />
+              <line x1="9" y1="7" x2="15" y2="7" />
+              <line x1="9" y1="11" x2="15" y2="11" />
+              <line x1="9" y1="15" x2="12" y2="15" />
+            </svg>
+          </div>
+          <p className="retro-private-empty-title">Tidak ada card yang terlihat</p>
+          <p className="retro-private-empty-desc">
+            Card anggota lain akan muncul<br />setelah reveal.
+          </p>
+        </div>
+      )}
+
+      {/* ── Regular Empty State ── */}
+      {!isPrivateMode && visibleCards.length === 0 && (
         <div className="retro-column-empty-state">
           <p>Belum ada catatan</p>
           <p>Jadilah yang pertama</p>

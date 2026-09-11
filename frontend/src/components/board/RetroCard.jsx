@@ -12,7 +12,8 @@ import {
   MessageSquare,
   User,
   Zap,
-  Calendar
+  Calendar,
+  Lock,
 } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -35,6 +36,8 @@ export default function RetroCard({
   isFacilitator = false,
   isReadOnly = false,
   actionItem = null,
+  isPrivateMode = false,
+  isRevealed = false,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(card?.content || card?.text || '');
@@ -251,6 +254,8 @@ export default function RetroCard({
     isInGroup ? 'retro-card-grouped' : '',
     isDragging ? 'retro-card-dragging' : '',
     isOver ? 'retro-card-drop-target' : '',
+    // Badge private: card milik user sendiri saat private mode aktif & belum reveal
+    isPrivateMode && !isRevealed && card?.isOwner ? 'retro-card-private' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -274,6 +279,14 @@ export default function RetroCard({
         <div className="retro-card-priority-badge">
           <Flame size={12} className="retro-priority-badge-icon" />
           <span>PRIORITAS TIM</span>
+        </div>
+      )}
+
+      {/* PRIVATE Badge — hanya tampil saat private mode aktif & card milik user */}
+      {isPrivateMode && !isRevealed && card?.isOwner && (
+        <div className="retro-card-private-badge">
+          <Lock size={9} strokeWidth={2.5} />
+          PRIVATE
         </div>
       )}
 

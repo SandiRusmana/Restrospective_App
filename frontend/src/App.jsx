@@ -31,11 +31,13 @@ import ActiveWorkspaceCard from './components/workspace/ActiveWorkspaceCard';
 import MembersListCard from './components/workspace/MembersListCard';
 import RecentBoardsCard from './components/workspace/RecentBoardsCard';
 import WorkspaceBoardsView from './components/workspace/WorkspaceBoardsView';
+import MyBoardsView from './components/workspace/MyBoardsView';
 
 // Board Detail & Modals
 import RetroBoardDetail from './components/board/RetroBoardDetail';
 import CreateWorkspaceModal from './components/modals/CreateWorkspaceModal';
 import CreateBoardModal from './components/modals/CreateBoardModal';
+import BuatRetroWizardModal from './components/modals/BuatRetroWizardModal';
 import InviteMemberModal from './components/modals/InviteMemberModal';
 import Toast from './components/common/Toast';
 
@@ -61,6 +63,7 @@ export default function App() {
   // Modals & Toast State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateBoardModalOpen, setIsCreateBoardModalOpen] = useState(false);
+  const [isWizardModalOpen, setIsWizardModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isToastVisible, setIsToastVisible] = useState(false);
@@ -678,14 +681,8 @@ export default function App() {
                 setActiveNav('workspace');
                 setDashboardView('workspace-detail');
               } else if (navId === 'my-boards') {
-                if (activeWorkspace?.boards && activeWorkspace.boards.length > 0) {
-                  setActiveNav('my-boards');
-                  handleOpenBoard(activeWorkspace.boards[0]);
-                } else {
-                  showToast('Belum ada board aktif di workspace ini. Silakan buat board terlebih dahulu.');
-                  setActiveNav('workspace');
-                  setDashboardView('workspace-detail');
-                }
+                setActiveNav('my-boards');
+                setDashboardView('my-boards');
               } else {
                 showToast(`Menu ${navId} akan hadir pada update berikutnya`);
               }
@@ -821,7 +818,7 @@ export default function App() {
               currentUser={user}
               onSelectWorkspace={handleSelectWorkspace}
               onOpenBoard={handleOpenBoard}
-              onCreateBoardModalOpen={() => setIsCreateBoardModalOpen(true)}
+              onCreateBoardModalOpen={() => setIsWizardModalOpen(true)}
               onCreateWorkspaceModalOpen={() => setIsCreateModalOpen(true)}
               onInviteModalOpen={() => setIsInviteModalOpen(true)}
               onDeleteWorkspace={handleDeleteWorkspace}
@@ -829,6 +826,19 @@ export default function App() {
               onDeleteBoard={handleDeleteBoard}
               onShowToast={showToast}
               onNavigateAllWorkspaces={() => setDashboardView('all-workspaces')}
+            />
+          )}
+
+          {/* My Boards View */}
+          {dashboardView === 'my-boards' && (
+            <MyBoardsView 
+              workspace={activeWorkspace}
+              workspaces={workspaces}
+              currentUser={user}
+              onCreateBoardModalOpen={() => setIsWizardModalOpen(true)}
+              onOpenBoard={handleOpenBoard}
+              onDeleteBoard={handleDeleteBoard}
+              onShowToast={showToast}
             />
           )}
 
@@ -984,6 +994,15 @@ export default function App() {
             workspaceName={activeWorkspace?.name}
             workspace={activeWorkspace}
             workspaces={workspaces}
+          />
+
+          <BuatRetroWizardModal 
+            isOpen={isWizardModalOpen}
+            onClose={() => setIsWizardModalOpen(false)}
+            onCreateBoard={handleCreateBoard}
+            onOpenBoard={handleOpenBoard}
+            workspace={activeWorkspace}
+            currentUser={user}
           />
 
 
