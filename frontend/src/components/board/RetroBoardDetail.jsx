@@ -90,6 +90,7 @@ export default function RetroBoardDetail({
   currentUser,
   onShowToast,
   onUpdateBoard,
+  onNavigateAllWorkspaces,
 }) {
   const boardId = board?.id;
   const [activeTab, setActiveTab] = useState('board');
@@ -162,10 +163,24 @@ export default function RetroBoardDetail({
   // isRevealed: true setelah fasilitator melakukan reveal
   // showRevealModal: konfirmasi sebelum reveal
   // showRevealedBanner: banner sukses setelah reveal (auto-dismiss 5 detik)
-  const [isPrivateMode, setIsPrivateMode] = useState(true);
-  const [isRevealed, setIsRevealed] = useState(false);
+  const [isPrivateMode, setIsPrivateMode] = useState(() => !Boolean(board?.isRevealed));
+  const [isRevealed, setIsRevealed] = useState(() => Boolean(board?.isRevealed));
   const [showRevealModal, setShowRevealModal] = useState(false);
   const [showRevealedBanner, setShowRevealedBanner] = useState(false);
+  const [totalCardsCount, setTotalCardsCount] = useState(() => board?.totalCardsCount || 0);
+
+  useEffect(() => {
+    if (board?.isRevealed !== undefined) {
+      setIsRevealed(Boolean(board.isRevealed));
+      setIsPrivateMode(!Boolean(board.isRevealed));
+    }
+  }, [board?.isRevealed]);
+
+  useEffect(() => {
+    if (typeof board?.totalCardsCount === 'number') {
+      setTotalCardsCount(board.totalCardsCount);
+    }
+  }, [board?.totalCardsCount]);
 
   // ── Previous Session Action Items State ──
   const [previousSessionItems, setPreviousSessionItems] = useState([]);
@@ -828,6 +843,23 @@ export default function RetroBoardDetail({
       }
     },
 
+    onBoardRevealed: (payload) => {
+      setIsPrivateMode(false);
+      setIsRevealed(true);
+      setShowRevealedBanner(true);
+      if (onShowToast) {
+        onShowToast('Fasilitator telah me-reveal semua kartu! Diskusi tim dimulai.');
+      }
+      setTimeout(() => setShowRevealedBanner(false), 5000);
+      loadCardsFromApi();
+    },
+
+    onCardsCountUpdated: (data) => {
+      if (typeof data?.totalCardsCount === 'number') {
+        setTotalCardsCount(data.totalCardsCount);
+      }
+    },
+
     onIcebreakerStarted: (session) => {
       setActiveIcebreaker(session);
       if (onShowToast) {
@@ -1009,16 +1041,25 @@ export default function RetroBoardDetail({
   };
 
   // ── Handler: Reveal Cards ──
-  // Ubah state isPrivateMode → false dan isRevealed → true,
+  // Panggil endpoint backend POST /api/boards/:id/reveal,
+  // ubah state isPrivateMode → false dan isRevealed → true,
   // lalu tampilkan banner sukses selama 5 detik.
-  const handleRevealCards = useCallback(() => {
-    setIsPrivateMode(false);
-    setIsRevealed(true);
-    setShowRevealedBanner(true);
-    if (onShowToast) onShowToast('Semua card berhasil di-reveal ke seluruh anggota tim!');
-    // Auto-dismiss "Cards Revealed" banner setelah 5 detik
-    setTimeout(() => setShowRevealedBanner(false), 5000);
-  }, [onShowToast]);
+  const handleRevealCards = useCallback(async () => {
+    try {
+      if (boardId) {
+        await api.revealBoard(boardId);
+      }
+      setIsPrivateMode(false);
+      setIsRevealed(true);
+      setShowRevealedBanner(true);
+      if (onShowToast) onShowToast('Semua card berhasil di-reveal ke seluruh anggota tim!');
+      setTimeout(() => setShowRevealedBanner(false), 5000);
+      loadCardsFromApi();
+    } catch (err) {
+      console.error('Gagal reveal card di server:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal me-reveal kartu');
+    }
+  }, [boardId, onShowToast, loadCardsFromApi]);
 
   // Sensor drag dengan activation constraint agar tidak mengganggu klik vote/menu
   const sensors = useSensors(
@@ -1847,7 +1888,7 @@ export default function RetroBoardDetail({
       {/* ── Top Breadcrumb Bar ── */}
       <div className="retro-full-topbar">
         <div className="retro-full-breadcrumbs">
-          <button type="button" className="retro-crumb-btn" onClick={onBack}>
+          <button type="button" className="retro-crumb-btn" onClick={onNavigateAllWorkspaces || onBack}>
             Workspace Saya
           </button>
           <span className="retro-crumb-chevron">{'>'}</span>
@@ -2164,19 +2205,6 @@ export default function RetroBoardDetail({
         </div>
 
         <div className="retro-tabs-right">
-          {/* ── Reveal Cards Button (Private Mode) ── */}
-          {!isReadOnly && isFacilitator && isPrivateMode && !isRevealed && (
-            <button
-              type="button"
-              className="btn-reveal-cards"
-              onClick={() => setShowRevealModal(true)}
-              title={`Reveal ${cards.filter(c => c.isOwner).length} card ke seluruh anggota tim`}
-            >
-              <Eye size={15} />
-              <span>Reveal Cards ({cards.filter(c => c.isOwner).length})</span>
-            </button>
-          )}
-
           {/* ── Revealed indicator badge (setelah reveal) ── */}
           {!isReadOnly && isRevealed && (
             <div className="private-mode-waiting-badge" style={{ background: 'rgba(22,163,74,0.10)', borderColor: 'rgba(22,163,74,0.25)', color: '#16a34a' }}>
@@ -2260,21 +2288,36 @@ export default function RetroBoardDetail({
 
       {/* ── Private Mode Banner (cards masih tersembunyi, menunggu reveal) ── */}
       {isPrivateMode && !isRevealed && !isReadOnly && activeTab === 'board' && (
-        <div className="private-mode-banner" style={{ marginTop: '16px' }}>
+        <div className="private-mode-banner">
           <div className="private-mode-banner-left">
             <div className="private-mode-banner-icon">
-              <Lock size={16} color="#ffffff" strokeWidth={2.2} />
+              <Lock size={15} color="#ffffff" strokeWidth={2.4} />
             </div>
-            <div className="private-mode-banner-text">
-              <strong>Private Mode</strong>
-              <p>Feedback kamu masih privat sampai fasilitator melakukan reveal.</p>
+            <div className="private-mode-banner-info">
+              <span className="private-mode-tag">Mode Privat Aktif</span>
+              <span className="private-mode-text-inline">
+                {isFacilitator
+                  ? 'Catatan tim masih tersembunyi agar opini independen. Klik Reveal jika siap berdiskusi.'
+                  : 'Catatan Anda bersifat privat & hanya terlihat oleh Anda sampai sesi di-reveal.'}
+              </span>
             </div>
           </div>
           <div className="private-mode-banner-right">
             <div className="private-mode-waiting-badge">
               <span className="private-mode-waiting-dot" />
-              Menunggu Reveal
+              {isFacilitator ? 'Menunggu Anda Reveal' : 'Menunggu Reveal'}
             </div>
+            {isFacilitator && (
+              <button
+                type="button"
+                className="btn-reveal-cards-banner"
+                onClick={() => setShowRevealModal(true)}
+                title="Buka semua catatan tim sekarang"
+              >
+                <Eye size={14} />
+                <span>Reveal Cards ({totalCardsCount > 0 ? totalCardsCount : cards.length})</span>
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -2498,7 +2541,7 @@ export default function RetroBoardDetail({
         isOpen={showRevealModal}
         onClose={() => setShowRevealModal(false)}
         onConfirm={handleRevealCards}
-        privateCount={cards.filter(c => c.isOwner).length}
+        privateCount={totalCardsCount > 0 ? totalCardsCount : cards.length}
       />
 
       {/* ── Overlay Sesi Icebreaker Aktif / Selesai (Semua Anggota) ── */}

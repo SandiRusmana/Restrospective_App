@@ -3376,86 +3376,148 @@
 .retro-card-menu-dropdown {
   position: absolute;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  padding: 4px;
-  z-index: 30;
-  min-width: 140px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.05), 0 0 0 1px rgba(15, 23, 42, 0.03);
+  padding: 6px;
+  z-index: 40;
+  min-width: 185px;
+  white-space: nowrap;
+  animation: retroMenuFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+
+@keyframes retroMenuFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .retro-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   width: 100%;
   padding: 7px 10px;
-  font-size: 12.5px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: #334155;
   border: none;
   background: none;
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
+  user-select: none;
 }
 
 .retro-menu-item:hover {
   background-color: #f8fafc;
-  color: #5956e9;
+  color: #0f172a;
+}
+
+.retro-menu-item svg {
+  flex-shrink: 0;
+  color: #64748b;
+  transition: color 0.15s ease;
+}
+
+.retro-menu-item:hover svg {
+  color: #3b82f6;
+}
+
+.retro-menu-item-action {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.retro-menu-item-action svg {
+  color: #6366f1;
+}
+
+.retro-menu-item-action:hover {
+  background-color: #eef2ff;
+  color: #4338ca;
+}
+
+.retro-menu-item-action:hover svg {
+  color: #4338ca;
 }
 
 .retro-menu-item-delete {
   color: #ef4444;
+  font-weight: 500;
+}
+
+.retro-menu-item-delete svg {
+  color: #ef4444;
 }
 
 .retro-menu-item-delete:hover {
-  background-color: #fee2e2;
-  color: #ef4444;
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.retro-menu-item-delete:hover svg {
+  color: #dc2626;
+}
+
+.retro-menu-divider {
+  height: 1px;
+  background-color: #f1f5f9;
+  margin: 5px 2px;
 }
 
 /* Move to Column Submenu Section */
 .retro-menu-move-section {
-  border-top: 1px solid #f1f5f9;
-  padding-top: 4px;
-  margin-top: 4px;
+  padding: 2px 0 0 0;
 }
 
 .retro-menu-move-header {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   color: #94a3b8;
-  padding: 4px 8px;
-  letter-spacing: 0.03em;
+  padding: 5px 8px 4px 8px;
+  letter-spacing: 0.04em;
+}
+
+.retro-menu-move-header svg {
+  color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .retro-menu-move-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   width: 100%;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 6.5px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
   color: #475569;
   border: none;
   background: none;
-  border-radius: 6px;
+  border-radius: 7px;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
+  user-select: none;
 }
 
 .retro-menu-move-item:hover {
-  background-color: #f1f5f9;
-  color: #5956e9;
+  background-color: #f8fafc;
+  color: #0f172a;
   transform: translateX(2px);
 }
 
@@ -3464,6 +3526,7 @@
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.06);
 }
 
 /* Card Editing Mode */
@@ -9120,44 +9183,61 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin: 0 28px 0 28px;
-  padding: 11px 18px;
-  background: linear-gradient(135deg, #f0effe 0%, #e8e5fd 100%);
-  border: 1px solid #c4bffa;
+  gap: 16px;
+  margin: 12px 28px 0 28px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #f8f7ff 0%, #f1effe 100%);
+  border: 1px solid #d8d4fd;
   border-radius: 10px;
-  animation: slideDownFade 0.35s ease;
+  box-shadow: 0 1px 4px rgba(89, 86, 233, 0.06);
+  animation: slideDownFade 0.3s ease;
 }
 
 .private-mode-banner-left {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
 .private-mode-banner-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: #5956e9;
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, #6366f1 0%, #5956e9 100%);
   border-radius: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(89, 86, 233, 0.25);
+}
+
+.private-mode-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.private-mode-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #4338ca;
+  background: #e0e7ff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
   flex-shrink: 0;
 }
 
-.private-mode-banner-text strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 700;
-  color: #3b38c6;
-  line-height: 1.3;
-}
-
-.private-mode-banner-text p {
-  margin: 0;
-  font-size: 12px;
-  color: #6663d8;
+.private-mode-text-inline {
+  font-size: 12.5px;
+  color: #4f46e5;
+  font-weight: 500;
   line-height: 1.4;
 }
 
@@ -9166,6 +9246,34 @@
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.btn-reveal-cards-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6.5px 14px;
+  background: #5956e9;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-family);
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(89, 86, 233, 0.3);
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.btn-reveal-cards-banner:hover {
+  background: #4643db;
+  box-shadow: 0 3px 10px rgba(89, 86, 233, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-reveal-cards-banner:active {
+  transform: translateY(0);
 }
 
 /* ── "Menunggu Reveal" timer badge ── */
@@ -9306,24 +9414,73 @@
 .retro-card-private-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
-  background: linear-gradient(135deg, #f0effe 0%, #e8e5fd 100%);
-  border: 1px solid #c4bffa;
-  border-radius: 5px;
-  font-size: 10px;
+  gap: 5px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  font-size: 10.5px;
   font-weight: 700;
-  color: #5956e9;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
+  color: #4f46e5;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
   width: fit-content;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.08);
 }
 
-/* ── Private Card: slightly distinct background ── */
+/* ── Subtag in card author metadata ── */
+.retro-card-private-subtag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* ── Private Card: distinct background & accent ── */
 .retro-sticky-card.retro-card-private {
-  background: linear-gradient(160deg, #fdfcff 0%, #f6f4ff 100%);
-  border-left: 3px solid #8b87f0 !important;
+  background: linear-gradient(165deg, #ffffff 0%, #faf8ff 50%, #f5f3ff 100%);
+  border-left: 3.5px solid #6366f1 !important;
+  border-top: 1px dashed rgba(99, 102, 241, 0.3);
+  border-right: 1px solid #e0e7ff;
+  border-bottom: 1px solid #e0e7ff;
+}
+
+/* ── Inline input box private pill ── */
+.retro-input-private-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #4f46e5;
+  margin-bottom: 8px;
+  animation: fadeIn 0.2s ease;
+}
+
+/* ── Column private hint below cards ── */
+.retro-column-private-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  margin-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: center;
+  user-select: none;
 }
 
 /* ── Column empty state for private mode (other columns hidden) ── */
@@ -9331,34 +9488,36 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 32px 16px;
+  gap: 6px;
+  padding: 24px 12px;
   text-align: center;
 }
 
 .retro-private-empty-icon {
-  width: 52px;
-  height: 52px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
-  border-radius: 12px;
-  color: #94a3b8;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px dashed #c7d2fe;
+  border-radius: 8px;
+  color: #6366f1;
+  margin-bottom: 2px;
 }
 
 .retro-private-empty-title {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #475569;
+  color: #64748b;
   margin: 0;
 }
 
 .retro-private-empty-desc {
-  font-size: 12px;
+  font-size: 11px;
   color: #94a3b8;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 /* ══ Reveal Cards Modal ══════════════════════════════════════════════════ */

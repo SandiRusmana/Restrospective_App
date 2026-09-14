@@ -263,7 +263,7 @@ export default function BuatRetroWizardModal({
   };
 
   // Final Action: Create Board
-  const handleExecuteCreateBoard = () => {
+  const handleExecuteCreateBoard = async () => {
     const nextSprintNum = (workspace?.boards?.length || 0) + 16;
     const newBoard = {
       id: `board_${Date.now()}`,
@@ -281,11 +281,15 @@ export default function BuatRetroWizardModal({
       columns: currentTemplate.columns,
     };
 
+    let createdBoard = newBoard;
     if (onCreateBoard) {
-      onCreateBoard(newBoard);
+      const res = await onCreateBoard(newBoard);
+      if (res && res.id) {
+        createdBoard = { ...newBoard, ...res, id: res.id, dbId: res.id };
+      }
     }
     if (onOpenBoard) {
-      onOpenBoard(newBoard);
+      onOpenBoard(createdBoard);
     }
     setIsLoading(false);
     onClose();

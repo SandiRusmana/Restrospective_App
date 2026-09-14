@@ -170,6 +170,12 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       ch.bind('board.anonymous.updated', (data) => {
         if (handlersRef.current?.onAnonymousUpdated) handlersRef.current.onAnonymousUpdated(data);
       });
+      ch.bind('board.revealed', (data) => {
+        if (handlersRef.current?.onBoardRevealed) handlersRef.current.onBoardRevealed(data);
+      });
+      ch.bind('board.cards_count', (data) => {
+        if (handlersRef.current?.onCardsCountUpdated) handlersRef.current.onCardsCountUpdated(data);
+      });
       ch.bind('action-item.created', (data) => {
         if (handlersRef.current?.onActionItemCreated) handlersRef.current.onActionItemCreated(data);
       });

@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Lock } from 'lucide-react';
 
-export default function RetroCardInput({ onSave, onCancel, placeholder = 'Tulis catatan retrospective...' }) {
+export default function RetroCardInput({
+  onSave,
+  onCancel,
+  placeholder = 'Tulis catatan retrospective...',
+  isPrivate = false,
+}) {
   const [text, setText] = useState('');
   const textareaRef = useRef(null);
 
@@ -29,6 +35,12 @@ export default function RetroCardInput({ onSave, onCancel, placeholder = 'Tulis 
 
   return (
     <form className="retro-card-input-box" onSubmit={handleSubmit}>
+      {isPrivate && (
+        <div className="retro-input-private-pill">
+          <Lock size={12} strokeWidth={2.4} />
+          <span>Mode Privat — Hanya Anda yang dapat melihat catatan ini sampai di-reveal</span>
+        </div>
+      )}
       <textarea
         ref={textareaRef}
         className="retro-card-input-textarea"
@@ -51,7 +63,8 @@ export default function RetroCardInput({ onSave, onCancel, placeholder = 'Tulis 
           className="btn-retro-input-submit"
           disabled={!text.trim()}
         >
-          Simpan
+          {isPrivate && <Lock size={12} style={{ marginRight: 4 }} />}
+          {isPrivate ? 'Simpan Catatan Privat' : 'Simpan'}
         </button>
       </div>
     </form>

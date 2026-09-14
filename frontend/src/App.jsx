@@ -29,6 +29,7 @@ import CreateWorkspaceCard from './components/workspace/CreateWorkspaceCard';
 import WorkspaceSwitcher from './components/workspace/WorkspaceSwitcher';
 import ActiveWorkspaceCard from './components/workspace/ActiveWorkspaceCard';
 import MembersListCard from './components/workspace/MembersListCard';
+import RecentBoardsCard from './components/workspace/RecentBoardsCard';
 import WorkspaceBoardsView from './components/workspace/WorkspaceBoardsView';
 import MyBoardsView from './components/workspace/MyBoardsView';
 
@@ -44,6 +45,7 @@ import CreateBoardModal from './components/modals/CreateBoardModal';
 import BuatRetroWizardModal from './components/modals/BuatRetroWizardModal';
 import InviteMemberModal from './components/modals/InviteMemberModal';
 import Toast from './components/common/Toast';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 export default function App() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -413,10 +415,12 @@ export default function App() {
 
   // Filtered Workspaces for Grid
   const filteredWorkspaces = useMemo(() => {
+    if (!workspaces || !Array.isArray(workspaces)) return [];
     if (!searchQuery.trim()) return workspaces;
+    const q = searchQuery.toLowerCase();
     return workspaces.filter((ws) => 
-      ws.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ws.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (ws?.name && ws.name.toLowerCase().includes(q)) ||
+      (ws?.description && ws.description.toLowerCase().includes(q))
     );
   }, [workspaces, searchQuery]);
 
@@ -548,23 +552,33 @@ export default function App() {
         name: newBoardData.title,
         template: newBoardData.template || 'went-well-wrong-action',
       });
+      const realBoard = saved?.board || saved;
       // Update the board with the real ID from backend
-      if (saved?.id) {
+      if (realBoard?.id) {
         setWorkspaces((prev) =>
           prev.map((ws) => {
             if (ws.id !== activeWorkspace.id) return ws;
             return {
               ...ws,
               boards: (ws.boards || []).map((b) =>
-                b.id === newBoardData.id ? { ...b, id: saved.id, dbId: saved.id } : b
+                b.id === newBoardData.id ? { ...b, id: realBoard.id, dbId: realBoard.id } : b
               ),
             };
           })
         );
+        setActiveBoard((prev) => {
+          if (prev && prev.id === newBoardData.id) {
+            return { ...prev, id: realBoard.id, dbId: realBoard.id, columns: realBoard.columns || prev.columns };
+          }
+          return prev;
+        });
+        window.history.replaceState({}, '', `/board/${realBoard.id}`);
+        return realBoard;
       }
     } catch {
       // Local state already updated — backend might be offline
     }
+    return newBoardData;
   };
 
   // Handler: Open Retrospective Board
@@ -589,6 +603,15 @@ export default function App() {
     setActiveBoard(null);
     setBoardAccessError(null);
     setDashboardView('workspace-detail');
+    setActiveNav('workspace');
+    window.history.pushState({}, '', '/');
+  };
+
+  // Handler: Navigate to All Workspaces View
+  const handleNavigateAllWorkspaces = () => {
+    setActiveBoard(null);
+    setBoardAccessError(null);
+    setDashboardView('all-workspaces');
     setActiveNav('workspace');
     window.history.pushState({}, '', '/');
   };
@@ -708,8 +731,9 @@ export default function App() {
             onLogout={handleLogout}
           />
 
-          {/* Loading Indicator during Auth/Workspaces Fetch */}
-          {isLoadingAuth && (
+          <ErrorBoundary onReset={handleBackToWorkspace}>
+            {/* Loading Indicator during Auth/Workspaces Fetch */}
+            {isLoadingAuth && (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 40px)', color: '#64748b', width: '100%' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                 <Loader2 size={36} color="#5956e9" style={{ animation: 'spin 1s linear infinite' }} />
@@ -808,6 +832,7 @@ export default function App() {
               board={activeBoard}
               currentUser={user}
               onBack={handleBackToWorkspace}
+              onNavigateAllWorkspaces={handleNavigateAllWorkspaces}
               onSwitchBoard={handleOpenBoard}
               onShowToast={showToast}
               onUpdateBoard={(updated) => {
@@ -839,7 +864,7 @@ export default function App() {
               onUpdateWorkspace={handleUpdateWorkspace}
               onDeleteBoard={handleDeleteBoard}
               onShowToast={showToast}
-              onNavigateAllWorkspaces={() => setDashboardView('all-workspaces')}
+              onNavigateAllWorkspaces={handleNavigateAllWorkspaces}
             />
           )}
 
@@ -1046,6 +1071,7 @@ export default function App() {
               onShowToast={showToast}
             />
           )}
+          </ErrorBoundary>
 
           {/* Modals */}
           <CreateWorkspaceModal 

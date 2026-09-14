@@ -57,6 +57,7 @@ model Board {
   name        String
   template    String   @default("start-stop-continue")
   isAnonymous Boolean  @default(false)
+  isRevealed  Boolean  @default(false)
   voteLimit   Int?
   createdAt   DateTime @default(now())
 
@@ -97,6 +98,7 @@ model Card {
   authorId   String
   content    String
   isAnonymous Boolean  @default(false)
+  isRevealed  Boolean  @default(false)
   groupId    String?
   groupTitle String?
   createdAt  DateTime @default(now())

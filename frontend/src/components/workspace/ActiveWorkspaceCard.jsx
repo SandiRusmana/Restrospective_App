@@ -7,13 +7,15 @@ export default function ActiveWorkspaceCard({ workspace, onShowToast, onDeleteWo
   const [copied, setCopied] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  if (!workspace) return null;
+
   const handleCopyId = () => {
-    if (navigator?.clipboard) {
+    if (navigator?.clipboard && workspace?.id) {
       navigator.clipboard.writeText(workspace.id);
     }
     setCopied(true);
     if (onShowToast) {
-      onShowToast(`ID Workspace ${workspace.name} berhasil disalin!`);
+      onShowToast(`ID Workspace ${workspace.name || ''} berhasil disalin!`);
     }
     setTimeout(() => {
       setCopied(false);
@@ -31,6 +33,9 @@ export default function ActiveWorkspaceCard({ workspace, onShowToast, onDeleteWo
     }
   };
 
+  const wsInitial = workspace.initial || workspace.name?.charAt(0)?.toUpperCase() || 'W';
+  const wsRole = workspace.role || 'Owner';
+
   return (
     <div className="right-panel-card">
       <div className="panel-header-title">
@@ -39,14 +44,14 @@ export default function ActiveWorkspaceCard({ workspace, onShowToast, onDeleteWo
 
       <div className="active-ws-identity">
         <Avatar 
-          initial={workspace.initial} 
-          color={workspace.color} 
+          initial={wsInitial} 
+          color={workspace.color || '#5956e9'} 
           size="md" 
         />
         <div>
           <div className="card-title-group">
             <h3 className="active-ws-name">{workspace.name}</h3>
-            <Badge variant={workspace.role}>{workspace.role}</Badge>
+            <Badge variant={wsRole}>{wsRole}</Badge>
           </div>
         </div>
       </div>

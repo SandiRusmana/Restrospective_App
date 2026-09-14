@@ -7,6 +7,8 @@ export default function MembersListCard({
   onInviteClick, 
   onViewAllMembers 
 }) {
+  if (!workspace) return null;
+
   const members = workspace.members || [];
   const memberCount = workspace.memberCount || members.length;
 

@@ -32,14 +32,14 @@ export default function WorkspaceCard({
       <div className="card-header-top">
         <div className="card-identity">
           <Avatar 
-            initial={workspace.initial} 
-            color={workspace.color} 
+            initial={workspace.initial || workspace.name?.charAt(0)?.toUpperCase() || 'W'} 
+            color={workspace.color || '#5956e9'} 
             size={isListView ? 'sm' : 'md'} 
           />
           <div>
             <div className="card-title-group">
               <h3 className="card-title">{workspace.name}</h3>
-              <Badge variant={workspace.role}>{workspace.role}</Badge>
+              <Badge variant={workspace.role || 'owner'}>{workspace.role || 'Owner'}</Badge>
             </div>
             {isListView && (
               <p className="card-description" style={{ marginTop: '4px', marginBottom: 0 }}>
@@ -114,11 +114,11 @@ export default function WorkspaceCard({
       <div className="card-footer-info">
         <div className="info-item">
           <User size={15} />
-          <span>{workspace.memberCount} anggota</span>
+          <span>{workspace.memberCount ?? workspace.members?.length ?? 1} anggota</span>
         </div>
         <div className="info-item">
           <Calendar size={15} />
-          <span>{workspace.dateText}</span>
+          <span>{workspace.dateText || (workspace.createdAt ? new Date(workspace.createdAt).toLocaleDateString('id-ID') : 'Aktif')}</span>
         </div>
       </div>
     </div>

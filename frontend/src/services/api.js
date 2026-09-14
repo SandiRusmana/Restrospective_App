@@ -172,6 +172,12 @@ export const api = {
     });
   },
 
+  async revealBoard(boardId) {
+    return request(`/boards/${boardId}/reveal`, {
+      method: 'POST',
+    });
+  },
+
   async exportBoardPdf(boardId) {
     const token = localStorage.getItem('access_token');
     const headers = {

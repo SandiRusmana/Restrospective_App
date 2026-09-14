@@ -14,6 +14,7 @@ import {
   Zap,
   Calendar,
   Lock,
+  EyeOff,
 } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -282,11 +283,14 @@ export default function RetroCard({
         </div>
       )}
 
-      {/* PRIVATE Badge — hanya tampil saat private mode aktif & card milik user */}
+      {/* PRIVATE Badge — tampil saat private mode aktif & card milik user */}
       {isPrivateMode && !isRevealed && card?.isOwner && (
-        <div className="retro-card-private-badge">
-          <Lock size={9} strokeWidth={2.5} />
-          PRIVATE
+        <div
+          className="retro-card-private-badge"
+          title="Mode Menulis Mandiri: Catatan ini berstatus privat dan hanya terlihat oleh Anda sampai sesi di-reveal oleh fasilitator."
+        >
+          <Lock size={10} strokeWidth={2.4} />
+          <span>Privat • Hanya Anda</span>
         </div>
       )}
 
@@ -335,7 +339,7 @@ export default function RetroCard({
                       setIsEditing(true);
                     }}
                   >
-                    <Edit2 size={13} />
+                    <Edit2 size={14} />
                     <span>Edit Catatan</span>
                   </button>
                 )}
@@ -347,67 +351,87 @@ export default function RetroCard({
                     handleCopy();
                   }}
                 >
-                  <Copy size={13} />
-                  <span>{isCopied ? 'Tersalin!' : 'Salin Teks'}</span>
+                  {isCopied ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+                  <span style={isCopied ? { color: '#10b981', fontWeight: 600 } : undefined}>
+                    {isCopied ? 'Tersalin!' : 'Salin Teks'}
+                  </span>
                 </button>
 
-                {columns.length > 1 && (
-                  <div className="retro-menu-sub-section">
-                    <span className="retro-menu-sub-title">Pindah Kolom</span>
-                    {columns
-                      .filter((col) => col.id !== card.columnId && col.type !== card.columnId)
-                      .map((col) => (
-                        <button
-                          key={col.id}
-                          type="button"
-                          className="retro-menu-item"
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            if (onMoveColumn) onMoveColumn(card.id, col.id);
-                          }}
-                        >
-                          <ArrowRightLeft size={13} />
-                          <span>Ke {col.title || col.name}</span>
-                        </button>
-                      ))}
-                  </div>
+                {columns.filter((col) => col.id !== card.columnId && col.type !== card.columnId).length > 0 && (
+                  <>
+                    <div className="retro-menu-divider" />
+                    <div className="retro-menu-move-section">
+                      <div className="retro-menu-move-header">
+                        <ArrowRightLeft size={11} />
+                        <span>Pindah Kolom</span>
+                      </div>
+                      {columns
+                        .filter((col) => col.id !== card.columnId && col.type !== card.columnId)
+                        .map((col) => (
+                          <button
+                            key={col.id}
+                            type="button"
+                            className="retro-menu-move-item"
+                            onClick={() => {
+                              setIsMenuOpen(false);
+                              if (onMoveColumn) onMoveColumn(card.id, col.id);
+                            }}
+                          >
+                            <span
+                              className="retro-menu-col-dot"
+                              style={{ backgroundColor: col.color || '#6366f1' }}
+                            />
+                            <span>Ke {col.title || col.name}</span>
+                          </button>
+                        ))}
+                    </div>
+                  </>
                 )}
 
                 {isInGroup && (
-                  <button
-                    type="button"
-                    className="retro-menu-item"
-                    onClick={handleUngroup}
-                  >
-                    <Unlink size={13} />
-                    <span>Keluarkan dari Grup</span>
-                  </button>
+                  <>
+                    <div className="retro-menu-divider" />
+                    <button
+                      type="button"
+                      className="retro-menu-item"
+                      onClick={handleUngroup}
+                    >
+                      <Unlink size={14} />
+                      <span>Keluarkan dari Grup</span>
+                    </button>
+                  </>
                 )}
 
                 {/* Konversi ke Action Item */}
                 {!actionItem && onConvertToActionItem && (
-                  <button
-                    type="button"
-                    className="retro-menu-item"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      onConvertToActionItem(card);
-                    }}
-                  >
-                    <Zap size={13} color="#5956e9" />
-                    <span>Jadikan Action Item</span>
-                  </button>
+                  <>
+                    <div className="retro-menu-divider" />
+                    <button
+                      type="button"
+                      className="retro-menu-item retro-menu-item-action"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        onConvertToActionItem(card);
+                      }}
+                    >
+                      <Zap size={14} />
+                      <span>Jadikan Action Item</span>
+                    </button>
+                  </>
                 )}
 
                 {(isAuthor || isFacilitator) && (
-                  <button
-                    type="button"
-                    className="retro-menu-item retro-menu-item-delete"
-                    onClick={handleDelete}
-                  >
-                    <Trash2 size={13} />
-                    <span>Hapus Catatan</span>
-                  </button>
+                  <>
+                    <div className="retro-menu-divider" />
+                    <button
+                      type="button"
+                      className="retro-menu-item retro-menu-item-delete"
+                      onClick={handleDelete}
+                    >
+                      <Trash2 size={14} />
+                      <span>Hapus Catatan</span>
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -475,6 +499,12 @@ export default function RetroCard({
                   Anonim
                 </span>
               )}
+              {isPrivateMode && !isRevealed && card?.isOwner && (
+                <span className="retro-card-private-subtag" title="Catatan ini belum di-reveal ke tim">
+                  <EyeOff size={10} strokeWidth={2.2} />
+                  <span>Belum Reveal</span>
+                </span>
+              )}
             </div>
             <span className="retro-card-time">{timestamp}</span>
           </div>
@@ -486,12 +516,14 @@ export default function RetroCard({
             type="button"
             className={`btn-retro-vote ${hasVoted ? 'voted' : ''} ${isPriority ? 'priority' : ''} ${
               isVoteAnimating ? 'vote-pop' : ''
-            } ${isReadOnly ? 'readonly' : ''}`}
+            } ${isReadOnly || (isPrivateMode && !isRevealed) ? 'readonly' : ''}`}
             onClick={handleVoteClick}
-            disabled={isReadOnly}
+            disabled={isReadOnly || (isPrivateMode && !isRevealed)}
             title={
               isReadOnly
                 ? 'Mode Baca Saja (Voting dinonaktifkan)'
+                : isPrivateMode && !isRevealed
+                ? 'Voting akan aktif setelah fasilitator me-reveal catatan ke seluruh tim'
                 : hasVoted
                 ? 'Batalkan vote Anda'
                 : 'Beri vote (+1)'
