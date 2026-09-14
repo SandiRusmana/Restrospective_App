@@ -47,6 +47,7 @@ export default function CreateBoardModal({
   workspaceName,
   workspace,
   workspaces = [],
+  initialTemplateId = null,
 }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -67,11 +68,17 @@ export default function CreateBoardModal({
     if (isOpen) {
       setTitle('');
       setDescription('');
-      setSelectedTemplate(null);
-      setShowTemplatePicker(false);
+      if (initialTemplateId) {
+        const found = RETRO_TEMPLATES.find((t) => t.id === initialTemplateId);
+        setSelectedTemplate(found || null);
+        setShowTemplatePicker(Boolean(found));
+      } else {
+        setSelectedTemplate(null);
+        setShowTemplatePicker(false);
+      }
       setIsWsDropdownOpen(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialTemplateId]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {

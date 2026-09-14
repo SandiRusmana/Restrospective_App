@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
+import { Lock } from 'lucide-react';
 import RetroCard from './RetroCard';
 import RetroCardGroup from './RetroCardGroup';
 import RetroCardInput from './RetroCardInput';
@@ -154,8 +155,16 @@ export default function RetroColumn({
             border: `1.5px solid ${column.border || column.color || '#cbd5e1'}`,
             color: column.color || '#2563eb',
           }}
+          title={isPrivateMode && !isRevealed ? 'Catatan Anda akan berstatus privat sampai fasilitator melakukan reveal' : undefined}
         >
-          + Tambah Catatan
+          {isPrivateMode && !isRevealed ? (
+            <>
+              <Lock size={12} style={{ display: 'inline', marginRight: 5, verticalAlign: '-1px' }} />
+              + Catatan Baru
+            </>
+          ) : (
+            '+ Tambah Catatan'
+          )}
         </button>
       )}
 
@@ -165,6 +174,7 @@ export default function RetroColumn({
           onSave={handleSaveCard}
           onCancel={() => setIsAdding(false)}
           placeholder={`Tulis catatan untuk ${column.title || column.name}...`}
+          isPrivate={isPrivateMode && !isRevealed}
         />
       )}
 
@@ -194,6 +204,8 @@ export default function RetroColumn({
               isFacilitator={isFacilitator}
               isReadOnly={isReadOnly}
               actionItems={actionItems}
+              isPrivateMode={isPrivateMode}
+              isRevealed={isRevealed}
             />
           ))}
 
@@ -224,21 +236,22 @@ export default function RetroColumn({
         </div>
       )}
 
-      {/* ── Empty State: Private Mode (card anggota lain tersembunyi) ── */}
+      {/* ── Private Mode Hint below cards list ── */}
+      {isPrivateMode && !isRevealed && visibleCards.length > 0 && (
+        <div className="retro-column-private-hint">
+          <Lock size={11} />
+          <span>Catatan anggota lain disembunyikan sampai reveal</span>
+        </div>
+      )}
+
+      {/* ── Empty State: Private Mode (minimal & clean) ── */}
       {isPrivateMode && !isRevealed && visibleCards.length === 0 && (
         <div className="retro-private-empty-state">
           <div className="retro-private-empty-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="5" y="2" width="14" height="20" rx="2" />
-              <line x1="9" y1="7" x2="15" y2="7" />
-              <line x1="9" y1="11" x2="15" y2="11" />
-              <line x1="9" y1="15" x2="12" y2="15" />
-            </svg>
+            <Lock size={15} strokeWidth={2.2} />
           </div>
-          <p className="retro-private-empty-title">Tidak ada card yang terlihat</p>
-          <p className="retro-private-empty-desc">
-            Card anggota lain akan muncul<br />setelah reveal.
-          </p>
+          <span className="retro-private-empty-title">Belum ada catatan</span>
+          <span className="retro-private-empty-desc">Catatan tim muncul setelah reveal</span>
         </div>
       )}
 

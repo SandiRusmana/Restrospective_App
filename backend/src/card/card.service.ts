@@ -99,13 +99,16 @@ export class CardService {
         ? createCardDto.isAnonymous
         : Boolean(board.isAnonymous);
 
-    const card = await this.prisma.card.create({
+    const isCardRevealed = Boolean(board.isRevealed);
+
+    const card = await (this.prisma.card as any).create({
       data: {
         boardId: board.id,
         columnId: column.id,
         authorId: userId,
         content: content.trim(),
         isAnonymous: isCardAnonymous,
+        isRevealed: isCardRevealed,
       },
       include: {
         author: {
@@ -129,25 +132,41 @@ export class CardService {
       columnType: column.name.toLowerCase(),
       columnName: column.name,
       isAnonymous: isCardAnonymous,
+      isRevealed: isCardRevealed,
       isOwner: true,
     };
 
-    // 4. Trigger Realtime Broadcast via Pusher (Broadcast ke semua channel board)
-    const channels = [
-      `board-${boardId}`,
-      `private-board-${boardId}`,
-      `presence-board-${boardId}`,
-    ];
-    const cardToBroadcast = isCardAnonymous
-      ? { ...cardResponse, author: null, isAnonymous: true }
-      : { ...cardResponse, isAnonymous: false };
-    try {
-      await this.pusher.trigger(channels, 'card.created', cardToBroadcast);
-    } catch (err) {
-      console.warn(
-        `[Pusher Warn] Gagal mengirim broadcast card.created ke channels ${channels.join(', ')}:`,
-        err.message,
-      );
+    // 4. Trigger Realtime Broadcast via Pusher (Hanya jika card sudah revealed, agar card unrevealed tetap privat bagi author)
+    if (isCardRevealed) {
+      const channels = [
+        `board-${boardId}`,
+        `private-board-${boardId}`,
+        `presence-board-${boardId}`,
+      ];
+      const cardToBroadcast = isCardAnonymous
+        ? { ...cardResponse, author: null, isAnonymous: true }
+        : { ...cardResponse, isAnonymous: false };
+      try {
+        await this.pusher.trigger(channels, 'card.created', cardToBroadcast);
+      } catch (err) {
+        console.warn(
+          `[Pusher Warn] Gagal mengirim broadcast card.created ke channels ${channels.join(', ')}:`,
+          err.message,
+        );
+      }
+    } else {
+      // Ketika unrevealed, kirim pembaruan total count agar fasilitator & tim tahu aktivitas tanpa membocorkan konten
+      try {
+        const totalCardsCount = await (this.prisma.card as any).count({ where: { boardId } });
+        const channels = [
+          `board-${boardId}`,
+          `private-board-${boardId}`,
+          `presence-board-${boardId}`,
+        ];
+        await this.pusher.trigger(channels, 'board.cards_count', { totalCardsCount });
+      } catch (err) {
+        // silent catch
+      }
     }
 
     return {
@@ -158,6 +177,7 @@ export class CardService {
 
   /**
    * Mengambil Semua Card Pada Suatu Board
+   * Backend hanya mengirim card milik user atau card yang sudah revealed
    */
   async getBoardCards(userId: string, boardId: string) {
     // 1. Cek Otorisasi Akses User ke Board
@@ -169,9 +189,15 @@ export class CardService {
       membership?.role === 'facilitator' ||
       membership?.role === 'admin';
 
-    // 2. Ambil semua card pada board beserta relasi author, vote, dan comments
+    // 2. Ambil card pada board yang sudah di-reveal ATAU milik user saat ini
     const cards = await (this.prisma.card as any).findMany({
-      where: { boardId },
+      where: {
+        boardId,
+        OR: [
+          { isRevealed: true },
+          { authorId: userId },
+        ],
+      },
       include: {
         author: {
           select: {
@@ -245,6 +271,7 @@ export class CardService {
         authorId: shouldHideAuthor ? null : c.authorId,
         isOwner,
         isAnonymous: isCardAnonymous,
+        isRevealed: Boolean(c.isRevealed),
         content: c.content,
         groupId: c.groupId || null,
         groupTitle: c.groupTitle || null,
@@ -407,6 +434,11 @@ export class CardService {
         boardId: card.boardId,
         columnId: card.columnId,
       });
+
+      if (!card.isRevealed) {
+        const totalCardsCount = await (this.prisma.card as any).count({ where: { boardId: card.boardId } });
+        await this.pusher.trigger(channels, 'board.cards_count', { totalCardsCount });
+      }
     } catch (err) {
       console.warn(`[Pusher Warn] Gagal mengirim broadcast card.deleted:`, err.message);
     }

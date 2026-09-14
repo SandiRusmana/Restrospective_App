@@ -211,6 +211,12 @@ export class BoardService {
           },
           include: {
             cards: {
+              where: {
+                OR: [
+                  { isRevealed: true },
+                  { authorId: userId },
+                ],
+              },
               include: {
                 author: {
                   select: {
@@ -274,8 +280,13 @@ export class BoardService {
       membership.role === 'facilitator' ||
       membership.role === 'admin';
 
+    const totalCardsCount = await (this.prisma.card as any).count({
+      where: { boardId },
+    });
+
     const baseResult = {
       ...board,
+      totalCardsCount,
       userRole: membership.role,
       isFacilitator,
     };
@@ -399,6 +410,159 @@ export class BoardService {
       boardId,
       isAnonymous: newStatus,
       board: updatedBoard,
+    };
+  }
+
+  /**
+   * Reveal Semua Card Pada Suatu Board
+   * Hanya dapat dilakukan oleh fasilitator / owner / admin
+   * Mengubah seluruh card menjadi revealed dan broadcast via Pusher ke channel board-{boardId}
+   */
+  async revealBoard(userId: string, boardId: string) {
+    // 1. Cari Board dan periksa membership
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: {
+        workspace: {
+          include: {
+            members: {
+              where: { userId },
+            },
+          },
+        },
+      },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board tidak ditemukan');
+    }
+
+    const membership = board.workspace.members[0];
+    const isFacilitator =
+      board.workspace.ownerId === userId ||
+      membership?.role === 'owner' ||
+      membership?.role === 'facilitator' ||
+      membership?.role === 'admin';
+
+    if (!isFacilitator) {
+      throw new ForbiddenException('Hanya fasilitator yang dapat melakukan reveal kartu');
+    }
+
+    // 2. Update status board dan semua card di board menjadi isRevealed: true
+    await this.prisma.$transaction([
+      this.prisma.board.update({
+        where: { id: boardId },
+        data: { isRevealed: true },
+      }),
+      this.prisma.card.updateMany({
+        where: { boardId },
+        data: { isRevealed: true },
+      }),
+    ]);
+
+    // 3. Ambil seluruh card yang kini sudah revealed beserta relasinya
+    const revealedCards = await this.prisma.card.findMany({
+      where: { boardId },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        votes: {
+          select: {
+            userId: true,
+          },
+        },
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+        column: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        actionItem: {
+          include: {
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    const formattedCards = revealedCards.map((c: any) => ({
+      id: c.id,
+      boardId: c.boardId,
+      columnId: c.columnId,
+      columnType: c.column?.name ? c.column.name.toLowerCase() : null,
+      columnName: c.column?.name || null,
+      authorId: c.authorId,
+      isOwner: c.authorId === userId,
+      isAnonymous: Boolean(c.isAnonymous),
+      isRevealed: true,
+      content: c.content,
+      groupId: c.groupId || null,
+      groupTitle: c.groupTitle || null,
+      createdAt: c.createdAt,
+      author: c.author,
+      votes: c.votes || [],
+      votesCount: Array.isArray(c.votes) ? c.votes.length : 0,
+      comments: c.comments || [],
+      commentsCount: Array.isArray(c.comments) ? c.comments.length : 0,
+      actionItem: c.actionItem || null,
+    }));
+
+    // 4. Broadcast via Pusher ke channel board-{boardId} dengan event board.revealed
+    const channels = [
+      `board-${boardId}`,
+      `private-board-${boardId}`,
+      `presence-board-${boardId}`,
+    ];
+
+    const payload = {
+      boardId,
+      isRevealed: true,
+      revealedBy: userId,
+      cardsCount: formattedCards.length,
+      cards: formattedCards,
+    };
+
+    try {
+      await this.pusher.trigger(channels, 'board.revealed', payload);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast board.revealed:`, err.message);
+    }
+
+    return {
+      message: 'Semua card berhasil di-reveal',
+      boardId,
+      isRevealed: true,
+      cardsCount: formattedCards.length,
+      cards: formattedCards,
     };
   }
 }

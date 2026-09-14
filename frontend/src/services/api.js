@@ -58,6 +58,13 @@ export const api = {
     return request('/auth/me', { method: 'GET' });
   },
 
+  async updateProfile(data) {
+    return request('/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
   getGoogleAuthUrl() {
     return `${API_BASE_URL}/auth/google`;
   },
@@ -162,6 +169,12 @@ export const api = {
     return request(`/boards/${boardId}/anonymous`, {
       method: 'PATCH',
       body: JSON.stringify({ isAnonymous }),
+    });
+  },
+
+  async revealBoard(boardId) {
+    return request(`/boards/${boardId}/reveal`, {
+      method: 'POST',
     });
   },
 
@@ -291,6 +304,16 @@ export const api = {
     if (endDate) params.append('endDate', endDate);
     const queryString = params.toString() ? `?${params.toString()}` : '';
     return request(`/workspaces/${workspaceId}/dashboard-summary${queryString}`, {
+      method: 'GET',
+    });
+  },
+
+  async getBoardDashboardSummary(boardId, { startDate, endDate } = {}) {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return request(`/boards/${boardId}/dashboard-summary${queryString}`, {
       method: 'GET',
     });
   },

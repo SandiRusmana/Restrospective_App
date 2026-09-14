@@ -51,6 +51,14 @@ export class BoardController {
     return this.boardService.updateAnonymous(userId, boardId, updateAnonymousDto?.isAnonymous);
   }
 
+  @Post('boards/:id/reveal')
+  async revealBoard(
+    @GetUser('id') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
+  ) {
+    return this.boardService.revealBoard(userId, boardId);
+  }
+
   @Delete('boards/:id')
   async deleteBoard(
     @GetUser('id') userId: string,

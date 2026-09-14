@@ -33,6 +33,11 @@ import RecentBoardsCard from './components/workspace/RecentBoardsCard';
 import WorkspaceBoardsView from './components/workspace/WorkspaceBoardsView';
 import MyBoardsView from './components/workspace/MyBoardsView';
 
+// Sidebar Feature Views
+import ActivityView from './components/activity/ActivityView';
+import TemplatesView from './components/templates/TemplatesView';
+import SettingsView from './components/settings/SettingsView';
+
 // Board Detail & Modals
 import RetroBoardDetail from './components/board/RetroBoardDetail';
 import CreateWorkspaceModal from './components/modals/CreateWorkspaceModal';
@@ -40,6 +45,7 @@ import CreateBoardModal from './components/modals/CreateBoardModal';
 import BuatRetroWizardModal from './components/modals/BuatRetroWizardModal';
 import InviteMemberModal from './components/modals/InviteMemberModal';
 import Toast from './components/common/Toast';
+import ErrorBoundary from './components/common/ErrorBoundary';
 
 export default function App() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -63,6 +69,7 @@ export default function App() {
   // Modals & Toast State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateBoardModalOpen, setIsCreateBoardModalOpen] = useState(false);
+  const [selectedTemplateForCreate, setSelectedTemplateForCreate] = useState(null);
   const [isWizardModalOpen, setIsWizardModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -408,10 +415,12 @@ export default function App() {
 
   // Filtered Workspaces for Grid
   const filteredWorkspaces = useMemo(() => {
+    if (!workspaces || !Array.isArray(workspaces)) return [];
     if (!searchQuery.trim()) return workspaces;
+    const q = searchQuery.toLowerCase();
     return workspaces.filter((ws) => 
-      ws.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ws.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (ws?.name && ws.name.toLowerCase().includes(q)) ||
+      (ws?.description && ws.description.toLowerCase().includes(q))
     );
   }, [workspaces, searchQuery]);
 
@@ -543,23 +552,33 @@ export default function App() {
         name: newBoardData.title,
         template: newBoardData.template || 'went-well-wrong-action',
       });
+      const realBoard = saved?.board || saved;
       // Update the board with the real ID from backend
-      if (saved?.id) {
+      if (realBoard?.id) {
         setWorkspaces((prev) =>
           prev.map((ws) => {
             if (ws.id !== activeWorkspace.id) return ws;
             return {
               ...ws,
               boards: (ws.boards || []).map((b) =>
-                b.id === newBoardData.id ? { ...b, id: saved.id, dbId: saved.id } : b
+                b.id === newBoardData.id ? { ...b, id: realBoard.id, dbId: realBoard.id } : b
               ),
             };
           })
         );
+        setActiveBoard((prev) => {
+          if (prev && prev.id === newBoardData.id) {
+            return { ...prev, id: realBoard.id, dbId: realBoard.id, columns: realBoard.columns || prev.columns };
+          }
+          return prev;
+        });
+        window.history.replaceState({}, '', `/board/${realBoard.id}`);
+        return realBoard;
       }
     } catch {
       // Local state already updated — backend might be offline
     }
+    return newBoardData;
   };
 
   // Handler: Open Retrospective Board
@@ -584,6 +603,15 @@ export default function App() {
     setActiveBoard(null);
     setBoardAccessError(null);
     setDashboardView('workspace-detail');
+    setActiveNav('workspace');
+    window.history.pushState({}, '', '/');
+  };
+
+  // Handler: Navigate to All Workspaces View
+  const handleNavigateAllWorkspaces = () => {
+    setActiveBoard(null);
+    setBoardAccessError(null);
+    setDashboardView('all-workspaces');
     setActiveNav('workspace');
     window.history.pushState({}, '', '/');
   };
@@ -683,6 +711,15 @@ export default function App() {
               } else if (navId === 'my-boards') {
                 setActiveNav('my-boards');
                 setDashboardView('my-boards');
+              } else if (navId === 'activity') {
+                setActiveNav('activity');
+                setDashboardView('activity');
+              } else if (navId === 'templates') {
+                setActiveNav('templates');
+                setDashboardView('templates');
+              } else if (navId === 'settings') {
+                setActiveNav('settings');
+                setDashboardView('settings');
               } else {
                 showToast(`Menu ${navId} akan hadir pada update berikutnya`);
               }
@@ -694,8 +731,9 @@ export default function App() {
             onLogout={handleLogout}
           />
 
-          {/* Loading Indicator during Auth/Workspaces Fetch */}
-          {isLoadingAuth && (
+          <ErrorBoundary onReset={handleBackToWorkspace}>
+            {/* Loading Indicator during Auth/Workspaces Fetch */}
+            {isLoadingAuth && (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 40px)', color: '#64748b', width: '100%' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                 <Loader2 size={36} color="#5956e9" style={{ animation: 'spin 1s linear infinite' }} />
@@ -794,6 +832,7 @@ export default function App() {
               board={activeBoard}
               currentUser={user}
               onBack={handleBackToWorkspace}
+              onNavigateAllWorkspaces={handleNavigateAllWorkspaces}
               onSwitchBoard={handleOpenBoard}
               onShowToast={showToast}
               onUpdateBoard={(updated) => {
@@ -825,7 +864,7 @@ export default function App() {
               onUpdateWorkspace={handleUpdateWorkspace}
               onDeleteBoard={handleDeleteBoard}
               onShowToast={showToast}
-              onNavigateAllWorkspaces={() => setDashboardView('all-workspaces')}
+              onNavigateAllWorkspaces={handleNavigateAllWorkspaces}
             />
           )}
 
@@ -980,6 +1019,60 @@ export default function App() {
             </div>
           )}
 
+          {/* 4. Activity Timeline View */}
+          {dashboardView === 'activity' && (
+            <ActivityView
+              workspace={activeWorkspace}
+              workspaces={workspaces}
+              currentUser={user}
+              onOpenBoard={(b) => handleOpenBoard(b)}
+              onCreateBoard={() => {
+                setSelectedTemplateForCreate(null);
+                setIsCreateBoardModalOpen(true);
+              }}
+              onInviteMember={() => setIsInviteModalOpen(true)}
+              onShowToast={showToast}
+            />
+          )}
+
+          {/* 5. Templates Catalog View */}
+          {dashboardView === 'templates' && (
+            <TemplatesView
+              workspace={activeWorkspace}
+              onUseTemplate={(templateId) => {
+                setSelectedTemplateForCreate(templateId);
+                setIsCreateBoardModalOpen(true);
+              }}
+              onShowToast={showToast}
+            />
+          )}
+
+          {/* 6. Settings Management View */}
+          {dashboardView === 'settings' && (
+            <SettingsView
+              currentUser={user}
+              workspace={activeWorkspace}
+              onUpdateUser={(updated) => {
+                setUser(updated);
+                setWorkspaces((prev) =>
+                  prev.map((ws) => ({
+                    ...ws,
+                    members: (ws.members || []).map((m) =>
+                      m.id === updated.id || m.userId === updated.id
+                        ? { ...m, name: `${updated.name} (Anda)`, avatar: updated.avatarUrl }
+                        : m
+                    ),
+                  }))
+                );
+              }}
+              onUpdateWorkspace={handleUpdateWorkspace}
+              onDeleteWorkspace={handleDeleteWorkspace}
+              onInviteMember={() => setIsInviteModalOpen(true)}
+              onShowToast={showToast}
+            />
+          )}
+          </ErrorBoundary>
+
           {/* Modals */}
           <CreateWorkspaceModal 
             isOpen={isCreateModalOpen}
@@ -989,11 +1082,15 @@ export default function App() {
 
           <CreateBoardModal 
             isOpen={isCreateBoardModalOpen}
-            onClose={() => setIsCreateBoardModalOpen(false)}
+            onClose={() => {
+              setIsCreateBoardModalOpen(false);
+              setSelectedTemplateForCreate(null);
+            }}
             onCreateBoard={handleCreateBoard}
             workspaceName={activeWorkspace?.name}
             workspace={activeWorkspace}
             workspaces={workspaces}
+            initialTemplateId={selectedTemplateForCreate}
           />
 
           <BuatRetroWizardModal 

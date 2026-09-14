@@ -65,9 +65,9 @@ export default function RevealCardsModal({ isOpen, onClose, onConfirm, privateCo
 
         {/* Card count preview */}
         <div className="reveal-modal-count-box">
-          <FileText size={32} color="#5956e9" strokeWidth={1.5} />
+          <FileText size={30} color="#5956e9" strokeWidth={1.75} />
           <span className="reveal-modal-count-text">
-            {privateCount} card siap untuk di-reveal
+            <strong>{privateCount}</strong> catatan tim siap untuk di-reveal
           </span>
         </div>
 
@@ -88,7 +88,8 @@ export default function RevealCardsModal({ isOpen, onClose, onConfirm, privateCo
               onClose();
             }}
           >
-            Reveal Cards
+            <Eye size={15} style={{ marginRight: 6, verticalAlign: '-2px' }} />
+            Reveal Sekarang
           </button>
         </div>
       </div>

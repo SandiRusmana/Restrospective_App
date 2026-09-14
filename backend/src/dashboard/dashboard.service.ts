@@ -180,4 +180,203 @@ export class DashboardService {
       },
     };
   }
+
+  /**
+   * Mengambil Ringkasan Dashboard Khusus Satu Board (1 Board 1 Ringkasan)
+   */
+  async getBoardDashboardSummary(
+    userId: string,
+    boardId: string,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    // 1. Validasi keberadaan Board dan keanggotaan Workspace
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: {
+        workspace: {
+          include: {
+            members: {
+              where: { userId },
+            },
+          },
+        },
+      },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board tidak ditemukan');
+    }
+
+    const isMember = board.workspace.members.length > 0;
+    const isOwner = board.workspace.ownerId === userId;
+    if (!isMember && !isOwner) {
+      throw new ForbiddenException('Anda bukan anggota dari workspace ini');
+    }
+
+    // 2. Susun filter kondisi khusus board ini
+    const whereCondition: any = {
+      boardId,
+    };
+
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    if (start || end) {
+      whereCondition.createdAt = {};
+      if (start && !isNaN(start.getTime())) {
+        whereCondition.createdAt.gte = start;
+      }
+      if (end && !isNaN(end.getTime())) {
+        if (endDate && (!endDate.includes('T') || endDate.length <= 10)) {
+          end.setHours(23, 59, 59, 999);
+        }
+        whereCondition.createdAt.lte = end;
+      }
+    }
+
+    // 3. Prisma Aggregate untuk menghitung Total Action Items board ini
+    const totalAggregate = await this.prisma.actionItem.aggregate({
+      where: whereCondition,
+      _count: {
+        id: true,
+      },
+    });
+    const totalActionItems = totalAggregate._count.id || 0;
+
+    // 4. Prisma GroupBy berdasarkan status Action Item (DONE, PENDING, IN_PROGRESS)
+    const statusGroups = await this.prisma.actionItem.groupBy({
+      by: ['status'],
+      where: whereCondition,
+      _count: {
+        id: true,
+      },
+    });
+
+    let doneCount = 0;
+    let pendingCount = 0;
+    let inProgressCount = 0;
+
+    statusGroups.forEach((group) => {
+      const count = group._count.id || 0;
+      if (group.status === 'DONE') {
+        doneCount = count;
+      } else if (group.status === 'PENDING') {
+        pendingCount = count;
+      } else if (group.status === 'IN_PROGRESS') {
+        inProgressCount = count;
+      }
+    });
+
+    const totalPending = pendingCount + inProgressCount;
+    const completionRate =
+      totalActionItems > 0
+        ? Math.round((doneCount / totalActionItems) * 10000) / 100
+        : 0;
+    const pendingRate =
+      totalActionItems > 0 ? Math.round((totalPending / totalActionItems) * 10000) / 100 : 0;
+
+    // 5. Action Items list di board ini dengan detail Assignee
+    const rawActionItems = await this.prisma.actionItem.findMany({
+      where: whereCondition,
+      include: {
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // 6. Metrik kartu dan voting khusus board ini
+    const totalCards = await this.prisma.card.count({
+      where: {
+        boardId,
+      },
+    });
+
+    const totalVotes = await this.prisma.vote.count({
+      where: {
+        card: {
+          boardId,
+        },
+      },
+    });
+
+    // 7. Top 3 Ide / Catatan dengan vote terbanyak di board ini
+    const topCards = await this.prisma.card.findMany({
+      where: {
+        boardId,
+      },
+      include: {
+        votes: true,
+        column: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        author: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        votes: {
+          _count: 'desc',
+        },
+      },
+      take: 3,
+    });
+
+    return {
+      boardId,
+      boardTitle: board.name,
+      workspaceId: board.workspaceId,
+      workspaceName: board.workspace.name,
+      total: totalActionItems,
+      totalActionItems,
+      completed: doneCount,
+      done: doneCount,
+      pending: pendingCount,
+      inProgress: inProgressCount,
+      totalPending,
+      completionRate,
+      pendingRate,
+      totalCards,
+      totalVotes,
+      topCards: topCards.map((c) => ({
+        id: c.id,
+        content: c.content,
+        columnName: c.column?.name,
+        votesCount: c.votes?.length || 0,
+        authorName: c.isAnonymous ? 'Anonim' : c.author?.name || 'Anggota Tim',
+        authorAvatar: c.isAnonymous ? null : c.author?.avatarUrl,
+      })),
+      actionItems: rawActionItems.map((ai) => ({
+        id: ai.id,
+        title: ai.title || 'Action Item',
+        status: ai.status,
+        boardId: ai.boardId,
+        boardName: board.name,
+        assignee: ai.assignee || {
+          name: 'Belum ditugaskan',
+          avatarUrl: null,
+        },
+        createdAt: ai.createdAt,
+      })),
+      filter: {
+        startDate: startDate || null,
+        endDate: endDate || null,
+      },
+    };
+  }
 }

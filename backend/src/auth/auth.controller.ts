@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   Req,
   Res,
@@ -46,6 +47,15 @@ export class AuthController {
   @Get('me')
   async getMe(@GetUser('id') userId: string) {
     return this.authService.getMe(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  async updateProfile(
+    @GetUser('id') userId: string,
+    @Body() body: { name?: string; avatarUrl?: string },
+  ) {
+    return this.authService.updateProfile(userId, body);
   }
 
   /**
