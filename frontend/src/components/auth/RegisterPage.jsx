@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import AuthHero from './AuthHero';
 
 import { api } from '../../services/api';
@@ -19,6 +19,17 @@ export default function RegisterPage({ onRegisterSuccess, onNavigateLogin }) {
     e.preventDefault();
     if (!fullName.trim() || !email.trim() || !password.trim()) return;
 
+    if (password.length < 8) {
+      setErrorMessage('Password minimal 8 karakter.');
+      return;
+    }
+
+    const hasLetterAndNumber = /^(?=.*[A-Za-z])(?=.*\d)/.test(password);
+    if (!hasLetterAndNumber) {
+      setErrorMessage('Password harus mengandung kombinasi huruf dan angka.');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setErrorMessage("Password dan konfirmasi password tidak cocok!");
       return;
@@ -28,7 +39,7 @@ export default function RegisterPage({ onRegisterSuccess, onNavigateLogin }) {
     setErrorMessage('');
 
     try {
-      const res = await api.register(email.trim(), password.trim(), fullName.trim());
+      const res = await api.register(email.trim().toLowerCase(), password.trim(), fullName.trim());
       onRegisterSuccess(res.user);
     } catch (err) {
       setErrorMessage(err.message || 'Registrasi gagal. Silakan coba lagi.');
@@ -62,7 +73,7 @@ export default function RegisterPage({ onRegisterSuccess, onNavigateLogin }) {
                 <input 
                   type="text" 
                   className="auth-input-field" 
-                  placeholder="Nama Lengkap Anda"
+                  placeholder="Masukkan nama lengkap"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
@@ -94,7 +105,7 @@ export default function RegisterPage({ onRegisterSuccess, onNavigateLogin }) {
                 <input 
                   type={showPassword ? 'text' : 'password'} 
                   className="auth-input-field" 
-                  placeholder="Masukkan password"
+                  placeholder="Minimal 8 karakter (huruf & angka)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -108,6 +119,9 @@ export default function RegisterPage({ onRegisterSuccess, onNavigateLogin }) {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                Minimal 8 karakter dengan kombinasi huruf dan angka.
+              </span>
             </div>
 
             {/* Field: Konfirmasi Password */}
@@ -146,7 +160,7 @@ export default function RegisterPage({ onRegisterSuccess, onNavigateLogin }) {
             {/* Status Verifikasi */}
             {isLoading ? (
               <div className="auth-verifying-text">
-                <span className="auth-spinner-dot" />
+                <Loader2 size={16} className="animate-spin" color="#5956e9" />
                 <span>Sedang memverifikasi...</span>
               </div>
             ) : (

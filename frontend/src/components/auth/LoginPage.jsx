@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import AuthHero from './AuthHero';
 
 import { api } from '../../services/api';
@@ -13,25 +13,24 @@ export default function LoginPage({ onLoginSuccess, onNavigateRegister }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    if (!cleanEmail || !cleanPassword) {
+      setErrorMessage('Email dan password wajib diisi.');
+      return;
+    }
 
     setIsLoading(true);
     setErrorMessage('');
 
     try {
-      const res = await api.login(email.trim(), password.trim());
+      const res = await api.login(cleanEmail, cleanPassword);
       onLoginSuccess(res.user);
     } catch (err) {
-      if (err.message && (err.message.includes('fetch') || err.message.includes('Failed to fetch') || err.message.includes('NetworkError'))) {
-        // Standalone offline frontend demo mode
-        onLoginSuccess({
-          id: 'user_afrizal',
-          name: email.split('@')[0] === 'user' ? 'Afrizal' : email.split('@')[0],
-          email: email.trim(),
-        });
-      } else {
-        setErrorMessage(err.message || 'Login gagal. Periksa kembali email dan password Anda.');
-      }
+      setErrorMessage(
+        err.message || 'Login gagal. Periksa kembali alamat email dan password Anda.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +116,7 @@ export default function LoginPage({ onLoginSuccess, onNavigateRegister }) {
             {/* Status Verifikasi */}
             {isLoading ? (
               <div className="auth-verifying-text">
-                <span className="auth-spinner-dot" />
+                <Loader2 size={16} className="animate-spin" color="#5956e9" />
                 <span>Sedang memverifikasi...</span>
               </div>
             ) : (

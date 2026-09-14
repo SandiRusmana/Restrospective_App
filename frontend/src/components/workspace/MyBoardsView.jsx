@@ -26,65 +26,27 @@ export default function MyBoardsView({
   const [activeDropdownId, setActiveDropdownId] = useState(null);
   const [mutedBoards, setMutedBoards] = useState({});
 
-  // Collect boards from activeWorkspace or across workspaces
-  const rawBoards = workspace?.boards || [];
-
-  // If there are real boards, enrich them with status; if empty, provide high-quality defaults matching screenshot
+  // Strictly display boards from the current active workspace ONLY (isolated per workspace)
   const displayBoards = useMemo(() => {
-    if (rawBoards.length > 0) {
-      return rawBoards.map((b, idx) => ({
-        id: b.id,
-        title: b.title || b.name || `Sprint ${16 - idx} Retrospective`,
-        workspaceName: workspace?.name || 'Mobile Team',
-        membersCount: b.membersCount || workspace?.memberCount || 8,
-        status: b.status || (idx === 0 ? 'aktif' : 'selesai'),
-        daysLeft: b.daysLeft || (idx === 0 ? '2 hari lagi' : null),
-        dateText: b.dateText || (b.createdAt 
-          ? `Dibuat ${new Date(b.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` 
-          : 'Dibuat 30 Jun 2026'),
-        color: b.color || '#5956e9',
-        theme: b.theme || { bg: '#f3f0ff', color: '#7c3aed' },
-        raw: b
-      }));
+    if (!workspace?.boards || !Array.isArray(workspace.boards)) {
+      return [];
     }
 
-    // Default 3 sample boards exactly matching media_1789106384315.png
-    return [
-      {
-        id: 'board-sample-1',
-        title: 'Sprint 16 Retrospective',
-        workspaceName: workspace?.name || 'Mobile Team',
-        membersCount: 8,
-        status: 'aktif',
-        daysLeft: '2 hari lagi',
-        dateText: 'Dibuat 30 Jun 2026',
-        color: '#5956e9',
-        theme: { bg: '#f3f0ff', color: '#7c3aed' }
-      },
-      {
-        id: 'board-sample-2',
-        title: 'Sprint 16 Retrospective',
-        workspaceName: workspace?.name || 'Mobile Team',
-        membersCount: 8,
-        status: 'selesai',
-        daysLeft: null,
-        dateText: 'Dibuat 30 Jun 2026',
-        color: '#5956e9',
-        theme: { bg: '#f3f0ff', color: '#7c3aed' }
-      },
-      {
-        id: 'board-sample-3',
-        title: 'Sprint 16 Retrospective',
-        workspaceName: workspace?.name || 'Mobile Team',
-        membersCount: 8,
-        status: 'selesai',
-        daysLeft: null,
-        dateText: 'Dibuat 30 Jun 2026',
-        color: '#5956e9',
-        theme: { bg: '#f3f0ff', color: '#7c3aed' }
-      }
-    ];
-  }, [rawBoards, workspace]);
+    return workspace.boards.map((b) => ({
+      id: b.id,
+      title: b.title || b.name,
+      workspaceName: workspace.name || 'Workspace',
+      workspaceId: workspace.id,
+      membersCount: b.membersCount || workspace.members?.length || 1,
+      status: b.status || 'aktif',
+      dateText: b.createdAt
+        ? `Dibuat ${new Date(b.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`
+        : 'Baru saja',
+      color: b.color || '#5956e9',
+      theme: b.theme || { bg: '#f3f0ff', color: '#7c3aed' },
+      raw: b,
+    }));
+  }, [workspace]);
 
   // Filter boards based on active tab
   const filteredBoards = displayBoards.filter((board) => {
@@ -162,9 +124,15 @@ export default function MyBoardsView({
             <div className="my-boards-empty-icon">
               <Sparkles size={32} color="#5956e9" />
             </div>
-            <h3 className="my-boards-empty-title">Tidak ada retrospective pada tab ini</h3>
+            <h3 className="my-boards-empty-title">
+              {activeTab === 'semua'
+                ? 'Belum ada board retrospective'
+                : `Tidak ada retrospective berstatus ${activeTab}`}
+            </h3>
             <p className="my-boards-empty-desc">
-              Mulai retrospective baru bersama tim kamu dengan template favorit.
+              {activeTab === 'semua'
+                ? 'Kamu belum membuat board retrospective. Buat board pertama kamu bersama tim sekarang!'
+                : `Belum ada retrospective dengan status ${activeTab}.`}
             </p>
             <button
               type="button"
@@ -217,13 +185,6 @@ export default function MyBoardsView({
                       <span className="status-dot" />
                       <span>{board.status === 'aktif' ? 'Aktif' : 'Selesai'}</span>
                     </div>
-
-                    {/* Remaining Days (if active) */}
-                    {board.daysLeft && (
-                      <span className="my-boards-days-left">
-                        {board.daysLeft}
-                      </span>
-                    )}
 
                     {/* Creation Date */}
                     <div className="my-boards-date-info">

@@ -61,3 +61,34 @@
   --transition-fast: 0.15s ease;
   --transition-normal: 0.2s ease-in-out;
 }
+
+/* ─── Dark Mode Theme Tokens ─── */
+:root.dark-theme,
+body.dark-theme {
+  --bg-main: #0b0f19;
+  --surface-white: #111827;
+  --surface-card: #172033;
+  --surface-hover: #1e2942;
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+  --text-light: #ffffff;
+
+  --border-light: #1e293b;
+  --border-card: #25334a;
+  --border-card-hover: #3b4d66;
+  --border-dashed: #7c3aed;
+
+  --badge-owner-bg: rgba(99, 102, 241, 0.2);
+  --badge-owner-text: #a5b4fc;
+  --badge-member-bg: rgba(148, 163, 184, 0.15);
+  --badge-member-text: #cbd5e1;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 8px 24px -4px rgba(0, 0, 0, 0.6);
+  --shadow-dropdown: 0 10px 25px -5px rgba(0, 0, 0, 0.7);
+  --shadow-modal: 0 20px 30px -5px rgba(0, 0, 0, 0.85);
+}
+

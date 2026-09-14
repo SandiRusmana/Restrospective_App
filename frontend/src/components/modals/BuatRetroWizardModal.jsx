@@ -274,7 +274,6 @@ export default function BuatRetroWizardModal({
       status: 'active',
       createdAt: new Date().toISOString(),
       dateText: `Dibuat ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}`,
-      daysLeft: '2 hari lagi',
       theme: { bg: currentTemplate.bg, color: currentTemplate.color },
       color: currentTemplate.color,
       template: currentTemplate.id,

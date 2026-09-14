@@ -170,6 +170,9 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       ch.bind('board.anonymous.updated', (data) => {
         if (handlersRef.current?.onAnonymousUpdated) handlersRef.current.onAnonymousUpdated(data);
       });
+      ch.bind('board.status.updated', (data) => {
+        if (handlersRef.current?.onBoardStatusUpdated) handlersRef.current.onBoardStatusUpdated(data);
+      });
       ch.bind('board.revealed', (data) => {
         if (handlersRef.current?.onBoardRevealed) handlersRef.current.onBoardRevealed(data);
       });
@@ -196,6 +199,15 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       });
       ch.bind('icebreaker.ended', (data) => {
         if (handlersRef.current?.onIcebreakerEnded) handlersRef.current.onIcebreakerEnded(data);
+      });
+      ch.bind('presentation.started', (data) => {
+        if (handlersRef.current?.onPresentationStarted) handlersRef.current.onPresentationStarted(data);
+      });
+      ch.bind('presentation.card.changed', (data) => {
+        if (handlersRef.current?.onPresentationCardChanged) handlersRef.current.onPresentationCardChanged(data);
+      });
+      ch.bind('presentation.stopped', (data) => {
+        if (handlersRef.current?.onPresentationStopped) handlersRef.current.onPresentationStopped(data);
       });
     };
 

@@ -91,7 +91,7 @@ export default function Sidebar({
           <div className="user-info-wrapper" style={{ flex: 1, minWidth: 0 }}>
             <div className="user-avatar-container">
               <img 
-                src={currentUser?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'user'}`} 
+                src={currentUser?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'user'}&mouth=smile,twinkle&eyes=default,happy,wink`} 
                 alt={currentUser?.name || 'User'} 
                 className="user-avatar-img" 
               />

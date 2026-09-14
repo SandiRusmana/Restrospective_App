@@ -17,13 +17,15 @@ import {
   Edit2,
   CheckCircle2,
   Users,
-  Layers,
   Activity,
-  ChevronRight
+  ChevronRight,
+  Sun,
+  Moon
 } from 'lucide-react';
 import Avatar from '../common/Avatar';
 import Badge from '../common/Badge';
 import BoardHistoryPage from '../board/BoardHistoryPage';
+import NotificationBell from '../common/NotificationBell';
 
 export default function WorkspaceBoardsView({
   workspace,
@@ -38,7 +40,9 @@ export default function WorkspaceBoardsView({
   onDeleteBoard,
   onShowToast,
   currentUser,
-  onNavigateAllWorkspaces
+  onNavigateAllWorkspaces,
+  isDarkMode,
+  onToggleDarkMode
 }) {
   const [activeTab, setActiveTab] = useState('board'); // 'overview' | 'anggota' | 'board' | 'pengaturan'
   const [copied, setCopied] = useState(false);
@@ -94,12 +98,20 @@ export default function WorkspaceBoardsView({
 
   // Real members from workspace data or logged in user (no fake fallback users)
   const realMembers = (workspace?.members && workspace.members.length > 0)
-    ? workspace.members
+    ? workspace.members.map((m) => {
+        const isMe = Boolean(
+          (currentUser?.id && (m.id === currentUser.id || m.userId === currentUser.id)) ||
+          (currentUser?.email && m.email === currentUser.email)
+        );
+        return isMe
+          ? { ...m, avatar: currentUser?.avatarUrl || m.avatar || m.avatarUrl, avatarUrl: currentUser?.avatarUrl || m.avatarUrl || m.avatar }
+          : m;
+      })
     : (currentUser ? [{
       id: currentUser.id || 'current-user',
       name: currentUser.fullName || currentUser.name || 'User',
       role: workspace?.role || 'Owner',
-      avatar: currentUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.email || 'user'}`,
+      avatar: currentUser.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.email || 'user'}&mouth=smile,twinkle&eyes=default,happy,wink`,
       isOnline: true,
     }] : []);
 
@@ -135,19 +147,33 @@ export default function WorkspaceBoardsView({
               <LayoutGrid size={18} />
             </button>
 
-            <button
-              type="button"
-              className="btn-icon-top notification-btn"
-              title="Notifikasi"
-              onClick={() => onShowToast && onShowToast('Tidak ada notifikasi baru')}
-            >
-              <Bell size={18} />
-              <span className="notification-badge-dot"></span>
-            </button>
+            <NotificationBell
+              workspaceId={workspace?.id}
+              currentUser={currentUser}
+              onShowToast={onShowToast}
+              onNavigateActionItems={() => {
+                if (activeTab !== 'overview') {
+                  setActiveTab('overview');
+                }
+              }}
+              onOpenBoard={onOpenBoard}
+            />
+
+            {onToggleDarkMode && (
+              <button
+                type="button"
+                className="btn-icon-top"
+                title={isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
+                onClick={onToggleDarkMode}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+            )}
 
             <div className="top-user-avatar-wrapper" title={currentUser?.name}>
               <img
-                src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=afrizal@gmail.com'}
+                src={currentUser?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'user'}&mouth=smile,twinkle&eyes=default,happy,wink`}
                 alt={currentUser?.name || 'User'}
                 className="top-user-avatar"
               />

@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { LoginThrottlerGuard } from './guards/login-throttler.guard';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +17,8 @@ export class AuthService {
    * Registrasi User Baru
    */
   async register(registerDto: RegisterDto) {
-    const { email, password, name } = registerDto;
+    const email = registerDto.email.toLowerCase().trim();
+    const { password, name } = registerDto;
 
     // Cek apakah email sudah terdaftar
     const existingUser = await this.prisma.user.findUnique({
@@ -27,15 +29,15 @@ export class AuthService {
       throw new ConflictException('Email sudah terdaftar. Silakan gunakan email lain.');
     }
 
-    // Hashing password dengan bcrypt
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hashing password dengan bcrypt (12 rounds)
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     // Simpan user baru ke database
     const user = await this.prisma.user.create({
       data: {
         email,
         password: hashedPassword,
-        name: name || null,
+        name: name ? name.trim() : null,
       },
     });
 
@@ -54,8 +56,9 @@ export class AuthService {
   /**
    * Login User
    */
-  async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
+  async login(loginDto: LoginDto, clientIp: string = '127.0.0.1') {
+    const email = loginDto.email.toLowerCase().trim();
+    const { password } = loginDto;
 
     // Cari user berdasarkan email
     const user = await this.prisma.user.findUnique({
@@ -63,14 +66,19 @@ export class AuthService {
     });
 
     if (!user || !user.password) {
+      LoginThrottlerGuard.recordFailure(clientIp, email);
       throw new UnauthorizedException('Email atau password salah');
     }
 
     // Verifikasi password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      LoginThrottlerGuard.recordFailure(clientIp, email);
       throw new UnauthorizedException('Email atau password salah');
     }
+
+    // Reset failed attempts on success
+    LoginThrottlerGuard.resetSuccess(clientIp, email);
 
     // Generate JWT access token
     const token = await this.generateToken(user.id, user.email);

@@ -46,6 +46,7 @@ import BuatRetroWizardModal from './components/modals/BuatRetroWizardModal';
 import InviteMemberModal from './components/modals/InviteMemberModal';
 import Toast from './components/common/Toast';
 import ErrorBoundary from './components/common/ErrorBoundary';
+import { getConsistentWorkspaceColor, saveWorkspaceColor } from './utils/workspaceColor';
 
 export default function App() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -65,6 +66,49 @@ export default function App() {
   const [activeNav, setActiveNav] = useState('workspace');
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Dark Mode State: Default saat pertama kali masuk adalah LIGHT MODE (false)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      const explicit = localStorage.getItem('retro_theme_explicit');
+      const saved = localStorage.getItem('retro_theme');
+      // Hanya aktifkan dark mode jika user secara eksplisit pernah mengubahnya ke dark
+      if (explicit === 'true' && saved === 'dark') {
+        return true;
+      }
+      return false; // Default selalu Light Mode saat pertama kali masuk
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark-theme');
+        document.body.classList.add('dark-theme');
+        localStorage.setItem('retro_theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark-theme');
+        document.body.classList.remove('dark-theme');
+        localStorage.setItem('retro_theme', 'light');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [isDarkMode]);
+
+  const handleToggleDarkMode = useCallback(() => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('retro_theme_explicit', 'true');
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+  }, []);
   
   // Modals & Toast State
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -124,13 +168,18 @@ export default function App() {
                 const u = m.user || m;
                 const uEmail = u.email || '';
                 const uName = u.name || (uEmail ? uEmail.split('@')[0] : 'Anggota');
-                const isMe = currentUserObj && (u.id === currentUserObj.id || m.userId === currentUserObj.id);
+                const isMe = Boolean(currentUserObj && (u.id === currentUserObj.id || m.userId === currentUserObj.id || (uEmail && uEmail === currentUserObj.email)));
+                const memberAvatar = isMe
+                  ? (currentUserObj.avatarUrl || u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uEmail || uName}&mouth=smile,twinkle&eyes=default,happy,wink`)
+                  : (u.avatarUrl || m.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uEmail || uName}&mouth=smile,twinkle&eyes=default,happy,wink`);
                 return {
                   id: m.userId || m.id || u.id,
+                  userId: m.userId || u.id,
                   name: isMe ? `${uName} (Anda)` : uName,
                   role: m.role || (m.userId === ws.ownerId || u.id === ws.ownerId ? 'Owner' : 'Member'),
                   email: uEmail,
-                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${uEmail || uName}`,
+                  avatar: memberAvatar,
+                  avatarUrl: memberAvatar,
                   isOnline: true,
                 };
               });
@@ -138,12 +187,15 @@ export default function App() {
 
             // If members array empty from API, default to current user as Owner
             if (members.length === 0 && currentUserObj) {
+              const defaultOwnerAvatar = currentUserObj.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUserObj.email}&mouth=smile,twinkle&eyes=default,happy,wink`;
               members = [{
                 id: currentUserObj.id || 'owner',
+                userId: currentUserObj.id || 'owner',
                 name: currentUserObj.fullName || `${currentUserObj.name} (Anda)`,
                 role: 'Owner',
                 email: currentUserObj.email,
-                avatar: currentUserObj.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUserObj.email}`,
+                avatar: defaultOwnerAvatar,
+                avatarUrl: defaultOwnerAvatar,
                 isOnline: true,
               }];
             }
@@ -152,7 +204,7 @@ export default function App() {
               id: ws.id,
               name: ws.name,
               initial,
-              color: idx === 0 ? '#5956e9' : idx === 1 ? '#2563eb' : '#10b981',
+              color: getConsistentWorkspaceColor(ws),
               role: ws.ownerId === currentUserObj?.id ? 'Owner' : 'Owner',
               description: `Workspace untuk ${ws.name}`,
               longDescription: `Workspace untuk tim ${ws.name}. Semua retrospective dan diskusi tim dilakukan di sini`,
@@ -326,7 +378,7 @@ export default function App() {
             name: userData.name || userData.email.split('@')[0],
             fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
             email: userData.email,
-            avatarUrl: userData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`,
+            avatarUrl: userData.avatarUrl || localStorage.getItem('retro_user_avatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}&mouth=smile,twinkle&eyes=default,happy,wink`,
             isOnline: true
           };
           setUser(formattedUser);
@@ -371,6 +423,21 @@ export default function App() {
     }
     checkAuth();
   }, [fetchWorkspaces, loadBoardDirectly, showToast]);
+
+  // Listener Sesi Kedaluwarsa (Auto-Logout 401)
+  useEffect(() => {
+    const handleSessionExpired = (e) => {
+      setUser(null);
+      setCurrentPage('login');
+      const msg = e?.detail?.message || 'Sesi Anda telah berakhir. Silakan login kembali demi keamanan.';
+      showToast(msg);
+    };
+
+    window.addEventListener('auth:session-expired', handleSessionExpired);
+    return () => {
+      window.removeEventListener('auth:session-expired', handleSessionExpired);
+    };
+  }, [showToast]);
 
   // Listener Popstate: Sinkronisasi Tombol Back/Forward Browser
   useEffect(() => {
@@ -431,7 +498,7 @@ export default function App() {
       name: userData.name || userData.email.split('@')[0],
       fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
       email: userData.email,
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`,
+      avatarUrl: userData.avatarUrl || localStorage.getItem('retro_user_avatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}&mouth=smile,twinkle&eyes=default,happy,wink`,
       isOnline: true
     };
     setUser(formattedUser);
@@ -458,7 +525,7 @@ export default function App() {
       name: userData.name || userData.email.split('@')[0],
       fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
       email: userData.email,
-      avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`,
+      avatarUrl: userData.avatarUrl || localStorage.getItem('retro_user_avatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}&mouth=smile,twinkle&eyes=default,happy,wink`,
       isOnline: true
     };
     setUser(formattedUser);
@@ -495,7 +562,7 @@ export default function App() {
       name: user.fullName || `${user.name} (Anda)`,
       role: 'Owner',
       email: user.email,
-      avatar: user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`,
+      avatar: user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}&mouth=smile,twinkle&eyes=default,happy,wink`,
       isOnline: true,
     };
 
@@ -503,11 +570,14 @@ export default function App() {
       const res = await api.createWorkspace(wsName);
       const wsId = res.workspace?.id || res.id || `ws_${Date.now()}`;
 
+      const chosenColor = newWsData.color || getConsistentWorkspaceColor({ id: wsId, name: wsName });
+      saveWorkspaceColor(wsId, chosenColor, wsName);
+
       const newWorkspaceObj = {
         id: wsId,
         name: wsName,
         initial,
-        color: newWsData.color || '#5956e9',
+        color: chosenColor,
         role: 'Owner',
         description: newWsData.description || `Workspace untuk tim ${wsName}`,
         longDescription: `Workspace untuk tim ${wsName}. Semua retrospective dan diskusi tim dilakukan di sini`,
@@ -619,6 +689,9 @@ export default function App() {
   // Handler: Update Workspace Info
   const handleUpdateWorkspace = async (workspaceId, updateData) => {
     try {
+      if (updateData.color) {
+        saveWorkspaceColor(workspaceId, updateData.color, updateData.name);
+      }
       await api.updateWorkspace(workspaceId, updateData);
       setWorkspaces((prev) =>
         prev.map((w) =>
@@ -627,13 +700,14 @@ export default function App() {
                 ...w,
                 name: updateData.name || w.name,
                 initial: (updateData.name || w.name).substring(0, 1).toUpperCase(),
+                color: updateData.color || w.color,
                 description: updateData.description || w.description,
                 longDescription: updateData.description || w.longDescription,
               }
             : w
         )
       );
-      showToast(`Workspace "${updateData.name}" berhasil diperbarui!`);
+      showToast(`Workspace "${updateData.name || 'berhasil'}" diperbarui!`);
     } catch (err) {
       showToast(err.message || 'Gagal memperbarui workspace');
     }
@@ -705,21 +779,31 @@ export default function App() {
             navItems={sidebarNavItems}
             activeNav={activeNav}
             onSelectNav={(navId) => {
+              if (activeBoard || window.location.pathname.startsWith('/board/')) {
+                setActiveBoard(null);
+                setBoardAccessError(null);
+                window.history.pushState({}, '', '/');
+              }
               if (navId === 'workspace') {
                 setActiveNav('workspace');
                 setDashboardView('workspace-detail');
+                window.history.pushState({}, '', '/');
               } else if (navId === 'my-boards') {
                 setActiveNav('my-boards');
                 setDashboardView('my-boards');
+                window.history.pushState({}, '', '/');
               } else if (navId === 'activity') {
                 setActiveNav('activity');
                 setDashboardView('activity');
+                window.history.pushState({}, '', '/');
               } else if (navId === 'templates') {
                 setActiveNav('templates');
                 setDashboardView('templates');
+                window.history.pushState({}, '', '/');
               } else if (navId === 'settings') {
                 setActiveNav('settings');
                 setDashboardView('settings');
+                window.history.pushState({}, '', '/');
               } else {
                 showToast(`Menu ${navId} akan hadir pada update berikutnya`);
               }
@@ -828,6 +912,7 @@ export default function App() {
           {/* Interactive Retrospective Board View (When a board is opened) */}
           {dashboardView === 'board-detail' && activeBoard && !isLoadingAuth && !boardAccessError && (
             <RetroBoardDetail 
+              key={activeBoard.id}
               workspace={activeWorkspace}
               board={activeBoard}
               currentUser={user}
@@ -835,6 +920,8 @@ export default function App() {
               onNavigateAllWorkspaces={handleNavigateAllWorkspaces}
               onSwitchBoard={handleOpenBoard}
               onShowToast={showToast}
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={handleToggleDarkMode}
               onUpdateBoard={(updated) => {
                 setActiveBoard((prev) => (prev ? { ...prev, ...updated } : prev));
                 setWorkspaces((prevWs) =>
@@ -855,6 +942,8 @@ export default function App() {
               workspace={activeWorkspace}
               workspaces={workspaces}
               currentUser={user}
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={handleToggleDarkMode}
               onSelectWorkspace={handleSelectWorkspace}
               onOpenBoard={handleOpenBoard}
               onCreateBoardModalOpen={() => setIsWizardModalOpen(true)}
@@ -1054,12 +1143,15 @@ export default function App() {
               workspace={activeWorkspace}
               onUpdateUser={(updated) => {
                 setUser(updated);
+                try {
+                  localStorage.setItem('retro_user_avatar', updated.avatarUrl);
+                } catch {}
                 setWorkspaces((prev) =>
                   prev.map((ws) => ({
                     ...ws,
                     members: (ws.members || []).map((m) =>
-                      m.id === updated.id || m.userId === updated.id
-                        ? { ...m, name: `${updated.name} (Anda)`, avatar: updated.avatarUrl }
+                      m.id === updated.id || m.userId === updated.id || (m.email && m.email === updated.email)
+                        ? { ...m, name: `${updated.name} (Anda)`, avatar: updated.avatarUrl, avatarUrl: updated.avatarUrl }
                         : m
                     ),
                   }))
@@ -1069,6 +1161,8 @@ export default function App() {
               onDeleteWorkspace={handleDeleteWorkspace}
               onInviteMember={() => setIsInviteModalOpen(true)}
               onShowToast={showToast}
+              isDarkMode={isDarkMode}
+              onToggleDarkMode={handleToggleDarkMode}
             />
           )}
           </ErrorBoundary>

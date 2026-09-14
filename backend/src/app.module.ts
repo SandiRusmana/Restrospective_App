@@ -17,6 +17,7 @@ import { ActionItemModule } from './action-item/action-item.module';
 import { ExportModule } from './export/export.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { IcebreakerModule } from './icebreaker/icebreaker.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -64,6 +65,8 @@ import { IcebreakerModule } from './icebreaker/icebreaker.module';
     DashboardModule,
     // Modul Icebreaker Sesi Retrospective
     IcebreakerModule,
+    // Modul Notifikasi & Pengingat Action Item
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

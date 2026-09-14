@@ -1,15 +1,8 @@
 import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
+import { WORKSPACE_PALETTE } from '../../utils/workspaceColor';
 
-const COLOR_OPTIONS = [
-  '#5b52f9',
-  '#2563eb',
-  '#10b981',
-  '#f97316',
-  '#ec4899',
-  '#8b5cf6',
-  '#06b6d4'
-];
+const COLOR_OPTIONS = WORKSPACE_PALETTE;
 
 export default function CreateWorkspaceModal({ isOpen, onClose, onCreate }) {
   const [name, setName] = useState('');

@@ -18,6 +18,7 @@ import { GetUser } from './decorators/get-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { LoginThrottlerGuard } from './guards/login-throttler.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -26,15 +27,23 @@ export class AuthController {
     private readonly configService: ConfigService,
   ) {}
 
+  @UseGuards(LoginThrottlerGuard)
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
+  @UseGuards(LoginThrottlerGuard)
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Req() req: any, @Body() loginDto: LoginDto) {
+    const clientIp =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      req.headers['x-real-ip'] ||
+      req.ip ||
+      req.connection?.remoteAddress ||
+      '127.0.0.1';
+    return this.authService.login(loginDto, clientIp);
   }
 
   @HttpCode(HttpStatus.OK)

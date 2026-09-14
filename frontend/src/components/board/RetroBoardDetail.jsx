@@ -21,9 +21,13 @@ import {
   Copy,
   Edit,
   Lock,
-  Unlock,
   CheckCircle,
   X,
+  Sun,
+  Moon,
+  Play,
+  Unlock,
+  RotateCcw,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useBoardPusher } from '../../hooks/useBoardPusher';
@@ -31,15 +35,18 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import RetroColumn from './RetroColumn';
 import ActionItemsTable from './ActionItemsTable';
 import PreviousSessionActionItems from './PreviousSessionActionItems';
+import NotificationBell from '../common/NotificationBell';
 import SessionTimerBanner from './SessionTimerBanner';
 import DashboardSummaryView from './DashboardSummaryView';
 import CardDetailModal from '../modals/CardDetailModal';
 import SessionTimerModal from '../modals/SessionTimerModal';
 import SessionTimerEndedModal from '../modals/SessionTimerEndedModal';
+import { playChime } from '../../utils/sound';
 import BoardSettingsModal from '../modals/BoardSettingsModal';
 import ConvertToActionItemModal from '../modals/ConvertToActionItemModal';
 import IcebreakerSelectModal from '../modals/IcebreakerSelectModal';
 import IcebreakerOverlay from './IcebreakerOverlay';
+import PresentationOverlay from './PresentationOverlay';
 import RevealCardsModal from '../modals/RevealCardsModal';
 
 // Template Columns Dictionary
@@ -73,13 +80,11 @@ const TEMPLATE_COLUMNS_MAP = {
   ],
 };
 
-// Board navigation tabs
+// Board navigation tabs (3 core retro phases)
 const BOARD_TABS = [
   { id: 'board', label: 'Board', icon: LayoutGrid },
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
-  { id: 'diskusi', label: 'Diskusi', icon: MessageSquare },
   { id: 'action-items', label: 'Action Items', icon: CheckSquare },
-  { id: 'aktivitas', label: 'Aktivitas', icon: Activity },
 ];
 
 export default function RetroBoardDetail({
@@ -91,6 +96,8 @@ export default function RetroBoardDetail({
   onShowToast,
   onUpdateBoard,
   onNavigateAllWorkspaces,
+  isDarkMode,
+  onToggleDarkMode,
 }) {
   const boardId = board?.id;
   const [activeTab, setActiveTab] = useState('board');
@@ -115,13 +122,17 @@ export default function RetroBoardDetail({
     board?.title || board?.name || 'Sprint 16 Retrospective'
   );
 
+  // ── Board Status (Aktif / Selesai) ──
+  const [boardStatus, setBoardStatus] = useState(() => board?.status || 'aktif');
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+
   // ── Read-Only Mode State & Share Dropdown ──
   const [isReadOnly, setIsReadOnly] = useState(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      return params.get('readOnly') === 'true' || Boolean(board?.initialReadOnly);
+      return params.get('readOnly') === 'true' || Boolean(board?.initialReadOnly) || board?.status === 'selesai';
     } catch {
-      return Boolean(board?.initialReadOnly);
+      return Boolean(board?.initialReadOnly) || board?.status === 'selesai';
     }
   });
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
@@ -157,6 +168,15 @@ export default function RetroBoardDetail({
   // ── Icebreaker State ──
   const [isIcebreakerSelectModalOpen, setIsIcebreakerSelectModalOpen] = useState(false);
   const [activeIcebreaker, setActiveIcebreaker] = useState(null);
+
+  // ── Presentation Mode State ──
+  const [isPresentationOpen, setIsPresentationOpen] = useState(Boolean(board?.presentationMode));
+  const [presentationCard, setPresentationCard] = useState(null);
+  const [presentationIndex, setPresentationIndex] = useState(0);
+  const [presentationTotal, setPresentationTotal] = useState(1);
+  const [isPresentationFirst, setIsPresentationFirst] = useState(true);
+  const [isPresentationLast, setIsPresentationLast] = useState(false);
+  const [isNavigatingPresentation, setIsNavigatingPresentation] = useState(false);
 
   // ── Private Note Feature State ──
   // isPrivateMode: true selama card masih tersembunyi dari anggota lain
@@ -286,8 +306,20 @@ export default function RetroBoardDetail({
   useEffect(() => {
     if (!boardId) return;
     api.getBoardById(boardId).then((fullBoard) => {
-      if (fullBoard?.columns && fullBoard.columns.length > 0) {
-        setBoardColumns(fullBoard.columns);
+      if (fullBoard) {
+        if (fullBoard.columns && fullBoard.columns.length > 0) {
+          setBoardColumns(fullBoard.columns);
+        }
+        if (fullBoard.isRevealed !== undefined) {
+          setIsRevealed(Boolean(fullBoard.isRevealed));
+          setIsPrivateMode(!Boolean(fullBoard.isRevealed));
+        }
+        if (fullBoard.status) {
+          setBoardStatus(fullBoard.status);
+          if (fullBoard.status === 'selesai') {
+            setIsReadOnly(true);
+          }
+        }
       }
     }).catch(() => {});
   }, [boardId]);
@@ -374,6 +406,7 @@ export default function RetroBoardDetail({
     // bukan saat baru membuka/refresh halaman yang sesi sebelumnya sudah selesai
     if (nextStatus === 'ended' && isLiveUpdate) {
       setIsTimerEndedModalOpen(true);
+      playChime('timer');
     }
   }, []);
 
@@ -405,6 +438,7 @@ export default function RetroBoardDetail({
             clearInterval(interval);
             setTimerStatus('ended');
             setIsTimerEndedModalOpen(true);
+            playChime('timer');
             return 0;
           }
           return prev - 1;
@@ -720,35 +754,75 @@ export default function RetroBoardDetail({
     },
 
     onCommentCreated: (commentData) => {
-      const cardId = commentData?.cardId;
+      const commentObj = commentData?.comment || commentData;
+      const cardId = commentObj?.cardId || commentData?.cardId;
       if (!cardId) return;
 
+      const authorId = commentObj?.authorId || commentObj?.userId || commentObj?.author?.id;
+      const isMe = authorId === currentUser?.id || authorId === currentUser?.email;
+
+      const authorName =
+        commentObj?.author?.name ||
+        commentObj?.authorName ||
+        commentObj?.user?.name ||
+        (isMe ? (currentUser?.name || currentUser?.fullName || 'Anda') : '') ||
+        'Anggota Tim';
+
+      const authorAvatar =
+        commentObj?.author?.avatarUrl ||
+        commentObj?.authorAvatar ||
+        commentObj?.user?.avatarUrl ||
+        (isMe ? currentUser?.avatarUrl : '') ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
+
+      const commentText = commentObj?.text || commentObj?.content || '';
+
       const formattedComment = {
-        id: commentData.id || `comment_${Date.now()}`,
+        id: commentObj.id || `comment_${Date.now()}`,
         cardId,
         author: {
-          id: commentData.authorId || 'author',
-          name: commentData.authorName || 'Anggota Tim',
-          avatarUrl:
-            commentData.authorAvatar ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentData.authorId || 'member'}`,
+          id: authorId || 'author',
+          name: authorName,
+          avatarUrl: authorAvatar,
         },
-        authorName: commentData.authorName || 'Anggota Tim',
-        text: commentData.text || commentData.content || '',
-        time: new Date(commentData.createdAt || Date.now()).toLocaleTimeString('id-ID', {
+        authorName,
+        text: commentText,
+        content: commentText,
+        time: commentObj.time || (commentObj.createdAt ? new Date(commentObj.createdAt).toLocaleTimeString('id-ID', {
           hour: '2-digit',
           minute: '2-digit',
           hour12: true,
-        }),
-        createdAt: commentData.createdAt || new Date().toISOString(),
+        }) : 'Baru saja'),
+        createdAt: commentObj.createdAt || new Date().toISOString(),
+      };
+
+      const mergeComments = (existingComments = []) => {
+        // 1. Exact ID match: do not duplicate
+        if (existingComments.some((cm) => cm.id === formattedComment.id)) {
+          return existingComments;
+        }
+
+        // 2. Optimistic match: if created recently by current user with exact same text, update optimistic comment in-place
+        const optimisticIndex = existingComments.findIndex(
+          (cm) =>
+            cm.id.startsWith('comment_') &&
+            (cm.author?.id === authorId || cm.authorName === authorName || isMe) &&
+            (cm.text === commentText || cm.content === commentText)
+        );
+
+        if (optimisticIndex !== -1) {
+          const next = [...existingComments];
+          next[optimisticIndex] = formattedComment;
+          return next;
+        }
+
+        return [...existingComments, formattedComment];
       };
 
       setCards((prev) =>
         prev.map((c) => {
           if (c.id === cardId) {
-            const existingComments = Array.isArray(c.comments) ? [...c.comments] : [];
-            if (existingComments.some((cm) => cm.id === formattedComment.id)) return c;
-            const nextComments = [...existingComments, formattedComment];
+            const nextComments = mergeComments(c.comments || []);
             return {
               ...c,
               comments: nextComments,
@@ -762,9 +836,7 @@ export default function RetroBoardDetail({
 
       setSelectedCardForDetail((prev) => {
         if (prev && prev.id === cardId) {
-          const existingComments = Array.isArray(prev.comments) ? [...prev.comments] : [];
-          if (existingComments.some((cm) => cm.id === formattedComment.id)) return prev;
-          const nextComments = [...existingComments, formattedComment];
+          const nextComments = mergeComments(prev.comments || []);
           return {
             ...prev,
             comments: nextComments,
@@ -903,6 +975,51 @@ export default function RetroBoardDetail({
         onShowToast('Sesi icebreaker telah selesai!');
       }
     },
+
+    onPresentationStarted: (data) => {
+      setIsPresentationOpen(true);
+      if (data?.card) setPresentationCard(data.card);
+      setPresentationIndex(data?.currentIndex ?? 0);
+      setPresentationTotal(data?.totalCards ?? 1);
+      setIsPresentationFirst(Boolean(data?.isFirst));
+      setIsPresentationLast(Boolean(data?.isLast));
+      if (onShowToast) {
+        onShowToast('Mode presentasi telah dimulai oleh fasilitator');
+      }
+    },
+
+    onPresentationCardChanged: (data) => {
+      setIsPresentationOpen(true);
+      if (data?.card) setPresentationCard(data.card);
+      setPresentationIndex(data?.currentIndex ?? 0);
+      setPresentationTotal(data?.totalCards ?? 1);
+      setIsPresentationFirst(Boolean(data?.isFirst));
+      setIsPresentationLast(Boolean(data?.isLast));
+    },
+
+    onPresentationStopped: () => {
+      setIsPresentationOpen(false);
+      setPresentationCard(null);
+      if (onShowToast) {
+        onShowToast('Mode presentasi telah dihentikan');
+      }
+    },
+
+    onBoardStatusUpdated: (data) => {
+      if (data?.status) {
+        setBoardStatus(data.status);
+        if (data.status === 'selesai') {
+          setIsReadOnly(true);
+          if (onShowToast) onShowToast('Sesi retrospective telah diselesaikan oleh fasilitator');
+        } else {
+          setIsReadOnly(false);
+          if (onShowToast) onShowToast('Sesi retrospective dibuka kembali oleh fasilitator');
+        }
+        if (onUpdateBoard) {
+          onUpdateBoard({ id: boardId, status: data.status });
+        }
+      }
+    },
   });
 
   // Check initial active icebreaker session on mount
@@ -972,6 +1089,146 @@ export default function RetroBoardDetail({
     } catch (err) {
       console.error('Gagal mengakhiri icebreaker:', err);
       if (onShowToast) onShowToast(err.message || 'Gagal mengakhiri icebreaker');
+    }
+  };
+
+  // ── Synchronize Presentation Mode if already active on board ──
+  useEffect(() => {
+    if (board?.presentationMode) {
+      setIsPresentationOpen(true);
+      if (board?.presentationCurrentCardId && cards.length > 0) {
+        const found = cards.find((c) => c.id === board.presentationCurrentCardId);
+        if (found) {
+          setPresentationCard(found);
+          const idx = cards.findIndex((c) => c.id === board.presentationCurrentCardId);
+          setPresentationIndex(idx >= 0 ? idx : 0);
+          setPresentationTotal(cards.length);
+          setIsPresentationFirst(idx <= 0);
+          setIsPresentationLast(idx >= cards.length - 1);
+        }
+      }
+    }
+  }, [board?.presentationMode, board?.presentationCurrentCardId, cards]);
+
+  // ── Presentation Mode Handlers ──
+  const handleTogglePresentationOverlay = async () => {
+    if (isPresentationOpen) {
+      setIsPresentationOpen(true);
+      return;
+    }
+
+    if (!isFacilitator) {
+      if (board?.presentationMode || presentationCard) {
+        setIsPresentationOpen(true);
+      } else {
+        if (onShowToast) onShowToast('Mode presentasi belum dimulai oleh fasilitator');
+      }
+      return;
+    }
+
+    // Facilitator starts presentation
+    try {
+      setIsNavigatingPresentation(true);
+      const res = await api.startPresentation(boardId);
+      if (res?.card) {
+        setPresentationCard(res.card);
+        setPresentationIndex(res.currentIndex ?? 0);
+        setPresentationTotal(res.totalCards ?? 1);
+        setIsPresentationFirst(Boolean(res.isFirst));
+        setIsPresentationLast(Boolean(res.isLast));
+      }
+      setIsPresentationOpen(true);
+      if (onShowToast) onShowToast('Mode presentasi berhasil diaktifkan');
+    } catch (err) {
+      console.error('Gagal memulai mode presentasi:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal memulai mode presentasi');
+    } finally {
+      setIsNavigatingPresentation(false);
+    }
+  };
+
+  const handleNextPresentation = async () => {
+    if (!isFacilitator || isNavigatingPresentation) return;
+    try {
+      setIsNavigatingPresentation(true);
+      const res = await api.nextPresentation(boardId);
+      if (res?.card) {
+        setPresentationCard(res.card);
+        setPresentationIndex(res.currentIndex ?? 0);
+        setPresentationTotal(res.totalCards ?? 1);
+        setIsPresentationFirst(Boolean(res.isFirst));
+        setIsPresentationLast(Boolean(res.isLast));
+      }
+    } catch (err) {
+      console.error('Gagal navigasi next presentation:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal beralih ke card berikutnya');
+    } finally {
+      setIsNavigatingPresentation(false);
+    }
+  };
+
+  const handlePrevPresentation = async () => {
+    if (!isFacilitator || isNavigatingPresentation) return;
+    try {
+      setIsNavigatingPresentation(true);
+      const res = await api.prevPresentation(boardId);
+      if (res?.card) {
+        setPresentationCard(res.card);
+        setPresentationIndex(res.currentIndex ?? 0);
+        setPresentationTotal(res.totalCards ?? 1);
+        setIsPresentationFirst(Boolean(res.isFirst));
+        setIsPresentationLast(Boolean(res.isLast));
+      }
+    } catch (err) {
+      console.error('Gagal navigasi prev presentation:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal beralih ke card sebelumnya');
+    } finally {
+      setIsNavigatingPresentation(false);
+    }
+  };
+
+  const handleStopPresentation = async () => {
+    if (!isFacilitator) return;
+    try {
+      await api.stopPresentation(boardId);
+      setIsPresentationOpen(false);
+      setPresentationCard(null);
+      if (onShowToast) onShowToast('Mode presentasi berhasil dihentikan');
+    } catch (err) {
+      console.error('Gagal menghentikan mode presentasi:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal menghentikan mode presentasi');
+    }
+  };
+
+  // ── Handlers: Complete / Reopen Board Sesi ──
+  const handleCompleteBoard = async () => {
+    try {
+      await api.updateBoardStatus(boardId, 'selesai');
+      setBoardStatus('selesai');
+      setIsReadOnly(true);
+      setShowCompleteModal(false);
+      if (onShowToast) onShowToast('Sesi retrospective berhasil diselesaikan & dikunci (Mode Baca)');
+      if (onUpdateBoard) {
+        onUpdateBoard({ id: boardId, status: 'selesai' });
+      }
+    } catch (err) {
+      console.error('Gagal menyelesaikan board:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal menyelesaikan board');
+    }
+  };
+
+  const handleReopenBoard = async () => {
+    try {
+      await api.updateBoardStatus(boardId, 'aktif');
+      setBoardStatus('aktif');
+      setIsReadOnly(false);
+      if (onShowToast) onShowToast('Sesi retrospective dibuka kembali untuk pengeditan');
+      if (onUpdateBoard) {
+        onUpdateBoard({ id: boardId, status: 'aktif' });
+      }
+    } catch (err) {
+      console.error('Gagal membuka kembali board:', err);
+      if (onShowToast) onShowToast(err.message || 'Gagal membuka kembali board');
     }
   };
 
@@ -1167,7 +1424,7 @@ export default function RetroBoardDetail({
       hour12: true,
     });
 
-    const isCardAnon = Boolean(isMyAnonymous);
+    const isCardAnon = Boolean(isAnonymous || isMyAnonymous);
     const tempId = `card_${Date.now()}`;
     const newCard = {
       id: tempId,
@@ -1402,7 +1659,34 @@ export default function RetroBoardDetail({
     if (onShowToast) onShowToast('Komentar berhasil ditambahkan!');
 
     try {
-      await api.addComment(cardId, text);
+      const res = await api.addComment(cardId, text);
+      const serverComment = res?.comment;
+      if (serverComment?.id) {
+        setCards((prev) =>
+          prev.map((c) => {
+            if (c.id === cardId && Array.isArray(c.comments)) {
+              return {
+                ...c,
+                comments: c.comments.map((cm) =>
+                  cm.id === newCommentId ? { ...cm, id: serverComment.id } : cm
+                ),
+              };
+            }
+            return c;
+          })
+        );
+        setSelectedCardForDetail((prev) => {
+          if (prev && prev.id === cardId && Array.isArray(prev.comments)) {
+            return {
+              ...prev,
+              comments: prev.comments.map((cm) =>
+                cm.id === newCommentId ? { ...cm, id: serverComment.id } : cm
+              ),
+            };
+          }
+          return prev;
+        });
+      }
     } catch {
       // Local state already updated
     }
@@ -1995,24 +2279,25 @@ export default function RetroBoardDetail({
           <button type="button" className="btn-icon-top" title="Tampilan">
             <LayoutGrid size={18} />
           </button>
-          <button
-            type="button"
-            className="btn-icon-top notification-btn"
-            title="Notifikasi"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
+          <NotificationBell
+            workspaceId={board?.workspaceId || board?.workspace?.id || workspace?.id}
+            currentUser={currentUser}
+            onShowToast={onShowToast}
+            onNavigateActionItems={() => setActiveTab('action-items')}
+          />
+
+          {onToggleDarkMode && (
+            <button
+              type="button"
+              className="btn-icon-top"
+              title={isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
+              onClick={onToggleDarkMode}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-            <span className="notification-badge-dot"></span>
-          </button>
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          )}
+
           <div className="top-user-avatar-wrapper">
             <img
               src={
@@ -2094,42 +2379,101 @@ export default function RetroBoardDetail({
             )}
           </div>
 
-          {/* Toggle Read-Only Mode Button */}
-          <button
-            type="button"
-            className={`btn-toggle-readonly ${isReadOnly ? 'active-readonly' : ''}`}
-            onClick={handleToggleReadOnly}
-            title={isReadOnly ? 'Beralih ke Mode Interaktif (Bisa Edit & Vote)' : 'Beralih ke Mode Baca Saja (Terkunci)'}
-          >
-            {isReadOnly ? <Edit size={14} /> : <Eye size={14} />}
-            <span>{isReadOnly ? 'Mode Edit' : 'Mode Baca'}</span>
-          </button>
+          {/* Status Selesai Badge & Reopen Button */}
+          {boardStatus === 'selesai' ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '9999px',
+                  backgroundColor: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  color: '#475569',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                }}
+              >
+                <Lock size={13} />
+                <span>Selesai (Read-Only)</span>
+              </div>
 
-          {!isReadOnly && (
-            <button
-              type="button"
-              className="btn-ghost-icon"
-              title="Pengaturan board"
-              onClick={() => setIsSettingsModalOpen(true)}
-            >
-              <MoreHorizontal size={18} />
-            </button>
+              {isFacilitator && (
+                <button
+                  type="button"
+                  onClick={handleReopenBoard}
+                  title="Buka kembali sesi retrospective ini untuk pengeditan"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: '1.5px solid #6366f1',
+                    backgroundColor: '#ffffff',
+                    color: '#6366f1',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <RotateCcw size={14} />
+                  <span>Buka Kembali</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Tombol Selesaikan Sesi untuk Fasilitator */}
+              {isFacilitator && (
+                <button
+                  type="button"
+                  onClick={() => setShowCompleteModal(true)}
+                  title="Selesaikan sesi retrospective dan kunci board"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: '1.5px solid #10b981',
+                    backgroundColor: '#ecfdf5',
+                    color: '#059669',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <CheckCircle size={14} />
+                  <span>Selesaikan Sesi</span>
+                </button>
+              )}
+
+              {/* Toggle Read-Only Mode Button */}
+              <button
+                type="button"
+                className={`btn-toggle-readonly ${isReadOnly ? 'active-readonly' : ''}`}
+                onClick={handleToggleReadOnly}
+                title={isReadOnly ? 'Beralih ke Mode Interaktif (Bisa Edit & Vote)' : 'Beralih ke Mode Baca Saja (Terkunci)'}
+              >
+                {isReadOnly ? <Edit size={14} /> : <Eye size={14} />}
+                <span>{isReadOnly ? 'Mode Edit' : 'Mode Baca'}</span>
+              </button>
+
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  className="btn-ghost-icon"
+                  title="Pengaturan board"
+                  onClick={() => setIsSettingsModalOpen(true)}
+                >
+                  <MoreHorizontal size={18} />
+                </button>
+              )}
+            </>
           )}
-
-          <button
-            type="button"
-            className="btn-export-board"
-            onClick={handleExportPdf}
-            disabled={isExporting}
-            title="Ekspor hasil retrospective ke file PDF"
-          >
-            {isExporting ? (
-              <Loader2 size={16} className="btn-export-spinner" />
-            ) : (
-              <FileDown size={16} />
-            )}
-            <span>{isExporting ? 'Mengekspor...' : 'Export PDF'}</span>
-          </button>
 
           {/* Share Dropdown Button */}
           <div className="retro-share-wrapper" ref={shareMenuRef}>
@@ -2228,22 +2572,6 @@ export default function RetroBoardDetail({
           {!isReadOnly && (
             <button
               type="button"
-              className={`retro-mode-anonymous-btn ${isMyAnonymous ? 'active' : ''}`}
-              onClick={handleToggleMyAnonymous}
-              title={
-                isMyAnonymous
-                  ? 'Mode Anonymous Aktif: Catatan yang Anda buat akan bersifat anonim (Klik untuk nonaktifkan)'
-                  : 'Mode Anonymous Nonaktif: Klik untuk mengaktifkan mode anonim untuk Anda'
-              }
-            >
-              {isMyAnonymous ? <Eye size={16} /> : <EyeOff size={16} />}
-              <span>Mode Anonymous</span>
-            </button>
-          )}
-
-          {!isReadOnly && (
-            <button
-              type="button"
               className={`retro-mulai-timer-btn ${
                 timerStatus === 'running' ? 'active-running' : ''
               }`}
@@ -2254,6 +2582,33 @@ export default function RetroBoardDetail({
               <span>Mulai Timer</span>
             </button>
           )}
+
+          {/* ── Presentation Mode Button (Screenshot 1) ── */}
+          <button
+            type="button"
+            className={`retro-presentation-btn ${isPresentationOpen ? 'active-presentation' : ''}`}
+            onClick={handleTogglePresentationOverlay}
+            title={isFacilitator ? "Mulai / Buka Mode Presentasi" : "Lihat Mode Presentasi"}
+          >
+            <Play size={13} fill={isPresentationOpen ? 'currentColor' : '#6366f1'} />
+            <span>Presentation</span>
+          </button>
+
+          {/* ── PDF Export Button (Screenshot 1) ── */}
+          <button
+            type="button"
+            className="btn-export-board"
+            onClick={handleExportPdf}
+            disabled={isExporting}
+            title="Ekspor hasil retrospective ke file PDF"
+          >
+            {isExporting ? (
+              <Loader2 size={14} className="btn-export-spinner" />
+            ) : (
+              <FileDown size={14} />
+            )}
+            <span>{isExporting ? 'Mengekspor...' : 'PDF'}</span>
+          </button>
 
           {isReadOnly && (
             <div className="retro-readonly-tabs-hint">
@@ -2446,15 +2801,6 @@ export default function RetroBoardDetail({
         />
       )}
 
-      {/* ── Tab 2: Diskusi ── */}
-      {activeTab === 'diskusi' && (
-        <div className="retro-tab-placeholder">
-          <MessageSquare size={40} />
-          <h3>Diskusi Tim</h3>
-          <p>Fitur diskusi dan komentar sesama anggota workspace akan hadir di sini.</p>
-        </div>
-      )}
-
       {/* ── Tab 3: Action Items ── */}
       {activeTab === 'action-items' && (
         <div className="action-items-tab-content">
@@ -2469,15 +2815,6 @@ export default function RetroBoardDetail({
             onChangeStatus={handleChangeActionItemStatus}
             onDelete={handleDeleteActionItem}
           />
-        </div>
-      )}
-
-      {/* ── Tab 4: Aktivitas ── */}
-      {activeTab === 'aktivitas' && (
-        <div className="retro-tab-placeholder">
-          <Activity size={40} />
-          <h3>Aktivitas Board</h3>
-          <p>Log aktivitas semua anggota di board retrospective ini.</p>
         </div>
       )}
 
@@ -2557,6 +2894,61 @@ export default function RetroBoardDetail({
           onEnd={handleEndIcebreaker}
           onClose={() => setActiveIcebreaker(null)}
         />
+      )}
+
+      {/* ── Overlay Sesi Presentation Mode (Semua Anggota & Facilitator) ── */}
+      <PresentationOverlay
+        isOpen={isPresentationOpen}
+        isFacilitator={isFacilitator}
+        card={presentationCard}
+        currentIndex={presentationIndex}
+        totalCards={presentationTotal}
+        isFirst={isPresentationFirst}
+        isLast={isPresentationLast}
+        onNext={handleNextPresentation}
+        onPrev={handlePrevPresentation}
+        onStop={handleStopPresentation}
+        onClose={() => setIsPresentationOpen(false)}
+        isNavigating={isNavigatingPresentation}
+      />
+
+      {/* ── Modal Konfirmasi Selesaikan Sesi Retrospective ── */}
+      {showCompleteModal && (
+        <div className="presentation-confirm-backdrop">
+          <div className="presentation-confirm-dialog" style={{ maxWidth: '440px' }}>
+            <div className="presentation-confirm-icon-wrapper" style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>
+              <CheckCircle size={32} strokeWidth={2.5} />
+            </div>
+
+            <h3 className="presentation-confirm-title">
+              Selesaikan Sesi Retrospective?
+            </h3>
+
+            <p className="presentation-confirm-subtitle">
+              Sesi ini akan ditandai <strong>"Selesai"</strong> dan otomatis dikunci menjadi <strong>Mode Baca Saja</strong>. Seluruh anggota tim tetap dapat melihat catatan, vote, dan action items.
+            </p>
+
+            <div className="presentation-confirm-buttons">
+              <button
+                type="button"
+                className="presentation-btn-cancel"
+                onClick={() => setShowCompleteModal(false)}
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                className="presentation-btn-confirm-stop"
+                style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+                onClick={handleCompleteBoard}
+              >
+                <CheckCircle size={16} strokeWidth={2.2} />
+                <span>Selesaikan Sesi</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
