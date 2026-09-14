@@ -67,12 +67,16 @@ export default function App() {
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Dark Mode State with localStorage & OS preference detection
+  // Dark Mode State: Default saat pertama kali masuk adalah LIGHT MODE (false)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
+      const explicit = localStorage.getItem('retro_theme_explicit');
       const saved = localStorage.getItem('retro_theme');
-      if (saved) return saved === 'dark';
-      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      // Hanya aktifkan dark mode jika user secara eksplisit pernah mengubahnya ke dark
+      if (explicit === 'true' && saved === 'dark') {
+        return true;
+      }
+      return false; // Default selalu Light Mode saat pertama kali masuk
     } catch {
       return false;
     }
@@ -95,7 +99,15 @@ export default function App() {
   }, [isDarkMode]);
 
   const handleToggleDarkMode = useCallback(() => {
-    setIsDarkMode((prev) => !prev);
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('retro_theme_explicit', 'true');
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
   }, []);
   
   // Modals & Toast State
@@ -411,6 +423,21 @@ export default function App() {
     }
     checkAuth();
   }, [fetchWorkspaces, loadBoardDirectly, showToast]);
+
+  // Listener Sesi Kedaluwarsa (Auto-Logout 401)
+  useEffect(() => {
+    const handleSessionExpired = (e) => {
+      setUser(null);
+      setCurrentPage('login');
+      const msg = e?.detail?.message || 'Sesi Anda telah berakhir. Silakan login kembali demi keamanan.';
+      showToast(msg);
+    };
+
+    window.addEventListener('auth:session-expired', handleSessionExpired);
+    return () => {
+      window.removeEventListener('auth:session-expired', handleSessionExpired);
+    };
+  }, [showToast]);
 
   // Listener Popstate: Sinkronisasi Tombol Back/Forward Browser
   useEffect(() => {

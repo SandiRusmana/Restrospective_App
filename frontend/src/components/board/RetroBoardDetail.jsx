@@ -35,6 +35,7 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import RetroColumn from './RetroColumn';
 import ActionItemsTable from './ActionItemsTable';
 import PreviousSessionActionItems from './PreviousSessionActionItems';
+import NotificationBell from '../common/NotificationBell';
 import SessionTimerBanner from './SessionTimerBanner';
 import DashboardSummaryView from './DashboardSummaryView';
 import CardDetailModal from '../modals/CardDetailModal';
@@ -79,13 +80,11 @@ const TEMPLATE_COLUMNS_MAP = {
   ],
 };
 
-// Board navigation tabs
+// Board navigation tabs (3 core retro phases)
 const BOARD_TABS = [
   { id: 'board', label: 'Board', icon: LayoutGrid },
   { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
-  { id: 'diskusi', label: 'Diskusi', icon: MessageSquare },
   { id: 'action-items', label: 'Action Items', icon: CheckSquare },
-  { id: 'aktivitas', label: 'Aktivitas', icon: Activity },
 ];
 
 export default function RetroBoardDetail({
@@ -755,35 +754,75 @@ export default function RetroBoardDetail({
     },
 
     onCommentCreated: (commentData) => {
-      const cardId = commentData?.cardId;
+      const commentObj = commentData?.comment || commentData;
+      const cardId = commentObj?.cardId || commentData?.cardId;
       if (!cardId) return;
 
+      const authorId = commentObj?.authorId || commentObj?.userId || commentObj?.author?.id;
+      const isMe = authorId === currentUser?.id || authorId === currentUser?.email;
+
+      const authorName =
+        commentObj?.author?.name ||
+        commentObj?.authorName ||
+        commentObj?.user?.name ||
+        (isMe ? (currentUser?.name || currentUser?.fullName || 'Anda') : '') ||
+        'Anggota Tim';
+
+      const authorAvatar =
+        commentObj?.author?.avatarUrl ||
+        commentObj?.authorAvatar ||
+        commentObj?.user?.avatarUrl ||
+        (isMe ? currentUser?.avatarUrl : '') ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
+
+      const commentText = commentObj?.text || commentObj?.content || '';
+
       const formattedComment = {
-        id: commentData.id || `comment_${Date.now()}`,
+        id: commentObj.id || `comment_${Date.now()}`,
         cardId,
         author: {
-          id: commentData.authorId || 'author',
-          name: commentData.authorName || 'Anggota Tim',
-          avatarUrl:
-            commentData.authorAvatar ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${commentData.authorId || 'member'}`,
+          id: authorId || 'author',
+          name: authorName,
+          avatarUrl: authorAvatar,
         },
-        authorName: commentData.authorName || 'Anggota Tim',
-        text: commentData.text || commentData.content || '',
-        time: new Date(commentData.createdAt || Date.now()).toLocaleTimeString('id-ID', {
+        authorName,
+        text: commentText,
+        content: commentText,
+        time: commentObj.time || (commentObj.createdAt ? new Date(commentObj.createdAt).toLocaleTimeString('id-ID', {
           hour: '2-digit',
           minute: '2-digit',
           hour12: true,
-        }),
-        createdAt: commentData.createdAt || new Date().toISOString(),
+        }) : 'Baru saja'),
+        createdAt: commentObj.createdAt || new Date().toISOString(),
+      };
+
+      const mergeComments = (existingComments = []) => {
+        // 1. Exact ID match: do not duplicate
+        if (existingComments.some((cm) => cm.id === formattedComment.id)) {
+          return existingComments;
+        }
+
+        // 2. Optimistic match: if created recently by current user with exact same text, update optimistic comment in-place
+        const optimisticIndex = existingComments.findIndex(
+          (cm) =>
+            cm.id.startsWith('comment_') &&
+            (cm.author?.id === authorId || cm.authorName === authorName || isMe) &&
+            (cm.text === commentText || cm.content === commentText)
+        );
+
+        if (optimisticIndex !== -1) {
+          const next = [...existingComments];
+          next[optimisticIndex] = formattedComment;
+          return next;
+        }
+
+        return [...existingComments, formattedComment];
       };
 
       setCards((prev) =>
         prev.map((c) => {
           if (c.id === cardId) {
-            const existingComments = Array.isArray(c.comments) ? [...c.comments] : [];
-            if (existingComments.some((cm) => cm.id === formattedComment.id)) return c;
-            const nextComments = [...existingComments, formattedComment];
+            const nextComments = mergeComments(c.comments || []);
             return {
               ...c,
               comments: nextComments,
@@ -797,9 +836,7 @@ export default function RetroBoardDetail({
 
       setSelectedCardForDetail((prev) => {
         if (prev && prev.id === cardId) {
-          const existingComments = Array.isArray(prev.comments) ? [...prev.comments] : [];
-          if (existingComments.some((cm) => cm.id === formattedComment.id)) return prev;
-          const nextComments = [...existingComments, formattedComment];
+          const nextComments = mergeComments(prev.comments || []);
           return {
             ...prev,
             comments: nextComments,
@@ -1622,7 +1659,34 @@ export default function RetroBoardDetail({
     if (onShowToast) onShowToast('Komentar berhasil ditambahkan!');
 
     try {
-      await api.addComment(cardId, text);
+      const res = await api.addComment(cardId, text);
+      const serverComment = res?.comment;
+      if (serverComment?.id) {
+        setCards((prev) =>
+          prev.map((c) => {
+            if (c.id === cardId && Array.isArray(c.comments)) {
+              return {
+                ...c,
+                comments: c.comments.map((cm) =>
+                  cm.id === newCommentId ? { ...cm, id: serverComment.id } : cm
+                ),
+              };
+            }
+            return c;
+          })
+        );
+        setSelectedCardForDetail((prev) => {
+          if (prev && prev.id === cardId && Array.isArray(prev.comments)) {
+            return {
+              ...prev,
+              comments: prev.comments.map((cm) =>
+                cm.id === newCommentId ? { ...cm, id: serverComment.id } : cm
+              ),
+            };
+          }
+          return prev;
+        });
+      }
     } catch {
       // Local state already updated
     }
@@ -2215,24 +2279,12 @@ export default function RetroBoardDetail({
           <button type="button" className="btn-icon-top" title="Tampilan">
             <LayoutGrid size={18} />
           </button>
-          <button
-            type="button"
-            className="btn-icon-top notification-btn"
-            title="Notifikasi"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-            <span className="notification-badge-dot"></span>
-          </button>
+          <NotificationBell
+            workspaceId={board?.workspaceId || board?.workspace?.id || workspace?.id}
+            currentUser={currentUser}
+            onShowToast={onShowToast}
+            onNavigateActionItems={() => setActiveTab('action-items')}
+          />
 
           {onToggleDarkMode && (
             <button
@@ -2749,15 +2801,6 @@ export default function RetroBoardDetail({
         />
       )}
 
-      {/* ── Tab 2: Diskusi ── */}
-      {activeTab === 'diskusi' && (
-        <div className="retro-tab-placeholder">
-          <MessageSquare size={40} />
-          <h3>Diskusi Tim</h3>
-          <p>Fitur diskusi dan komentar sesama anggota workspace akan hadir di sini.</p>
-        </div>
-      )}
-
       {/* ── Tab 3: Action Items ── */}
       {activeTab === 'action-items' && (
         <div className="action-items-tab-content">
@@ -2772,15 +2815,6 @@ export default function RetroBoardDetail({
             onChangeStatus={handleChangeActionItemStatus}
             onDelete={handleDeleteActionItem}
           />
-        </div>
-      )}
-
-      {/* ── Tab 4: Aktivitas ── */}
-      {activeTab === 'aktivitas' && (
-        <div className="retro-tab-placeholder">
-          <Activity size={40} />
-          <h3>Aktivitas Board</h3>
-          <p>Log aktivitas semua anggota di board retrospective ini.</p>
         </div>
       )}
 

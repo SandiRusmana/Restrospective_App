@@ -263,9 +263,29 @@ export default function CardDetailModal({
               </div>
             ) : (
               comments.map((comment) => {
-                const cAuthorName = comment.author?.name || comment.authorName || 'Budi Santoso';
-                const cAuthorAvatar = comment.author?.avatarUrl || comment.author?.avatar || comment.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${cAuthorName}`;
-                const cTime = comment.time || (comment.createdAt ? new Date(comment.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true }) : '10:25 AM');
+                const isMyComment =
+                  comment.userId === currentUser?.id ||
+                  comment.authorId === currentUser?.id ||
+                  comment.author?.id === currentUser?.id ||
+                  comment.author?.email === currentUser?.email;
+
+                const cAuthorName =
+                  comment.author?.name ||
+                  comment.authorName ||
+                  comment.user?.name ||
+                  (isMyComment ? (currentUser?.name || currentUser?.fullName || 'Anda') : '') ||
+                  'Anggota Tim';
+
+                const cAuthorAvatar =
+                  comment.author?.avatarUrl ||
+                  comment.author?.avatar ||
+                  comment.authorAvatar ||
+                  comment.avatar ||
+                  comment.user?.avatarUrl ||
+                  (isMyComment ? currentUser?.avatarUrl : '') ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${cAuthorName}`;
+
+                const cTime = comment.time || (comment.createdAt ? new Date(comment.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'Baru saja');
                 const cText = comment.text || comment.content || '';
                 const isHighlighted = highlightedCommentId === comment.id || comment.isHighlighted;
                 const isEditing = editingCommentId === comment.id;

@@ -21,6 +21,16 @@ async function request(endpoint, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    if (response.status === 401 && !endpoint.startsWith('/auth/login') && !endpoint.startsWith('/auth/register')) {
+      localStorage.removeItem('access_token');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('auth:session-expired', {
+            detail: { message: data.message || 'Sesi Anda telah berakhir. Silakan login kembali.' },
+          })
+        );
+      }
+    }
     const error = new Error(data.message || 'Terjadi kesalahan pada server');
     error.status = response.status;
     error.data = data;
@@ -331,6 +341,16 @@ export const api = {
     return this.getWorkspaceActionItems(workspaceId, status);
   },
 
+  // Notification & Overdue Action Items API
+  async getOverdueNotifications(workspaceId = null) {
+    const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : '';
+    return request(`/users/me/notifications/overdue-actions${query}`, { method: 'GET' });
+  },
+
+  async markAllNotificationsRead() {
+    return request('/users/me/notifications/mark-all-read', { method: 'POST' });
+  },
+
   // Dashboard Summary API
   async getDashboardSummary(workspaceId, { startDate, endDate } = {}) {
     const params = new URLSearchParams();
@@ -419,3 +439,5 @@ export const api = {
     });
   },
 };
+
+export default api;

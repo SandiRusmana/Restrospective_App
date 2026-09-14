@@ -25,6 +25,7 @@ import {
 import Avatar from '../common/Avatar';
 import Badge from '../common/Badge';
 import BoardHistoryPage from '../board/BoardHistoryPage';
+import NotificationBell from '../common/NotificationBell';
 
 export default function WorkspaceBoardsView({
   workspace,
@@ -146,15 +147,17 @@ export default function WorkspaceBoardsView({
               <LayoutGrid size={18} />
             </button>
 
-            <button
-              type="button"
-              className="btn-icon-top notification-btn"
-              title="Notifikasi"
-              onClick={() => onShowToast && onShowToast('Tidak ada notifikasi baru')}
-            >
-              <Bell size={18} />
-              <span className="notification-badge-dot"></span>
-            </button>
+            <NotificationBell
+              workspaceId={workspace?.id}
+              currentUser={currentUser}
+              onShowToast={onShowToast}
+              onNavigateActionItems={() => {
+                if (activeTab !== 'overview') {
+                  setActiveTab('overview');
+                }
+              }}
+              onOpenBoard={onOpenBoard}
+            />
 
             {onToggleDarkMode && (
               <button

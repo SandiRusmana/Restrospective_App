@@ -218,6 +218,7 @@ export class CardService {
                 id: true,
                 name: true,
                 email: true,
+                avatarUrl: true,
               },
             },
           },
@@ -570,13 +571,57 @@ export class CardService {
 
     await this.checkBoardAccess(userId, card.boardId);
 
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, avatarUrl: true },
+    });
+
+    const comment = await this.prisma.comment.create({
+      data: {
+        cardId: card.id,
+        userId,
+        content: commentText.trim(),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    const authorName = user?.name || user?.email?.split('@')[0] || 'Anggota Tim';
+    const authorAvatar =
+      user?.avatarUrl ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || user?.email || 'user'}`;
+
     const commentData = {
-      id: `comment_${Date.now()}`,
+      id: comment.id,
       cardId: card.id,
       boardId: card.boardId,
       authorId: userId,
-      text: commentText,
-      createdAt: new Date().toISOString(),
+      userId,
+      authorName,
+      authorAvatar,
+      author: {
+        id: userId,
+        name: authorName,
+        email: user?.email || '',
+        avatarUrl: authorAvatar,
+      },
+      user: comment.user,
+      text: comment.content,
+      content: comment.content,
+      createdAt: comment.createdAt.toISOString(),
+      time: comment.createdAt.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }),
     };
 
     const channels = [`private-board-${card.boardId}`, `board-${card.boardId}`];
