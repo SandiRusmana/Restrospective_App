@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import AuthHero from './AuthHero';
 
 import { api } from '../../services/api';
@@ -117,7 +117,7 @@ export default function LoginPage({ onLoginSuccess, onNavigateRegister }) {
             {/* Status Verifikasi */}
             {isLoading ? (
               <div className="auth-verifying-text">
-                <span className="auth-spinner-dot" />
+                <Loader2 size={16} className="animate-spin" color="#5956e9" />
                 <span>Sedang memverifikasi...</span>
               </div>
             ) : (

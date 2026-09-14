@@ -5,6 +5,7 @@ import { BoardService } from './board.service';
 import { CreateBoardDto } from './dto/create-board.dto';
 import { UpdateAnonymousDto } from './dto/update-anonymous.dto';
 import { GetBoardsQueryDto } from './dto/get-boards-query.dto';
+import { StartPresentationDto } from './dto/start-presentation.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -51,12 +52,54 @@ export class BoardController {
     return this.boardService.updateAnonymous(userId, boardId, updateAnonymousDto?.isAnonymous);
   }
 
+  @Patch('boards/:id/status')
+  async updateStatus(
+    @GetUser('id') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
+    @Body('status') status: string,
+  ) {
+    return this.boardService.updateBoardStatus(userId, boardId, status);
+  }
+
   @Post('boards/:id/reveal')
   async revealBoard(
     @GetUser('id') userId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
   ) {
     return this.boardService.revealBoard(userId, boardId);
+  }
+
+  @Post('boards/:id/presentation/start')
+  async startPresentation(
+    @GetUser('id') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
+    @Body() startPresentationDto?: StartPresentationDto,
+  ) {
+    return this.boardService.startPresentation(userId, boardId, startPresentationDto?.cardId);
+  }
+
+  @Post('boards/:id/presentation/next')
+  async nextPresentation(
+    @GetUser('id') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
+  ) {
+    return this.boardService.nextPresentationCard(userId, boardId);
+  }
+
+  @Post('boards/:id/presentation/prev')
+  async prevPresentation(
+    @GetUser('id') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
+  ) {
+    return this.boardService.prevPresentationCard(userId, boardId);
+  }
+
+  @Post('boards/:id/presentation/stop')
+  async stopPresentation(
+    @GetUser('id') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
+  ) {
+    return this.boardService.stopPresentation(userId, boardId);
   }
 
   @Delete('boards/:id')

@@ -56,3 +56,20 @@ button {
 input, textarea, select {
   font-family: inherit;
 }
+
+/* ── Universal Spin & Loading Animations ── */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin,
+.spin,
+.loading-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite !important;
+}

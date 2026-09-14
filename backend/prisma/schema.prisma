@@ -56,10 +56,14 @@ model Board {
   workspaceId String
   name        String
   template    String   @default("start-stop-continue")
+  status      String   @default("aktif") // "aktif" | "selesai"
   isAnonymous Boolean  @default(false)
   isRevealed  Boolean  @default(false)
   voteLimit   Int?
   createdAt   DateTime @default(now())
+
+  presentationMode          Boolean  @default(false)
+  presentationCurrentCardId String?
 
   workspace Workspace     @relation(fields: [workspaceId], references: [id])
   columns   BoardColumn[]

@@ -172,6 +172,13 @@ export const api = {
     });
   },
 
+  async updateBoardStatus(boardId, status) {
+    return request(`/boards/${boardId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  },
+
   async revealBoard(boardId) {
     return request(`/boards/${boardId}/reveal`, {
       method: 'POST',
@@ -201,6 +208,33 @@ export const api = {
       }
     }
     return { blob, filename };
+  },
+
+  // Presentation Mode API
+  async startPresentation(boardId, cardId = null) {
+    const payload = cardId ? { cardId } : {};
+    return request(`/boards/${boardId}/presentation/start`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async nextPresentation(boardId) {
+    return request(`/boards/${boardId}/presentation/next`, {
+      method: 'POST',
+    });
+  },
+
+  async prevPresentation(boardId) {
+    return request(`/boards/${boardId}/presentation/prev`, {
+      method: 'POST',
+    });
+  },
+
+  async stopPresentation(boardId) {
+    return request(`/boards/${boardId}/presentation/stop`, {
+      method: 'POST',
+    });
   },
 
   // Card API

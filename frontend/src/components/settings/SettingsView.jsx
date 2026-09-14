@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User,
   Building2,
@@ -13,8 +13,13 @@ import {
   Sparkles,
   Volume2,
   VolumeX,
+  Camera,
+  Upload,
+  RotateCcw,
 } from 'lucide-react';
 import { api } from '../../services/api';
+import { WORKSPACE_PALETTE } from '../../utils/workspaceColor';
+import { playChime } from '../../utils/sound';
 
 const AVATAR_SEEDS = [
   'Felix',
@@ -27,6 +32,40 @@ const AVATAR_SEEDS = [
   'Mila',
 ];
 
+// Helper: Kompres dan crop gambar kustom ke format avatar kotak tajam dan ringan
+const compressImage = (file, maxWidth = 256, maxHeight = 256, quality = 0.88) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Crop center square
+        const size = Math.min(width, height);
+        const startX = (width - size) / 2;
+        const startY = (height - size) / 2;
+
+        const targetSize = Math.min(size, maxWidth);
+        canvas.width = targetSize;
+        canvas.height = targetSize;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, startX, startY, size, size, 0, 0, targetSize, targetSize);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = (err) => reject(err);
+      img.src = readerEvent.target.result;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function SettingsView({
   currentUser,
   workspace,
@@ -35,19 +74,24 @@ export default function SettingsView({
   onDeleteWorkspace,
   onInviteMember,
   onShowToast,
+  isDarkMode,
+  onToggleDarkMode,
 }) {
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'workspace' | 'members' | 'preferences'
 
   // User Profile Form State
   const [userName, setUserName] = useState(currentUser?.name || '');
   const [selectedAvatarSeed, setSelectedAvatarSeed] = useState(currentUser?.name || 'Felix');
+  const [customAvatarUrl, setCustomAvatarUrl] = useState(null);
   const [isSavingUser, setIsSavingUser] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Workspace Form State
   const [wsName, setWsName] = useState(workspace?.name || '');
   const [wsDescription, setWsDescription] = useState(
     workspace?.description || workspace?.longDescription || ''
   );
+  const [wsColor, setWsColor] = useState(workspace?.color || '#5b52f9');
   const [isSavingWs, setIsSavingWs] = useState(false);
 
   // Preferences State
@@ -59,9 +103,23 @@ export default function SettingsView({
   });
 
   useEffect(() => {
-    if (currentUser?.name) {
-      setUserName(currentUser.name);
-      setSelectedAvatarSeed(currentUser.name);
+    if (currentUser) {
+      if (currentUser.name) setUserName(currentUser.name);
+      if (currentUser.avatarUrl) {
+        if (currentUser.avatarUrl.startsWith('data:image/') || !currentUser.avatarUrl.includes('dicebear.com')) {
+          setCustomAvatarUrl(currentUser.avatarUrl);
+        } else {
+          setCustomAvatarUrl(null);
+          const match = currentUser.avatarUrl.match(/seed=([^&]+)/);
+          if (match && match[1]) {
+            setSelectedAvatarSeed(decodeURIComponent(match[1]));
+          } else if (currentUser.name) {
+            setSelectedAvatarSeed(currentUser.name);
+          }
+        }
+      } else if (currentUser.name) {
+        setSelectedAvatarSeed(currentUser.name);
+      }
     }
   }, [currentUser]);
 
@@ -69,8 +127,29 @@ export default function SettingsView({
     if (workspace) {
       setWsName(workspace.name || '');
       setWsDescription(workspace.description || workspace.longDescription || '');
+      setWsColor(workspace.color || '#5b52f9');
     }
   }, [workspace]);
+
+  // Handler: Upload Foto Kustom
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      if (onShowToast) onShowToast('Silakan pilih file gambar yang valid (JPG, PNG, WebP)');
+      return;
+    }
+
+    try {
+      const resizedDataUrl = await compressImage(file, 256, 256, 0.88);
+      setCustomAvatarUrl(resizedDataUrl);
+      if (onShowToast) onShowToast('Foto berhasil dimuat! Klik "Simpan Profil" untuk menerapkan.');
+    } catch (err) {
+      console.error('Gagal memproses gambar:', err);
+      if (onShowToast) onShowToast('Gagal memproses gambar yang dipilih');
+    }
+  };
 
   // Handler: Save User Profile
   const handleSaveProfile = async (e) => {
@@ -81,7 +160,10 @@ export default function SettingsView({
     }
 
     setIsSavingUser(true);
-    const newAvatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedAvatarSeed}`;
+    const newAvatarUrl = customAvatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedAvatarSeed}&mouth=smile,twinkle&eyes=default,happy,wink`;
+    try {
+      localStorage.setItem('retro_user_avatar', newAvatarUrl);
+    } catch {}
 
     try {
       await api.updateProfile({
@@ -127,6 +209,7 @@ export default function SettingsView({
         await onUpdateWorkspace(workspace.id, {
           name: wsName.trim(),
           description: wsDescription.trim(),
+          color: wsColor,
         });
       }
       if (onShowToast) onShowToast('Pengaturan workspace berhasil disimpan!');
@@ -143,6 +226,9 @@ export default function SettingsView({
     const next = !soundEnabled;
     setSoundEnabled(next);
     localStorage.setItem('retro_pref_sound', String(next));
+    if (next) {
+      playChime('preview');
+    }
     if (onShowToast) onShowToast(next ? 'Efek suara diaktifkan' : 'Efek suara dimatikan');
   };
 
@@ -222,32 +308,132 @@ export default function SettingsView({
               </div>
 
               {/* Avatar Preview & Seed Selection */}
-              <div className="settings-avatar-selector-block">
-                <div className="settings-current-avatar-box">
+              <div className="settings-avatar-selector-block" style={{ alignItems: 'flex-start', gap: '20px' }}>
+                <div 
+                  className="settings-current-avatar-container"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Klik untuk ganti atau upload foto sendiri"
+                  style={{
+                    position: 'relative',
+                    width: '88px',
+                    height: '88px',
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
+                    border: '3px solid #ffffff',
+                    backgroundColor: '#f8fafc',
+                  }}
+                >
                   <img
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedAvatarSeed}`}
+                    src={
+                      customAvatarUrl || 
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedAvatarSeed}&mouth=smile,twinkle&eyes=default,happy,wink`
+                    }
                     alt="Current Avatar"
-                    className="settings-large-avatar"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                  {/* Modern Hover Overlay */}
+                  <div 
+                    className="avatar-hover-layer"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#ffffff',
+                      gap: '2px',
+                      opacity: 0,
+                      transition: 'opacity 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '0'}
+                  >
+                    <Camera size={20} />
+                    <span style={{ fontSize: '11px', fontWeight: 600 }}>Ganti</span>
+                  </div>
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/png, image/jpeg, image/webp, image/gif"
+                    style={{ display: 'none' }}
+                    onChange={handleFileUpload}
                   />
                 </div>
-                <div className="settings-avatar-seeds-wrap">
-                  <label className="settings-label">Pilih Karakter Avatar:</label>
+
+                <div className="settings-avatar-seeds-wrap" style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                    <label className="settings-label" style={{ margin: 0, fontSize: '13.5px', fontWeight: 600 }}>
+                      {customAvatarUrl ? 'Foto Kustom Digunakan:' : 'Pilih Karakter Ceria atau Upload Sendiri:'}
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{ fontSize: '12px', padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Upload size={14} />
+                        <span>Upload Foto Sendiri</span>
+                      </button>
+                      {customAvatarUrl && (
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          onClick={() => setCustomAvatarUrl(null)}
+                          style={{ fontSize: '12px', padding: '6px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#64748b' }}
+                          title="Kembali ke karakter kartun"
+                        >
+                          <RotateCcw size={13} />
+                          <span>Gunakan Kartun</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="settings-avatar-seeds-grid">
                     {AVATAR_SEEDS.map((seed) => (
                       <button
                         key={seed}
                         type="button"
-                        className={`settings-avatar-seed-btn ${selectedAvatarSeed === seed ? 'selected' : ''}`}
-                        onClick={() => setSelectedAvatarSeed(seed)}
+                        className={`settings-avatar-seed-btn ${!customAvatarUrl && selectedAvatarSeed === seed ? 'selected' : ''}`}
+                        onClick={() => {
+                          setCustomAvatarUrl(null);
+                          setSelectedAvatarSeed(seed);
+                        }}
+                        title={`Pilih karakter ${seed}`}
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          border: (!customAvatarUrl && selectedAvatarSeed === seed) ? '2.5px solid #5956e9' : '2px solid transparent',
+                          padding: 0,
+                          cursor: 'pointer',
+                          overflow: 'hidden',
+                          backgroundColor: '#ffffff',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+                        }}
                       >
                         <img
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`}
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&mouth=smile,twinkle&eyes=default,happy,wink`}
                           alt={seed}
-                          className="settings-seed-thumb"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                         />
                       </button>
                     ))}
                   </div>
+
+                  {customAvatarUrl && (
+                    <div style={{ marginTop: '10px', fontSize: '12px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <Check size={14} />
+                      <span>Foto kustom terpilih. Klik "Simpan Profil" untuk menerapkan.</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -339,6 +525,33 @@ export default function SettingsView({
                 />
               </div>
 
+              <div className="settings-form-group">
+                <label className="settings-label">
+                  Warna Ikon Identitas:
+                </label>
+                <div className="color-options" style={{ display: 'flex', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+                  {WORKSPACE_PALETTE.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`color-circle ${wsColor === c ? 'active' : ''}`}
+                      style={{
+                        backgroundColor: c,
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        border: wsColor === c ? '3px solid #0f172a' : '2px solid transparent',
+                        boxShadow: wsColor === c ? '0 0 0 2px #fff inset' : 'none',
+                        transition: 'transform 0.15s ease'
+                      }}
+                      onClick={() => setWsColor(c)}
+                      title={`Pilih warna ${c}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
               <div className="settings-form-actions">
                 <button
                   type="submit"
@@ -409,9 +622,9 @@ export default function SettingsView({
                   <div key={m.id || idx} className="settings-member-item">
                     <img
                       src={
-                        m.avatar ||
-                        m.avatarUrl ||
-                        `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name || m.email || idx}`
+                        Boolean((currentUser?.id && (m.id === currentUser.id || m.userId === currentUser.id)) || (currentUser?.email && m.email === currentUser.email))
+                          ? (currentUser?.avatarUrl || m.avatarUrl || m.avatar)
+                          : (m.avatarUrl || m.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name || m.email || idx}`)
                       }
                       alt={m.name}
                       className="settings-member-avatar"
@@ -446,13 +659,27 @@ export default function SettingsView({
                     Memutar nada notifikasi saat timer retro berakhir atau pertanyaan icebreaker berganti.
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className={`settings-switch-btn ${soundEnabled ? 'active' : ''}`}
-                  onClick={handleToggleSound}
-                >
-                  <span className="settings-switch-slider"></span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {soundEnabled && (
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={() => playChime('test')}
+                      style={{ fontSize: '12px', padding: '5px 10px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                      title="Tes efek suara sekarang"
+                    >
+                      <Volume2 size={14} />
+                      <span>Tes Bunyi</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={`settings-switch-btn ${soundEnabled ? 'active' : ''}`}
+                    onClick={handleToggleSound}
+                  >
+                    <span className="settings-switch-slider"></span>
+                  </button>
+                </div>
               </div>
 
               <div className="settings-toggle-row">
@@ -470,6 +697,25 @@ export default function SettingsView({
                   <span className="settings-switch-slider"></span>
                 </button>
               </div>
+
+              {onToggleDarkMode && (
+                <div className="settings-toggle-row">
+                  <div>
+                    <div className="settings-toggle-title">Mode Gelap (Dark Mode)</div>
+                    <div className="settings-toggle-desc">
+                      Mengaktifkan tema gelap modern pada seluruh aplikasi (Board, Kartu, Dashboard, Modal) untuk mengurangi ketegangan mata.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={`settings-switch-btn ${isDarkMode ? 'active' : ''}`}
+                    onClick={onToggleDarkMode}
+                    title={isDarkMode ? 'Nonaktifkan Mode Gelap' : 'Aktifkan Mode Gelap'}
+                  >
+                    <span className="settings-switch-slider"></span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </main>

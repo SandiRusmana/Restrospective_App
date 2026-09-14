@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PusherService } from '../pusher/pusher.service';
 import { getAllTemplates, getTemplateColumns } from './constants/retro-templates';
@@ -163,6 +163,9 @@ export class BoardService {
       id: b.id,
       name: b.name,
       template: b.template,
+      status: b.status || 'aktif',
+      isRevealed: Boolean(b.isRevealed),
+      presentationMode: Boolean(b.presentationMode),
       isAnonymous: b.isAnonymous,
       voteLimit: b.voteLimit,
       workspaceId: b.workspaceId,
@@ -414,6 +417,46 @@ export class BoardService {
   }
 
   /**
+   * Update Status Board (Aktif / Selesai)
+   * Hanya fasilitator / owner / admin yang dapat mengubah status board
+   */
+  async updateBoardStatus(userId: string, boardId: string, status: string) {
+    const validStatus = status === 'selesai' ? 'selesai' : 'aktif';
+    const { board } = await this.getBoardWithFacilitatorCheck(userId, boardId);
+
+    const updatedBoard = await (this.prisma.board as any).update({
+      where: { id: boardId },
+      data: { status: validStatus },
+    });
+
+    const channels = [
+      `board-${boardId}`,
+      `private-board-${boardId}`,
+      `presence-board-${boardId}`,
+      `workspace-${board.workspaceId}`,
+    ];
+
+    const payload = {
+      boardId,
+      status: validStatus,
+      updatedBy: userId,
+    };
+
+    try {
+      await this.pusher.trigger(channels, 'board.status.updated', payload);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast board.status.updated:`, err.message);
+    }
+
+    return {
+      message: `Status board berhasil diubah menjadi ${validStatus}`,
+      boardId,
+      status: validStatus,
+      board: updatedBoard,
+    };
+  }
+
+  /**
    * Reveal Semua Card Pada Suatu Board
    * Hanya dapat dilakukan oleh fasilitator / owner / admin
    * Mengubah seluruh card menjadi revealed dan broadcast via Pusher ke channel board-{boardId}
@@ -563,6 +606,354 @@ export class BoardService {
       isRevealed: true,
       cardsCount: formattedCards.length,
       cards: formattedCards,
+    };
+  }
+
+  /**
+   * Helper: Periksa Keberadaan Board dan Otorisasi Fasilitator
+   */
+  private async getBoardWithFacilitatorCheck(userId: string, boardId: string) {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      include: {
+        workspace: {
+          include: {
+            members: {
+              where: { userId },
+            },
+          },
+        },
+      },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board tidak ditemukan');
+    }
+
+    const membership = board.workspace.members[0];
+    const isFacilitator =
+      board.workspace.ownerId === userId ||
+      membership?.role === 'owner' ||
+      membership?.role === 'facilitator' ||
+      membership?.role === 'admin';
+
+    if (!isFacilitator) {
+      throw new ForbiddenException('Hanya fasilitator yang dapat mengelola mode presentasi');
+    }
+
+    return { board, membership };
+  }
+
+  /**
+   * Helper: Mengambil Semua Card Terurut Berdasarkan Urutan Kolom & Waktu Pembuatan
+   */
+  private async getAllBoardCardsOrdered(boardId: string) {
+    const columns = await this.prisma.boardColumn.findMany({
+      where: { boardId },
+      orderBy: { order: 'asc' },
+      select: { id: true, name: true, order: true },
+    });
+
+    const cards = await this.prisma.card.findMany({
+      where: { boardId },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        votes: {
+          select: {
+            userId: true,
+          },
+        },
+        comments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
+        column: {
+          select: {
+            id: true,
+            name: true,
+            order: true,
+          },
+        },
+        actionItem: {
+          include: {
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const columnOrderMap = new Map(columns.map((c) => [c.id, c.order]));
+    cards.sort((a, b) => {
+      const orderA = columnOrderMap.get(a.columnId) ?? 999;
+      const orderB = columnOrderMap.get(b.columnId) ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    return cards.map((c: any) => ({
+      id: c.id,
+      boardId: c.boardId,
+      columnId: c.columnId,
+      columnType: c.column?.name ? c.column.name.toLowerCase() : null,
+      columnName: c.column?.name || null,
+      authorId: c.authorId,
+      isAnonymous: Boolean(c.isAnonymous),
+      isRevealed: Boolean(c.isRevealed),
+      content: c.content,
+      groupId: c.groupId || null,
+      groupTitle: c.groupTitle || null,
+      createdAt: c.createdAt,
+      author: c.author,
+      votes: c.votes || [],
+      votesCount: Array.isArray(c.votes) ? c.votes.length : 0,
+      comments: c.comments || [],
+      commentsCount: Array.isArray(c.comments) ? c.comments.length : 0,
+      actionItem: c.actionItem || null,
+    }));
+  }
+
+  /**
+   * Mengaktifkan Mode Presentasi (Hanya Fasilitator)
+   * POST /api/boards/:id/presentation/start
+   */
+  async startPresentation(userId: string, boardId: string, cardId?: string) {
+    const { board } = await this.getBoardWithFacilitatorCheck(userId, boardId);
+
+    const allCards = await this.getAllBoardCardsOrdered(boardId);
+    if (allCards.length === 0) {
+      throw new BadRequestException('Tidak ada card pada board ini untuk dipresentasikan');
+    }
+
+    let selectedIndex = 0;
+    if (cardId) {
+      const foundIdx = allCards.findIndex((c) => c.id === cardId);
+      if (foundIdx !== -1) {
+        selectedIndex = foundIdx;
+      }
+    }
+
+    const currentCard = allCards[selectedIndex];
+
+    const updatedBoard = await this.prisma.board.update({
+      where: { id: boardId },
+      data: {
+        presentationMode: true,
+        presentationCurrentCardId: currentCard.id,
+      },
+    });
+
+    const payload = {
+      boardId,
+      presentationMode: true,
+      presentationCurrentCardId: currentCard.id,
+      currentCardId: currentCard.id,
+      card: currentCard,
+      currentIndex: selectedIndex,
+      totalCards: allCards.length,
+      isFirst: selectedIndex === 0,
+      isLast: selectedIndex === allCards.length - 1,
+      startedBy: userId,
+    };
+
+    const channels = [
+      `board-${boardId}`,
+      `private-board-${boardId}`,
+      `presence-board-${boardId}`,
+    ];
+
+    try {
+      await this.pusher.trigger(channels, 'presentation.started', payload);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast presentation.started:`, err.message);
+    }
+
+    return {
+      message: 'Mode presentasi berhasil diaktifkan',
+      board: updatedBoard,
+      ...payload,
+    };
+  }
+
+  /**
+   * Berpindah ke Card Berikutnya dalam Mode Presentasi (Hanya Fasilitator)
+   * POST /api/boards/:id/presentation/next
+   */
+  async nextPresentationCard(userId: string, boardId: string) {
+    const { board } = await this.getBoardWithFacilitatorCheck(userId, boardId);
+
+    if (!board.presentationMode) {
+      throw new BadRequestException('Mode presentasi belum diaktifkan');
+    }
+
+    const allCards = await this.getAllBoardCardsOrdered(boardId);
+    if (allCards.length === 0) {
+      throw new BadRequestException('Tidak ada card pada board');
+    }
+
+    const currentIdx = allCards.findIndex((c) => c.id === board.presentationCurrentCardId);
+    const nextIdx = currentIdx === -1 ? 0 : Math.min(currentIdx + 1, allCards.length - 1);
+    const nextCard = allCards[nextIdx];
+
+    const updatedBoard = await this.prisma.board.update({
+      where: { id: boardId },
+      data: {
+        presentationCurrentCardId: nextCard.id,
+      },
+    });
+
+    const payload = {
+      boardId,
+      presentationMode: true,
+      presentationCurrentCardId: nextCard.id,
+      currentCardId: nextCard.id,
+      card: nextCard,
+      currentIndex: nextIdx,
+      totalCards: allCards.length,
+      isFirst: nextIdx === 0,
+      isLast: nextIdx === allCards.length - 1,
+      direction: 'next',
+    };
+
+    const channels = [
+      `board-${boardId}`,
+      `private-board-${boardId}`,
+      `presence-board-${boardId}`,
+    ];
+
+    try {
+      await this.pusher.trigger(channels, 'presentation.card.changed', payload);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast presentation.card.changed:`, err.message);
+    }
+
+    return {
+      message: 'Navigasi ke card berikutnya berhasil',
+      board: updatedBoard,
+      ...payload,
+    };
+  }
+
+  /**
+   * Berpindah ke Card Sebelumnya dalam Mode Presentasi (Hanya Fasilitator)
+   * POST /api/boards/:id/presentation/prev
+   */
+  async prevPresentationCard(userId: string, boardId: string) {
+    const { board } = await this.getBoardWithFacilitatorCheck(userId, boardId);
+
+    if (!board.presentationMode) {
+      throw new BadRequestException('Mode presentasi belum diaktifkan');
+    }
+
+    const allCards = await this.getAllBoardCardsOrdered(boardId);
+    if (allCards.length === 0) {
+      throw new BadRequestException('Tidak ada card pada board');
+    }
+
+    const currentIdx = allCards.findIndex((c) => c.id === board.presentationCurrentCardId);
+    const prevIdx = currentIdx === -1 ? 0 : Math.max(currentIdx - 1, 0);
+    const prevCard = allCards[prevIdx];
+
+    const updatedBoard = await this.prisma.board.update({
+      where: { id: boardId },
+      data: {
+        presentationCurrentCardId: prevCard.id,
+      },
+    });
+
+    const payload = {
+      boardId,
+      presentationMode: true,
+      presentationCurrentCardId: prevCard.id,
+      currentCardId: prevCard.id,
+      card: prevCard,
+      currentIndex: prevIdx,
+      totalCards: allCards.length,
+      isFirst: prevIdx === 0,
+      isLast: prevIdx === allCards.length - 1,
+      direction: 'prev',
+    };
+
+    const channels = [
+      `board-${boardId}`,
+      `private-board-${boardId}`,
+      `presence-board-${boardId}`,
+    ];
+
+    try {
+      await this.pusher.trigger(channels, 'presentation.card.changed', payload);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast presentation.card.changed:`, err.message);
+    }
+
+    return {
+      message: 'Navigasi ke card sebelumnya berhasil',
+      board: updatedBoard,
+      ...payload,
+    };
+  }
+
+  /**
+   * Menghentikan Mode Presentasi (Hanya Fasilitator)
+   * POST /api/boards/:id/presentation/stop
+   */
+  async stopPresentation(userId: string, boardId: string) {
+    const { board } = await this.getBoardWithFacilitatorCheck(userId, boardId);
+
+    const updatedBoard = await this.prisma.board.update({
+      where: { id: boardId },
+      data: {
+        presentationMode: false,
+        presentationCurrentCardId: null,
+      },
+    });
+
+    const payload = {
+      boardId,
+      presentationMode: false,
+      presentationCurrentCardId: null,
+      currentCardId: null,
+      stoppedBy: userId,
+    };
+
+    const channels = [
+      `board-${boardId}`,
+      `private-board-${boardId}`,
+      `presence-board-${boardId}`,
+    ];
+
+    try {
+      await this.pusher.trigger(channels, 'presentation.stopped', payload);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast presentation.stopped:`, err.message);
+    }
+
+    return {
+      message: 'Mode presentasi berhasil dihentikan',
+      board: updatedBoard,
+      ...payload,
     };
   }
 }

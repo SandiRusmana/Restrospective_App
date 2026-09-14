@@ -1,39 +1,12 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { playChime } from '../../utils/sound';
 
 export default function SessionTimerEndedModal({ isOpen, onClose }) {
-  // Play subtle bell chime notification using Web Audio API when modal opens
+  // Play chime notification when modal opens
   useEffect(() => {
-    if (!isOpen) return;
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        const now = ctx.currentTime;
-
-        // Play 2-tone melodic chime (Ding-Dong)
-        const playTone = (freq, startTime, duration) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, startTime);
-
-          gain.gain.setValueAtTime(0, startTime);
-          gain.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
-          gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
-
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-
-          osc.start(startTime);
-          osc.stop(startTime + duration);
-        };
-
-        playTone(587.33, now, 0.6); // D5
-        playTone(880.0, now + 0.2, 0.9); // A5
-      }
-    } catch {
-      // AudioContext unavailable or blocked by browser policy
+    if (isOpen) {
+      playChime('timer');
     }
   }, [isOpen]);
 
