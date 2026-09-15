@@ -2,7 +2,8 @@ import Pusher from 'pusher-js';
 
 const PUSHER_KEY = import.meta.env.VITE_PUSHER_KEY || '44b759c87bc344407314';
 const PUSHER_CLUSTER = import.meta.env.VITE_PUSHER_CLUSTER || 'ap1';
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const rawUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').trim().replace(/\/+$/, '');
+const API_BASE_URL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
 
 let pusherInstance = null;
 
