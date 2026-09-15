@@ -47,6 +47,12 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('demo')
+  async loginDemo() {
+    return this.authService.loginDemo();
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('logout')
   async logout() {
     return this.authService.logout();
