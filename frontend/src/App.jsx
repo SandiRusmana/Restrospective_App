@@ -32,6 +32,7 @@ import MembersListCard from './components/workspace/MembersListCard';
 import RecentBoardsCard from './components/workspace/RecentBoardsCard';
 import WorkspaceBoardsView from './components/workspace/WorkspaceBoardsView';
 import MyBoardsView from './components/workspace/MyBoardsView';
+import { getUserAvatar } from './utils/avatar';
 
 // Sidebar Feature Views
 import ActivityView from './components/activity/ActivityView';
@@ -170,8 +171,8 @@ export default function App() {
                 const uName = u.name || (uEmail ? uEmail.split('@')[0] : 'Anggota');
                 const isMe = Boolean(currentUserObj && (u.id === currentUserObj.id || m.userId === currentUserObj.id || (uEmail && uEmail === currentUserObj.email)));
                 const memberAvatar = isMe
-                  ? (currentUserObj.avatarUrl || u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uEmail || uName}&mouth=smile,twinkle&eyes=default,happy,wink`)
-                  : (u.avatarUrl || m.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uEmail || uName}&mouth=smile,twinkle&eyes=default,happy,wink`);
+                  ? (currentUserObj.avatarUrl || getUserAvatar(u, uName))
+                  : getUserAvatar(u, uName);
                 return {
                   id: m.userId || m.id || u.id,
                   userId: m.userId || u.id,
@@ -187,7 +188,7 @@ export default function App() {
 
             // If members array empty from API, default to current user as Owner
             if (members.length === 0 && currentUserObj) {
-              const defaultOwnerAvatar = currentUserObj.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUserObj.email}&mouth=smile,twinkle&eyes=default,happy,wink`;
+              const defaultOwnerAvatar = getUserAvatar(currentUserObj);
               members = [{
                 id: currentUserObj.id || 'owner',
                 userId: currentUserObj.id || 'owner',
@@ -378,7 +379,7 @@ export default function App() {
             name: userData.name || userData.email.split('@')[0],
             fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
             email: userData.email,
-            avatarUrl: userData.avatarUrl || localStorage.getItem('retro_user_avatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}&mouth=smile,twinkle&eyes=default,happy,wink`,
+            avatarUrl: getUserAvatar(userData),
             isOnline: true
           };
           setUser(formattedUser);
@@ -498,7 +499,7 @@ export default function App() {
       name: userData.name || userData.email.split('@')[0],
       fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
       email: userData.email,
-      avatarUrl: userData.avatarUrl || localStorage.getItem('retro_user_avatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}&mouth=smile,twinkle&eyes=default,happy,wink`,
+      avatarUrl: getUserAvatar(userData),
       isOnline: true
     };
     setUser(formattedUser);

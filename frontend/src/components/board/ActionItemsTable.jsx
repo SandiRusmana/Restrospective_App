@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MoreVertical, Calendar, Check, Trash2, Edit2 } from 'lucide-react';
+import { getUserAvatar } from '../../utils/avatar';
 
 function StatusPill({ status, onChangeStatus, itemId }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -68,7 +69,121 @@ function StatusPill({ status, onChangeStatus, itemId }) {
   );
 }
 
-function ActionItemRow({ item, onChangeStatus, onDelete }) {
+function ActionItemDueDateCell({ item, onUpdateDueDate }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const rawDate = item.dueDate ? new Date(item.dueDate).toISOString().split('T')[0] : '';
+  const [selectedDate, setSelectedDate] = useState(rawDate);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    setSelectedDate(item.dueDate ? new Date(item.dueDate).toISOString().split('T')[0] : '');
+  }, [item.dueDate]);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      if (typeof inputRef.current.showPicker === 'function') {
+        try {
+          inputRef.current.showPicker();
+        } catch (err) {
+          // ignore if not supported by browser
+        }
+      }
+    }
+  }, [isEditing]);
+
+  const handleSave = (newVal) => {
+    setIsEditing(false);
+    if (newVal !== rawDate) {
+      onUpdateDueDate?.(item.id, newVal);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleSave(selectedDate);
+    } else if (e.key === 'Escape') {
+      setSelectedDate(rawDate);
+      setIsEditing(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="action-item-due-date-edit-wrap" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        <input
+          ref={inputRef}
+          type="date"
+          className="action-item-date-input"
+          value={selectedDate}
+          onChange={(e) => {
+            setSelectedDate(e.target.value);
+            handleSave(e.target.value);
+          }}
+          onBlur={() => setIsEditing(false)}
+          onKeyDown={handleKeyDown}
+          style={{
+            fontSize: '12.5px',
+            padding: '3px 6px',
+            border: '1.5px solid #6366f1',
+            borderRadius: '6px',
+            outline: 'none',
+            background: '#ffffff',
+            color: '#1e293b',
+            boxShadow: '0 0 0 2px rgba(99, 102, 241, 0.15)',
+          }}
+        />
+      </div>
+    );
+  }
+
+  const displayText =
+    item.dueDateDisplay ||
+    (item.dueDate
+      ? new Date(item.dueDate).toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '– Belum diatur');
+
+  return (
+    <button
+      type="button"
+      className="action-item-due-date action-item-due-date-btn"
+      onClick={() => setIsEditing(true)}
+      title="Klik untuk mengubah due date"
+      style={{
+        background: 'transparent',
+        border: '1px dashed transparent',
+        padding: '4px 8px',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        color: item.dueDate ? '#374151' : '#94a3b8',
+        fontSize: '13px',
+        fontWeight: 500,
+        transition: 'all 0.15s ease',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#f1f5f9';
+        e.currentTarget.style.borderColor = '#cbd5e1';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = 'transparent';
+        e.currentTarget.style.borderColor = 'transparent';
+      }}
+    >
+      <Calendar size={14} className="action-item-calendar-icon" />
+      <span>{displayText}</span>
+      <Edit2 size={11} style={{ opacity: 0.45, marginLeft: '2px' }} />
+    </button>
+  );
+}
+
+function ActionItemRow({ item, onChangeStatus, onDelete, onUpdateDueDate }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuUpwards, setMenuUpwards] = useState(false);
   const menuRef = useRef(null);
@@ -100,15 +215,12 @@ function ActionItemRow({ item, onChangeStatus, onDelete }) {
       <td className="action-items-cell action-items-cell-assignee">
         <div className="action-item-assignee-info">
           <img
-            src={
-              item.assignee?.avatarUrl ||
-              `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.assignee?.name || 'user'}`
-            }
+            src={getUserAvatar(item.assignee, item.assignee?.name)}
             alt={item.assignee?.name || 'Assignee'}
             className="action-item-assignee-avatar"
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.assignee?.name || 'user'}`;
+              e.target.src = getUserAvatar(item.assignee, item.assignee?.name);
             }}
           />
           <span className="action-item-assignee-name">
@@ -117,10 +229,7 @@ function ActionItemRow({ item, onChangeStatus, onDelete }) {
         </div>
       </td>
       <td className="action-items-cell action-items-cell-due">
-        <div className="action-item-due-date">
-          <Calendar size={14} className="action-item-calendar-icon" />
-          <span>{item.dueDateDisplay || item.dueDate || '–'}</span>
-        </div>
+        <ActionItemDueDateCell item={item} onUpdateDueDate={onUpdateDueDate} />
       </td>
       <td className="action-items-cell action-items-cell-status">
         <StatusPill
@@ -157,7 +266,7 @@ function ActionItemRow({ item, onChangeStatus, onDelete }) {
   );
 }
 
-export default function ActionItemsTable({ actionItems = [], onChangeStatus, onDelete }) {
+export default function ActionItemsTable({ actionItems = [], onChangeStatus, onDelete, onUpdateDueDate }) {
   if (actionItems.length === 0) {
     return (
       <div className="action-items-empty">
@@ -189,6 +298,7 @@ export default function ActionItemsTable({ actionItems = [], onChangeStatus, onD
               item={item}
               onChangeStatus={onChangeStatus}
               onDelete={onDelete}
+              onUpdateDueDate={onUpdateDueDate}
             />
           ))}
         </tbody>
