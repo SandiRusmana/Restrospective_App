@@ -20,7 +20,8 @@ import {
   Activity,
   ChevronRight,
   Sun,
-  Moon
+  Moon,
+  Layers
 } from 'lucide-react';
 import Avatar from '../common/Avatar';
 import Badge from '../common/Badge';

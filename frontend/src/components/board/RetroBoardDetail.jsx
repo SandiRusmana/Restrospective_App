@@ -42,6 +42,7 @@ import CardDetailModal from '../modals/CardDetailModal';
 import SessionTimerModal from '../modals/SessionTimerModal';
 import SessionTimerEndedModal from '../modals/SessionTimerEndedModal';
 import { playChime } from '../../utils/sound';
+import { getUserAvatar } from '../../utils/avatar';
 import BoardSettingsModal from '../modals/BoardSettingsModal';
 import ConvertToActionItemModal from '../modals/ConvertToActionItemModal';
 import IcebreakerSelectModal from '../modals/IcebreakerSelectModal';
@@ -273,6 +274,43 @@ export default function RetroBoardDetail({
       } catch (err) {
         console.error('[PrevSession] Gagal update status action item:', err);
         if (onShowToast) onShowToast('Gagal memperbarui status action item ke server');
+      }
+    },
+    [onShowToast]
+  );
+
+  const handleUpdatePreviousSessionDueDate = useCallback(
+    async (itemId, newDueDate) => {
+      let formattedDisplay = '–';
+      if (newDueDate) {
+        const d = new Date(newDueDate);
+        if (!isNaN(d.getTime())) {
+          formattedDisplay = d.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          });
+        }
+      }
+      setPreviousSessionItems((prev) =>
+        prev.map((ai) =>
+          ai.id === itemId
+            ? {
+                ...ai,
+                dueDate: newDueDate ? new Date(newDueDate).toISOString() : null,
+                dueDateDisplay: formattedDisplay,
+              }
+            : ai
+        )
+      );
+      if (onShowToast) onShowToast('Tenggat waktu (due date) diperbarui');
+      try {
+        await api.updateActionItem(itemId, {
+          dueDate: newDueDate ? new Date(newDueDate).toISOString() : null,
+        });
+      } catch (err) {
+        console.error('[PrevSession] Gagal update due date action item:', err);
+        if (onShowToast) onShowToast('Gagal memperbarui due date ke server');
       }
     },
     [onShowToast]
@@ -523,10 +561,7 @@ export default function RetroBoardDetail({
             id: m.userId || m.id,
             name: m.user?.name || m.name || m.user?.email?.split('@')[0] || 'Member',
             email: m.user?.email || m.email || '',
-            avatarUrl:
-              m.user?.avatarUrl ||
-              m.avatarUrl ||
-              `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user?.name || m.user?.email || m.userId || 'member'}`,
+            avatarUrl: getUserAvatar(m.user || m, m.user?.name || m.name),
           }));
           setMembers(formatted);
         }
@@ -553,7 +588,7 @@ export default function RetroBoardDetail({
           const authorEmail = c.author?.email || (isOwner ? (currentUser?.email || '') : '');
           const authorAvatar = isOwner && (currentUser?.avatarUrl || currentUser?.avatar)
             ? (currentUser.avatarUrl || currentUser.avatar)
-            : (c.author?.avatarUrl || c.author?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorEmail || authorName}`);
+            : getUserAvatar(c.author, authorName);
           const votesList = Array.isArray(c.votes) ? c.votes : [];
           const votesCount = typeof c.votesCount === 'number' ? c.votesCount : votesList.length;
           const hasVoted =
@@ -592,7 +627,7 @@ export default function RetroBoardDetail({
               userId: cm.userId,
               author: cm.user || cm.author,
               authorName: cm.user?.name || cm.authorName || 'Anggota',
-              avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cm.user?.email || cm.user?.name || 'Anggota'}`,
+              avatar: getUserAvatar(cm.user || cm.author, cm.user?.name || cm.authorName || 'Anggota'),
               createdAt: cm.createdAt,
               time: cm.createdAt
                 ? new Date(cm.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -629,10 +664,7 @@ export default function RetroBoardDetail({
       const authorEmail = newCard.author?.email || (isOwner ? (currentUser?.email || '') : '');
       const authorAvatar = isOwner && (currentUser?.avatarUrl || currentUser?.avatar)
         ? (currentUser.avatarUrl || currentUser.avatar)
-        : (newCard.author?.avatarUrl ||
-           newCard.author?.avatar ||
-           newCard.avatar ||
-           `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorEmail || authorName}`);
+        : getUserAvatar(newCard.author, authorName);
       const formattedCard = {
         ...newCard,
         content: newCard.content || newCard.text || '',
@@ -2058,6 +2090,42 @@ export default function RetroBoardDetail({
     }
   };
 
+  // Handler: Change Action Item Due Date
+  const handleUpdateActionItemDueDate = async (itemId, newDueDate) => {
+    let formattedDisplay = '–';
+    if (newDueDate) {
+      const d = new Date(newDueDate);
+      if (!isNaN(d.getTime())) {
+        formattedDisplay = d.toLocaleDateString('id-ID', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+      }
+    }
+    setActionItems((prev) =>
+      prev.map((ai) =>
+        ai.id === itemId
+          ? {
+              ...ai,
+              dueDate: newDueDate ? new Date(newDueDate).toISOString() : null,
+              dueDateDisplay: formattedDisplay,
+            }
+          : ai
+      )
+    );
+    if (onShowToast) onShowToast('Tenggat waktu (due date) diperbarui');
+
+    try {
+      await api.updateActionItem(itemId, {
+        dueDate: newDueDate ? new Date(newDueDate).toISOString() : null,
+      });
+    } catch (err) {
+      console.error('Gagal update due date action item:', err);
+      if (onShowToast) onShowToast('Gagal memperbarui due date');
+    }
+  };
+
   // Handler: Delete Action Item
   const handleDeleteActionItem = (itemId) => {
     setActionItems((prev) => prev.filter((ai) => ai.id !== itemId));
@@ -2362,13 +2430,13 @@ export default function RetroBoardDetail({
             {displayMembers.slice(0, 3).map((m, idx) => (
               <img
                 key={m.id || idx}
-                src={m.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name || m.email || idx}`}
+                src={getUserAvatar(m, m.name || m.email || idx)}
                 alt={m.name || 'Member'}
                 title={m.name || m.email || 'Member'}
                 className="retro-stack-avatar"
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name || 'user'}`;
+                  e.target.src = getUserAvatar(m, m.name || 'user');
                 }}
               />
             ))}
@@ -2707,6 +2775,7 @@ export default function RetroBoardDetail({
               <PreviousSessionActionItems
                 items={previousSessionItems}
                 onChangeStatus={handleUpdatePreviousSessionStatus}
+                onUpdateDueDate={handleUpdatePreviousSessionDueDate}
               />
             </div>
           )}
@@ -2808,12 +2877,14 @@ export default function RetroBoardDetail({
           <PreviousSessionActionItems
             items={previousSessionItems}
             onChangeStatus={handleUpdatePreviousSessionStatus}
+            onUpdateDueDate={handleUpdatePreviousSessionDueDate}
           />
           {/* Action Items Sesi Ini */}
           <ActionItemsTable
             actionItems={actionItems}
             onChangeStatus={handleChangeActionItemStatus}
             onDelete={handleDeleteActionItem}
+            onUpdateDueDate={handleUpdateActionItemDueDate}
           />
         </div>
       )}

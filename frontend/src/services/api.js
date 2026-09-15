@@ -64,6 +64,16 @@ export const api = {
     return res;
   },
 
+  async loginDemo() {
+    const res = await request('/auth/demo', {
+      method: 'POST',
+    });
+    if (res.accessToken) {
+      localStorage.setItem('access_token', res.accessToken);
+    }
+    return res;
+  },
+
   async getMe() {
     return request('/auth/me', { method: 'GET' });
   },

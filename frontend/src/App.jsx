@@ -8,6 +8,16 @@ const getBoardIdFromPath = (path) => {
   return match ? match[1] : null;
 };
 
+// Helper: Ekstraksi token invite dari URL (?invite=... atau /invite/:token)
+const getInviteTokenFromUrl = () => {
+  if (typeof window === 'undefined') return null;
+  const urlParams = new URLSearchParams(window.location.search);
+  const fromQuery = urlParams.get('invite');
+  if (fromQuery) return fromQuery;
+  const match = (window.location.pathname || '').match(/^\/invite\/([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : null;
+};
+
 // Sidebar Navigation Items
 const sidebarNavItems = [
   { id: "workspace", label: "Workspace", icon: "LayoutGrid", active: true },
@@ -35,6 +45,7 @@ import MembersListCard from './components/workspace/MembersListCard';
 import RecentBoardsCard from './components/workspace/RecentBoardsCard';
 import WorkspaceBoardsView from './components/workspace/WorkspaceBoardsView';
 import MyBoardsView from './components/workspace/MyBoardsView';
+import { getUserAvatar } from './utils/avatar';
 
 // Sidebar Feature Views
 import ActivityView from './components/activity/ActivityView';
@@ -47,6 +58,7 @@ import CreateWorkspaceModal from './components/modals/CreateWorkspaceModal';
 import CreateBoardModal from './components/modals/CreateBoardModal';
 import BuatRetroWizardModal from './components/modals/BuatRetroWizardModal';
 import InviteMemberModal from './components/modals/InviteMemberModal';
+import JoinWorkspaceModal from './components/modals/JoinWorkspaceModal';
 import Toast from './components/common/Toast';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { getConsistentWorkspaceColor, saveWorkspaceColor } from './utils/workspaceColor';
@@ -122,6 +134,14 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [isToastVisible, setIsToastVisible] = useState(false);
 
+  // Workspace Invite State
+  const [inviteToken, setInviteToken] = useState(() => getInviteTokenFromUrl());
+  const [inviteData, setInviteData] = useState(null);
+  const [isInviteLoading, setIsInviteLoading] = useState(false);
+  const [inviteError, setInviteError] = useState(null);
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+  const [isJoiningWorkspace, setIsJoiningWorkspace] = useState(false);
+
   // Direct Board URL & Authorization Error State
   const [boardAccessError, setBoardAccessError] = useState(null);
   const [isBoardDirectLoading, setIsBoardDirectLoading] = useState(false);
@@ -134,6 +154,70 @@ export default function App() {
       setIsToastVisible(false);
     }, 3000);
   }, []);
+
+  // Handler: Tutup Modal Undangan & Bersihkan URL/Storage
+  const handleCloseJoinModal = useCallback(() => {
+    setIsJoinModalOpen(false);
+    setInviteError(null);
+    sessionStorage.removeItem('pending_invite_token');
+    sessionStorage.removeItem('pending_invite_workspace_name');
+    setInviteToken(null);
+    setInviteData(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('invite');
+    window.history.replaceState({}, document.title, url.pathname + (url.search || ''));
+  }, []);
+
+  // Handler: Validasi & Ambil Detail Info Undangan
+  const validateAndLoadInvite = useCallback(async (token) => {
+    if (!token) return;
+    setInviteToken(token);
+    setIsInviteLoading(true);
+    setInviteError(null);
+    setIsJoinModalOpen(true);
+    try {
+      sessionStorage.setItem('pending_invite_token', token);
+      const data = await api.getInviteInfo(token);
+      setInviteData(data);
+      if (data?.workspace?.name) {
+        sessionStorage.setItem('pending_invite_workspace_name', data.workspace.name);
+      }
+    } catch (err) {
+      console.error('Gagal memvalidasi token invite:', err);
+      setInviteError(err.message || 'Link invite tidak valid atau sudah kedaluwarsa.');
+      sessionStorage.removeItem('pending_invite_token');
+      sessionStorage.removeItem('pending_invite_workspace_name');
+    } finally {
+      setIsInviteLoading(false);
+    }
+  }, []);
+
+  // Helper: Auto-Join Otomatis Setelah Login / Register / Demo
+  const processPendingInviteAfterAuth = useCallback(async (currentUserObj) => {
+    const pendingToken = sessionStorage.getItem('pending_invite_token');
+    if (!pendingToken) return null;
+
+    try {
+      const res = await api.joinWorkspace(pendingToken);
+      sessionStorage.removeItem('pending_invite_token');
+      sessionStorage.removeItem('pending_invite_workspace_name');
+      setInviteToken(null);
+      setInviteData(null);
+      setIsJoinModalOpen(false);
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete('invite');
+      window.history.replaceState({}, document.title, url.pathname + (url.search || ''));
+
+      showToast(res.message || 'Berhasil bergabung ke workspace undangan!');
+      return res.workspace?.id || null;
+    } catch (err) {
+      console.warn('Auto-join invite gagal:', err);
+      sessionStorage.removeItem('pending_invite_token');
+      sessionStorage.removeItem('pending_invite_workspace_name');
+      return null;
+    }
+  }, [showToast]);
 
   // Fetch Workspaces from Backend API with real members and real boards
   const fetchWorkspaces = useCallback(async (currentUserObj) => {
@@ -173,8 +257,8 @@ export default function App() {
                 const uName = u.name || (uEmail ? uEmail.split('@')[0] : 'Anggota');
                 const isMe = Boolean(currentUserObj && (u.id === currentUserObj.id || m.userId === currentUserObj.id || (uEmail && uEmail === currentUserObj.email)));
                 const memberAvatar = isMe
-                  ? (currentUserObj.avatarUrl || u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uEmail || uName}&mouth=smile,twinkle&eyes=default,happy,wink`)
-                  : (u.avatarUrl || m.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uEmail || uName}&mouth=smile,twinkle&eyes=default,happy,wink`);
+                  ? (currentUserObj.avatarUrl || getUserAvatar(u, uName))
+                  : getUserAvatar(u, uName);
                 return {
                   id: m.userId || m.id || u.id,
                   userId: m.userId || u.id,
@@ -190,7 +274,7 @@ export default function App() {
 
             // If members array empty from API, default to current user as Owner
             if (members.length === 0 && currentUserObj) {
-              const defaultOwnerAvatar = currentUserObj.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUserObj.email}&mouth=smile,twinkle&eyes=default,happy,wink`;
+              const defaultOwnerAvatar = getUserAvatar(currentUserObj);
               members = [{
                 id: currentUserObj.id || 'owner',
                 userId: currentUserObj.id || 'owner',
@@ -350,10 +434,50 @@ export default function App() {
     }
   }, []);
 
-  // Initial Auth Check on Mount (termasuk deteksi callback Google OAuth & Deep Link /board/:uuid)
+  // Handler: Join Workspace oleh User yang Sedang Login
+  const handleJoinWorkspace = useCallback(async () => {
+    const tokenToUse = inviteToken || sessionStorage.getItem('pending_invite_token');
+    if (!tokenToUse) return;
+    try {
+      setIsJoiningWorkspace(true);
+      const res = await api.joinWorkspace(tokenToUse);
+      showToast(res.message || 'Berhasil bergabung ke workspace!');
+
+      sessionStorage.removeItem('pending_invite_token');
+      sessionStorage.removeItem('pending_invite_workspace_name');
+      setInviteToken(null);
+      setInviteData(null);
+      setIsJoinModalOpen(false);
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete('invite');
+      window.history.replaceState({}, document.title, url.pathname + (url.search || ''));
+
+      if (user) {
+        await fetchWorkspaces(user);
+      }
+      if (res.workspace?.id) {
+        setActiveWorkspaceId(res.workspace.id);
+        setDashboardView('workspace-detail');
+        setActiveNav('workspace');
+      }
+    } catch (err) {
+      showToast(err.message || 'Gagal bergabung ke workspace.');
+    } finally {
+      setIsJoiningWorkspace(false);
+    }
+  }, [inviteToken, showToast, user, fetchWorkspaces]);
+
+  // Initial Auth Check on Mount (termasuk deteksi callback Google OAuth, Deep Link /board/:uuid, & Link Invite)
   useEffect(() => {
     async function checkAuth() {
-      // 1. Cek apakah ada redirect token dari Google OAuth di URL
+      // 1. Cek apakah ada parameter invite di URL (?invite=... atau /invite/:token)
+      const inviteFromUrl = getInviteTokenFromUrl();
+      if (inviteFromUrl) {
+        validateAndLoadInvite(inviteFromUrl);
+      }
+
+      // 2. Cek apakah ada redirect token dari Google OAuth di URL
       const urlParams = new URLSearchParams(window.location.search);
       const tokenFromUrl = urlParams.get('token');
       const authError = urlParams.get('error');
@@ -381,12 +505,24 @@ export default function App() {
             name: userData.name || userData.email.split('@')[0],
             fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
             email: userData.email,
-            avatarUrl: userData.avatarUrl || localStorage.getItem('retro_user_avatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}&mouth=smile,twinkle&eyes=default,happy,wink`,
+            avatarUrl: getUserAvatar(userData),
             isOnline: true
           };
           setUser(formattedUser);
           setCurrentPage('dashboard');
+
+          // Jika baru kembali dari Google OAuth dan membawa pending invite
+          let joinedWsId = null;
+          if (tokenFromUrl) {
+            joinedWsId = await processPendingInviteAfterAuth(formattedUser);
+          }
+
           await fetchWorkspaces(formattedUser);
+
+          if (joinedWsId) {
+            setActiveWorkspaceId(joinedWsId);
+            setDashboardView('workspace-detail');
+          }
 
           // Cek apakah ada redirect target setelah login dari sessionStorage atau URL langsung
           const redirectAfter = sessionStorage.getItem('redirect_after_login');
@@ -419,13 +555,16 @@ export default function App() {
         // Belum login tapi mengakses link /board/:uuid
         if (initialBoardUuid) {
           sessionStorage.setItem('redirect_after_login', window.location.pathname + window.location.search);
+          setCurrentPage('login');
+        } else {
+          // Tetap di landing page (default) jika belum login dan bukan link board
+          setCurrentPage('landing');
         }
-        setCurrentPage('login');
         setIsLoadingAuth(false);
       }
     }
     checkAuth();
-  }, [fetchWorkspaces, loadBoardDirectly, showToast]);
+  }, [fetchWorkspaces, loadBoardDirectly, showToast, validateAndLoadInvite, processPendingInviteAfterAuth]);
 
   // Listener Sesi Kedaluwarsa (Auto-Logout 401)
   useEffect(() => {
@@ -501,14 +640,24 @@ export default function App() {
       name: userData.name || userData.email.split('@')[0],
       fullName: userData.name ? `${userData.name} (Anda)` : `${userData.email} (Anda)`,
       email: userData.email,
-      avatarUrl: userData.avatarUrl || localStorage.getItem('retro_user_avatar') || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}&mouth=smile,twinkle&eyes=default,happy,wink`,
+      avatarUrl: getUserAvatar(userData),
       isOnline: true
     };
     setUser(formattedUser);
     showToast("Berhasil masuk! Mengarahkan ke Dashboard...");
     setCurrentPage('dashboard');
     setDashboardView('workspace-detail');
+
+    // Auto join workspace jika ada pending invite
+    const joinedWsId = await processPendingInviteAfterAuth(formattedUser);
+
     await fetchWorkspaces(formattedUser);
+
+    if (joinedWsId) {
+      setActiveWorkspaceId(joinedWsId);
+      setDashboardView('workspace-detail');
+      setActiveNav('workspace');
+    }
 
     // Cek apakah ada redirect ke board
     const redirectPath = sessionStorage.getItem('redirect_after_login');
@@ -535,7 +684,17 @@ export default function App() {
     showToast(`Akun "${formattedUser.name}" berhasil dibuat!`);
     setCurrentPage('dashboard');
     setDashboardView('workspace-detail');
+
+    // Auto join workspace jika ada pending invite
+    const joinedWsId = await processPendingInviteAfterAuth(formattedUser);
+
     await fetchWorkspaces(formattedUser);
+
+    if (joinedWsId) {
+      setActiveWorkspaceId(joinedWsId);
+      setDashboardView('workspace-detail');
+      setActiveNav('workspace');
+    }
 
     // Cek apakah ada redirect ke board
     const redirectPath = sessionStorage.getItem('redirect_after_login');
@@ -546,6 +705,50 @@ export default function App() {
       if (targetBoardId) {
         await loadBoardDirectly(targetBoardId, isReadOnly);
       }
+    }
+  };
+
+  // Handler: 1-Click Live Demo Session
+  const handleStartDemoSession = async () => {
+    try {
+      showToast('Menyiapkan sesi Demo RetroNerve...');
+      const res = await api.loginDemo();
+      if (res && res.user && res.accessToken) {
+        localStorage.setItem('access_token', res.accessToken);
+        const formattedUser = {
+          id: res.user.id,
+          name: res.user.name || 'Tamu Demo',
+          fullName: `${res.user.name || 'Tamu Demo'} (Demo)`,
+          email: res.user.email,
+          avatarUrl: getUserAvatar(res.user),
+          isOnline: true,
+        };
+        setUser(formattedUser);
+
+        // Auto join workspace jika ada pending invite
+        const joinedWsId = await processPendingInviteAfterAuth(formattedUser);
+
+        await fetchWorkspaces(formattedUser);
+
+        setCurrentPage('dashboard');
+        if (joinedWsId) {
+          setActiveWorkspaceId(joinedWsId);
+          setDashboardView('workspace-detail');
+          setActiveNav('workspace');
+        } else if (res.boardId) {
+          if (res.workspaceId) {
+            setActiveWorkspaceId(res.workspaceId);
+          }
+          await loadBoardDirectly(res.boardId);
+        } else {
+          setDashboardView('workspace-detail');
+        }
+        showToast('Selamat datang di Live Demo RetroNerve!');
+      }
+    } catch (err) {
+      console.error('Gagal memulai live demo:', err);
+      showToast('Gagal memulai sesi demo. Silakan coba lagi.');
+      throw err;
     }
   };
 
@@ -763,23 +966,7 @@ export default function App() {
         <LandingPage 
           onNavigateLogin={() => setCurrentPage('login')}
           onNavigateRegister={() => setCurrentPage('register')}
-          onDirectDashboard={() => {
-            if (!token) {
-              const demoUser = {
-                id: 'demo_user',
-                name: 'Afrizal (Demo)',
-                fullName: 'Afrizal (Demo)',
-                email: 'demo@retronerve.com',
-                avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-                isOnline: true
-              };
-              setUser(demoUser);
-              fetchWorkspaces(demoUser);
-            }
-            setCurrentPage('dashboard');
-            setDashboardView('workspace-detail');
-            showToast('Selamat datang di Demo RetroNerve!');
-          }}
+          onDirectDashboard={handleStartDemoSession}
         />
       )}
 
@@ -789,6 +976,7 @@ export default function App() {
           onLoginSuccess={handleLoginSuccess}
           onNavigateRegister={() => setCurrentPage('register')}
           onNavigateLanding={() => setCurrentPage('landing')}
+          pendingInvite={inviteData ? { workspaceName: inviteData.workspace?.name } : null}
         />
       )}
 
@@ -798,6 +986,7 @@ export default function App() {
           onRegisterSuccess={handleRegisterSuccess}
           onNavigateLogin={() => setCurrentPage('login')}
           onNavigateLanding={() => setCurrentPage('landing')}
+          pendingInvite={inviteData ? { workspaceName: inviteData.workspace?.name } : null}
         />
       )}
 
@@ -1238,6 +1427,21 @@ export default function App() {
           )}
         </div>
       )}
+
+      {/* Workspace Invitation Preview & Join Modal */}
+      <JoinWorkspaceModal 
+        isOpen={isJoinModalOpen}
+        onClose={handleCloseJoinModal}
+        inviteData={inviteData}
+        isLoading={isInviteLoading}
+        error={inviteError}
+        currentUser={user}
+        onJoin={handleJoinWorkspace}
+        isJoining={isJoiningWorkspace}
+        onNavigateLogin={() => setCurrentPage('login')}
+        onNavigateRegister={() => setCurrentPage('register')}
+        onStartDemo={handleStartDemoSession}
+      />
 
       {/* Global Notification Toast */}
       <Toast 

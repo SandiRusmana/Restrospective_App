@@ -183,6 +183,150 @@ export class AuthService {
   }
 
   /**
+   * Login atau Inisialisasi Akun Demo (1-Click Live Demo)
+   */
+  async loginDemo() {
+    const email = 'demo@retronerve.com';
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      const hashedPassword = await bcrypt.hash('DemoRetroNerve2026!', 10);
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          name: 'Tamu Demo (Afrizal)',
+          password: hashedPassword,
+          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        },
+      });
+    }
+
+    // Pastikan user memiliki minimal 1 workspace
+    let member = await this.prisma.workspaceMember.findFirst({
+      where: { userId: user.id },
+      include: { workspace: true },
+    });
+
+    let workspaceId = member?.workspaceId;
+
+    if (!workspaceId) {
+      const ws = await this.prisma.workspace.create({
+        data: {
+          name: 'Demo Workspace',
+          ownerId: user.id,
+          members: {
+            create: {
+              userId: user.id,
+              role: 'owner',
+            },
+          },
+        },
+      });
+      workspaceId = ws.id;
+    }
+
+    // Pastikan workspace memiliki minimal 1 board demo
+    let board = await this.prisma.board.findFirst({
+      where: { workspaceId },
+      include: { columns: true },
+    });
+
+    if (!board) {
+      board = await this.prisma.board.create({
+        data: {
+          workspaceId,
+          name: 'Sprint 10 Retrospective (Demo)',
+          template: 'start-stop-continue',
+          isAnonymous: false,
+          isRevealed: true,
+          voteLimit: 5,
+          columns: {
+            create: [
+              { name: 'What went well (Continue)', order: 1 },
+              { name: 'What could be improved (Stop)', order: 2 },
+              { name: 'New ideas & experiments (Start)', order: 3 },
+            ],
+          },
+        },
+        include: { columns: true },
+      });
+
+      // Tambahkan beberapa contoh kartu agar board langsung hidup dan interaktif
+      const cols = board.columns;
+      if (cols.length >= 3) {
+        // Kolom 1 (Continue)
+        await this.prisma.card.create({
+          data: {
+            boardId: board.id,
+            columnId: cols[0].id,
+            authorId: user.id,
+            content: 'Daily standup selalu tepat waktu dan fokus pada blocker penting 👍',
+            isRevealed: true,
+          },
+        });
+        await this.prisma.card.create({
+          data: {
+            boardId: board.id,
+            columnId: cols[0].id,
+            authorId: user.id,
+            content: 'Komunikasi antar tim FE dan BE sangat lancar selama sprint ini 🚀',
+            isRevealed: true,
+          },
+        });
+
+        // Kolom 2 (Stop)
+        await this.prisma.card.create({
+          data: {
+            boardId: board.id,
+            columnId: cols[1].id,
+            authorId: user.id,
+            content: 'Deploy fitur baru mendekati jam pulang kantor tanpa review staging',
+            isRevealed: true,
+          },
+        });
+
+        // Kolom 3 (Start)
+        const cardAction = await this.prisma.card.create({
+          data: {
+            boardId: board.id,
+            columnId: cols[2].id,
+            authorId: user.id,
+            content: 'Mulai buat automated checklist sebelum release ke production',
+            isRevealed: true,
+          },
+        });
+
+        // Buat 1 contoh Action Item dengan Due Date aktif
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + 3);
+        await this.prisma.actionItem.create({
+          data: {
+            cardId: cardAction.id,
+            boardId: board.id,
+            assigneeId: user.id,
+            title: 'Buat automated checklist release production',
+            status: 'IN_PROGRESS',
+            dueDate,
+          },
+        });
+      }
+    }
+
+    const token = await this.generateToken(user.id, user.email);
+    const { password: _, ...userWithoutPassword } = user;
+
+    return {
+      message: 'Login demo berhasil',
+      accessToken: token,
+      user: userWithoutPassword,
+      boardId: board.id,
+      workspaceId,
+    };
+  }
+
+  /**
    * Private Helper untuk Membuat Access Token JWT
    */
   private async generateToken(userId: string, email: string): Promise<string> {

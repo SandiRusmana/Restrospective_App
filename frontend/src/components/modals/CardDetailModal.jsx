@@ -10,6 +10,7 @@ import {
   Copy,
   Check
 } from 'lucide-react';
+import { getUserAvatar } from '../../utils/avatar';
 
 export default function CardDetailModal({
   isOpen,
@@ -111,10 +112,7 @@ export default function CardDetailModal({
       ? card.commentCount
       : comments.length;
 
-  const userAvatar =
-    currentUser?.avatarUrl ||
-    currentUser?.avatar ||
-    `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'user'}`;
+  const userAvatar = getUserAvatar(currentUser);
 
   // Handler: Submit New Comment
   const handleSendComment = async (e) => {
@@ -276,14 +274,8 @@ export default function CardDetailModal({
                   (isMyComment ? (currentUser?.name || currentUser?.fullName || 'Anda') : '') ||
                   'Anggota Tim';
 
-                const cAuthorAvatar =
-                  comment.author?.avatarUrl ||
-                  comment.author?.avatar ||
-                  comment.authorAvatar ||
-                  comment.avatar ||
-                  comment.user?.avatarUrl ||
-                  (isMyComment ? currentUser?.avatarUrl : '') ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${cAuthorName}`;
+                const commentUser = comment.user || comment.author || (isMyComment ? currentUser : null);
+                const cAuthorAvatar = getUserAvatar(commentUser, cAuthorName);
 
                 const cTime = comment.time || (comment.createdAt ? new Date(comment.createdAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'Baru saja');
                 const cText = comment.text || comment.content || '';
@@ -301,7 +293,7 @@ export default function CardDetailModal({
                       className="retro-comment-avatar"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${cAuthorName}`;
+                        e.target.src = getUserAvatar(commentUser, cAuthorName);
                       }}
                     />
 
@@ -416,7 +408,7 @@ export default function CardDetailModal({
             className="retro-input-avatar"
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=afrizal`;
+              e.target.src = getUserAvatar(currentUser);
             }}
           />
 

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import { getUserAvatar } from '../../utils/avatar';
 
 export default function RetroCard({
   card,
@@ -129,10 +130,7 @@ export default function RetroCard({
       ? (currentUser.avatarUrl || currentUser.avatar)
       : isCardAnonymous
       ? null
-      : (card?.author?.avatarUrl ||
-         card?.author?.avatar ||
-         card?.avatar ||
-         `https://api.dicebear.com/7.x/avataaars/svg?seed=${card?.author?.email || originalAuthorName || 'user'}`);
+      : getUserAvatar(card?.author, originalAuthorName || 'user');
   const timestamp =
     card?.time ||
     (card?.createdAt
@@ -477,7 +475,7 @@ export default function RetroCard({
               className="retro-card-avatar"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorName}`;
+                e.target.src = getUserAvatar(card?.author, authorName);
               }}
             />
           )}

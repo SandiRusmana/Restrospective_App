@@ -24,15 +24,10 @@ export class NotificationService {
     // 2. Query Action Item dari database
     // Kriteria:
     // - status: PENDING atau IN_PROGRESS
-    // - dueDate < sekarang (sudah lewat tenggat waktu)
-    // - Milik user (assigneeId == userId atau assignee.email == userEmail)
-    //   ATAU jika belum ada assignee, user adalah owner/anggota workspace tempat board berada
+    // - Khusus yang di-assign ke user saat ini (assigneeId == userId atau assignee.email == userEmail)
     const whereClause: any = {
       status: {
         in: [ActionItemStatus.PENDING, ActionItemStatus.IN_PROGRESS],
-      },
-      dueDate: {
-        lt: now,
       },
       AND: [
         ...(workspaceId ? [{ board: { workspaceId } }] : []),
@@ -40,16 +35,6 @@ export class NotificationService {
           OR: [
             { assigneeId: userId },
             ...(userEmail ? [{ assignee: { email: userEmail } }] : []),
-            {
-              board: {
-                workspace: {
-                  OR: [
-                    { ownerId: userId },
-                    { members: { some: { userId } } },
-                  ],
-                },
-              },
-            },
           ],
         },
       ],
@@ -90,24 +75,42 @@ export class NotificationService {
           },
         },
       },
-      orderBy: {
-        dueDate: 'asc', // Yang paling lama terlambat muncul paling atas
-      },
+      orderBy: [
+        { dueDate: 'asc' },
+        { createdAt: 'desc' },
+      ],
     });
 
-    // 3. Format data action item beserta perhitungan hari keterlambatan
-    const overdueActions = items.map((item: any) => {
-      const itemDueDate = item.dueDate ? new Date(item.dueDate) : now;
-      const diffMs = now.getTime() - itemDueDate.getTime();
-      const overdueDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    // 3. Format data action item: Pisahkan antara Overdue vs Baru Ditugaskan
+    const overdueActions: any[] = [];
+    const assignedActions: any[] = [];
 
-      const dueDateDisplay = itemDueDate.toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
+    items.forEach((item: any) => {
+      const hasDueDate = Boolean(item.dueDate);
+      const itemDueDate = hasDueDate ? new Date(item.dueDate) : null;
+      const isOverdue = Boolean(itemDueDate && itemDueDate.getTime() < now.getTime());
 
-      return {
+      let overdueDays = 0;
+      let overdueBadge = 'Ditugaskan';
+      if (isOverdue && itemDueDate) {
+        const diffMs = now.getTime() - itemDueDate.getTime();
+        overdueDays = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        overdueBadge = `Terlambat ${overdueDays} hari`;
+      } else if (hasDueDate && itemDueDate) {
+        const diffMs = itemDueDate.getTime() - now.getTime();
+        const remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        overdueBadge = remainingDays <= 0 ? 'Hari ini' : `${remainingDays} hari lagi`;
+      }
+
+      const dueDateDisplay = itemDueDate
+        ? itemDueDate.toLocaleDateString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : 'Belum ditentukan';
+
+      const formatted = {
         id: item.id,
         cardId: item.cardId,
         boardId: item.boardId,
@@ -118,8 +121,10 @@ export class NotificationService {
         description: item.card?.content || item.title || '',
         dueDate: item.dueDate,
         dueDateDisplay,
+        isOverdue,
         overdueDays,
-        overdueBadge: `Terlambat ${overdueDays} hari`,
+        overdueBadge,
+        type: isOverdue ? 'OVERDUE' : 'ASSIGNED',
         status: item.status,
         assignee: item.assignee
           ? {
@@ -139,11 +144,23 @@ export class NotificationService {
         commentsCount: item.card?.comments?.length || 0,
         createdAt: item.createdAt,
       };
+
+      if (isOverdue) {
+        overdueActions.push(formatted);
+      } else {
+        assignedActions.push(formatted);
+      }
     });
 
+    const allNotifications = [...overdueActions, ...assignedActions];
+
     return {
-      count: overdueActions.length,
+      count: allNotifications.length,
+      overdueCount: overdueActions.length,
+      assignedCount: assignedActions.length,
       overdueActions,
+      assignedActions,
+      notifications: allNotifications,
     };
   }
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Calendar, ChevronDown, Check, User } from 'lucide-react';
+import { getUserAvatar } from '../../utils/avatar';
 
 export default function ConvertToActionItemModal({
   isOpen,
@@ -198,12 +199,12 @@ export default function ConvertToActionItemModal({
               <div className="convert-select-left">
                 {selectedAssignee?.avatarUrl ? (
                   <img
-                    src={selectedAssignee.avatarUrl}
+                    src={getUserAvatar(selectedAssignee, selectedAssignee?.name)}
                     alt={selectedAssignee.name}
                     className="convert-member-avatar"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedAssignee?.name || 'user'}`;
+                      e.target.src = getUserAvatar(selectedAssignee, selectedAssignee?.name);
                     }}
                   />
                 ) : (
@@ -237,12 +238,12 @@ export default function ConvertToActionItemModal({
                     >
                       <div className="convert-select-left">
                         <img
-                          src={m.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name}`}
+                          src={getUserAvatar(m, m.name)}
                           alt={m.name}
                           className="convert-member-avatar"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.name}`;
+                            e.target.src = getUserAvatar(m, m.name);
                           }}
                         />
                         <span className="convert-member-name">{m.name}</span>

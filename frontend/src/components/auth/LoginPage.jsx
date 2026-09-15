@@ -4,12 +4,21 @@ import AuthHero from './AuthHero';
 
 import { api } from '../../services/api';
 
-export default function LoginPage({ onLoginSuccess, onNavigateRegister, onNavigateLanding }) {
+export default function LoginPage({ onLoginSuccess, onNavigateRegister, onNavigateLanding, pendingInvite }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const activePendingInvite = pendingInvite || (() => {
+    try {
+      const name = sessionStorage.getItem('pending_invite_workspace_name');
+      return name ? { workspaceName: name } : null;
+    } catch {
+      return null;
+    }
+  })();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,6 +66,28 @@ export default function LoginPage({ onLoginSuccess, onNavigateRegister, onNaviga
             )}
           </div>
           <h1 className="auth-form-title">Masuk ke akun Anda</h1>
+
+          {activePendingInvite && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px 14px',
+              backgroundColor: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              borderRadius: '10px',
+              marginBottom: '16px',
+              color: '#1e40af',
+              fontSize: '13px',
+              lineHeight: '1.4'
+            }}>
+              <span style={{ fontSize: '18px' }}>✉️</span>
+              <div>
+                Masuk untuk otomatis bergabung ke workspace <strong>{activePendingInvite.workspaceName || 'tim Anda'}</strong>.
+              </div>
+            </div>
+          )}
+
           {errorMessage && (
             <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>
               {errorMessage}
