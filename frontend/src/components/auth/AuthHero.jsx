@@ -2,7 +2,7 @@ import React from 'react';
 import { Zap, Check } from 'lucide-react';
 import workImg from '../../assets/work.png';
 
-export default function AuthHero() {
+export default function AuthHero({ onNavigateLanding }) {
   const checkItems = [
     "Pantau progress sprint bersama tim",
     "Kolaborasi realtime dan transparan",
@@ -13,7 +13,12 @@ export default function AuthHero() {
   return (
     <div className="auth-hero-panel">
       {/* Brand Logo */}
-      <div className="auth-brand">
+      <div 
+        className="auth-brand" 
+        onClick={onNavigateLanding} 
+        style={onNavigateLanding ? { cursor: 'pointer' } : {}}
+        title={onNavigateLanding ? 'Kembali ke Beranda' : undefined}
+      >
         <div className="auth-brand-icon">
           <Zap size={22} fill="#ffffff" />
         </div>

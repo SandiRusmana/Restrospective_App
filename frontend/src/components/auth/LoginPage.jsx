@@ -4,7 +4,7 @@ import AuthHero from './AuthHero';
 
 import { api } from '../../services/api';
 
-export default function LoginPage({ onLoginSuccess, onNavigateRegister }) {
+export default function LoginPage({ onLoginSuccess, onNavigateRegister, onNavigateLanding }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -40,11 +40,22 @@ export default function LoginPage({ onLoginSuccess, onNavigateRegister }) {
     <div className="auth-page-wrapper">
       <div className="auth-card-container">
         {/* Sisi Kiri: Hero & Branding */}
-        <AuthHero />
+        <AuthHero onNavigateLanding={onNavigateLanding} />
 
         {/* Sisi Kanan: Formulir Login */}
         <div className="auth-form-panel">
-          <div className="auth-form-badge">Workspace</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div className="auth-form-badge">Workspace</div>
+            {onNavigateLanding && (
+              <button 
+                type="button" 
+                onClick={onNavigateLanding}
+                style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                ← Beranda
+              </button>
+            )}
+          </div>
           <h1 className="auth-form-title">Masuk ke akun Anda</h1>
           {errorMessage && (
             <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: '8px', fontSize: '13px', marginBottom: '16px' }}>

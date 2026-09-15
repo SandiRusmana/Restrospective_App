@@ -17,6 +17,9 @@ const sidebarNavItems = [
   { id: "settings", label: "Settings", icon: "Settings", active: false }
 ];
 
+// Landing Page
+import LandingPage from './landingpage/LandingPage';
+
 // Auth Pages
 import LoginPage from './components/auth/LoginPage';
 import RegisterPage from './components/auth/RegisterPage';
@@ -52,8 +55,8 @@ import { getConsistentWorkspaceColor, saveWorkspaceColor } from './utils/workspa
 export default function App() {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
-  // Page Routing State: 'login' | 'register' | 'dashboard'
-  const [currentPage, setCurrentPage] = useState(token ? 'dashboard' : 'login');
+  // Page Routing State: 'landing' | 'login' | 'register' | 'dashboard'
+  const [currentPage, setCurrentPage] = useState(token ? 'dashboard' : 'landing');
   const [user, setUser] = useState(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(Boolean(token));
 
@@ -549,7 +552,7 @@ export default function App() {
 
   const handleLogout = () => {
     api.logout();
-    setCurrentPage('login');
+    setCurrentPage('landing');
     showToast('Berhasil keluar dari akun');
   };
 
@@ -756,11 +759,37 @@ export default function App() {
 
   return (
     <>
+      {/* 0. Landing Page */}
+      {currentPage === 'landing' && (
+        <LandingPage 
+          onNavigateLogin={() => setCurrentPage('login')}
+          onNavigateRegister={() => setCurrentPage('register')}
+          onDirectDashboard={() => {
+            if (!token) {
+              const demoUser = {
+                id: 'demo_user',
+                name: 'Afrizal (Demo)',
+                fullName: 'Afrizal (Demo)',
+                email: 'demo@retronerve.com',
+                avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+                isOnline: true
+              };
+              setUser(demoUser);
+              fetchWorkspaces(demoUser);
+            }
+            setCurrentPage('dashboard');
+            setDashboardView('workspace-detail');
+            showToast('Selamat datang di Demo RetroNerve!');
+          }}
+        />
+      )}
+
       {/* 1. Auth: Login Page */}
       {currentPage === 'login' && (
         <LoginPage 
           onLoginSuccess={handleLoginSuccess}
           onNavigateRegister={() => setCurrentPage('register')}
+          onNavigateLanding={() => setCurrentPage('landing')}
         />
       )}
 
@@ -769,6 +798,7 @@ export default function App() {
         <RegisterPage 
           onRegisterSuccess={handleRegisterSuccess}
           onNavigateLogin={() => setCurrentPage('login')}
+          onNavigateLanding={() => setCurrentPage('landing')}
         />
       )}
 
