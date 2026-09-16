@@ -2,6 +2,15 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import PDFDocument from 'pdfkit';
 
+// Static imports agar Vercel NFT (@vercel/nft) membundel seluruh font standar PDFKit
+import 'pdfkit/standard-fonts/Helvetica';
+import 'pdfkit/standard-fonts/HelveticaBold';
+import 'pdfkit/standard-fonts/HelveticaOblique';
+import 'pdfkit/standard-fonts/HelveticaBoldOblique';
+import 'pdfkit/standard-fonts/TimesRoman';
+import 'pdfkit/standard-fonts/TimesBold';
+import 'pdfkit/standard-fonts/Courier';
+
 @Injectable()
 export class ExportService {
   constructor(private prisma: PrismaService) {}
@@ -188,11 +197,12 @@ export class ExportService {
           85,
         );
 
+      const templateName = (board.template || 'STANDARD').toUpperCase();
       doc
         .fillColor('#c7d2fe')
         .fontSize(9)
         .font('Helvetica-Bold')
-        .text(`Template: ${board.template.toUpperCase()}  •  Total Card: ${totalCards}  •  Total Votes: ${totalVotes}  •  Action Items: ${board.actionItems.length}`, 55, 100);
+        .text(`Template: ${templateName}  •  Total Card: ${totalCards}  •  Total Votes: ${totalVotes}  •  Action Items: ${board.actionItems.length}`, 55, 100);
 
       doc.y = 135;
 
