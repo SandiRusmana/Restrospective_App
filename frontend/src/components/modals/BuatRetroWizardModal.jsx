@@ -223,28 +223,28 @@ export default function BuatRetroWizardModal({
     prevIsOpenRef.current = isOpen;
   }, [isOpen, workspace?.boards?.length, workspace?.members, currentUser?.id]);
 
-  // Loading progress effect when Mulai Retro is clicked
+  // Loading progress effect when Mulai Retro is clicked (Super fast: ~0.3 detik)
   useEffect(() => {
     let timer;
     let finishTimer;
     if (isLoading) {
-      setLoadingProgress(20);
+      setLoadingProgress(35);
       const interval = setInterval(() => {
         setLoadingProgress((prev) => {
-          if (prev >= 92) {
+          if (prev >= 90) {
             clearInterval(interval);
             return 95;
           }
-          return prev + 25;
+          return prev + 30;
         });
-      }, 100);
+      }, 50);
 
       timer = setTimeout(() => {
         setLoadingProgress(100);
         finishTimer = setTimeout(() => {
           handleExecuteCreateBoard();
-        }, 150);
-      }, 500);
+        }, 100);
+      }, 200);
 
       return () => {
         clearInterval(interval);
