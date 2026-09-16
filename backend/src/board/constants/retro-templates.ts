@@ -20,6 +20,7 @@ export const RETRO_TEMPLATES: Record<string, RetroTemplate> = {
       { name: 'Start', order: 1, description: 'Hal baru yang harus mulai dilakukan' },
       { name: 'Stop', order: 2, description: 'Hal yang tidak efektif dan harus dihentikan' },
       { name: 'Continue', order: 3, description: 'Hal yang berjalan baik dan harus dilanjutkan' },
+      { name: 'Action Items', order: 4, description: 'Tindak lanjut dan aksi nyata tim' },
     ],
   },
   'mad-sad-glad': {
