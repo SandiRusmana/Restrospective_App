@@ -57,6 +57,7 @@ const TEMPLATE_COLUMNS_MAP = {
     { id: 'start', type: 'start', title: 'START', name: 'START', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', badgeBg: '#dcfce7', badgeColor: '#16a34a' },
     { id: 'stop', type: 'stop', title: 'STOP', name: 'STOP', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', badgeBg: '#fee2e2', badgeColor: '#dc2626' },
     { id: 'continue', type: 'continue', title: 'CONTINUE', name: 'CONTINUE', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', badgeBg: '#dbeafe', badgeColor: '#2563eb' },
+    { id: 'action_items', type: 'continue', title: 'ACTION ITEMS', name: 'ACTION ITEMS', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', badgeBg: '#dbeafe', badgeColor: '#2563eb' },
   ],
   'mad-sad-glad': [
     { id: 'mad', type: 'mad', title: 'MAD', name: 'MAD', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', badgeBg: '#fee2e2', badgeColor: '#dc2626' },
@@ -728,17 +729,15 @@ export default function RetroBoardDetail({
       };
 
       setCards((prev) => {
-        // Jika sudah ada (berdasarkan id yang sama), jangan duplikasi
+        // 1. Jika sudah ada berdasarkan ID nyata, jangan duplikasi
         if (prev.some((c) => c.id === formattedCard.id)) return prev;
 
-        // Jika ada temporary optimistic card dengan konten & kolom yang sama, replace
+        // 2. Jika ada temporary optimistic card dengan konten yang sama, gantikan
         const optIndex = prev.findIndex(
           (c) =>
             typeof c.id === 'string' &&
             c.id.startsWith('card_') &&
-            (c.columnId === formattedCard.columnId ||
-              c.columnId?.toLowerCase() === formattedCard.columnId?.toLowerCase()) &&
-            c.content === formattedCard.content
+            c.content?.trim() === formattedCard.content?.trim()
         );
 
         if (optIndex !== -1) {
@@ -1531,18 +1530,25 @@ export default function RetroBoardDetail({
     try {
       const res = await api.createCard(boardId, columnId, text, isCardAnon);
       if (res?.card) {
-        setCards((prev) =>
-          prev.map((c) =>
+        const realCardId = res.card.id;
+        setCards((prev) => {
+          // Jika Pusher sudah menyisipkan kartu ini, cukup buang kartu temporary
+          const alreadyExists = prev.some((c) => c.id === realCardId);
+          if (alreadyExists) {
+            return prev.filter((c) => c.id !== tempId);
+          }
+          return prev.map((c) =>
             c.id === tempId
               ? {
                   ...c,
                   ...res.card,
+                  id: realCardId,
                   text: res.card.content || c.text,
                   columnId: res.card.columnId || c.columnId,
                 }
               : c
-          )
-        );
+          );
+        });
       }
     } catch (err) {
       console.error('[API Error] Gagal menambahkan card:', err);
@@ -2253,29 +2259,59 @@ export default function RetroBoardDetail({
       ? board.columns
       : null;
 
-  const activeColumns =
-    columnsSource && columnsSource.length > 0
-      ? columnsSource.map((bc, idx) => {
-          const matched =
-            templateCols.find(
-              (tc) =>
-                tc?.name?.toLowerCase() === bc?.name?.toLowerCase() ||
-                tc?.id?.toLowerCase() === bc?.name?.toLowerCase() ||
-                tc?.type?.toLowerCase() === bc?.name?.toLowerCase()
-            ) ||
-            templateCols[idx % templateCols.length] ||
-            {};
-          return {
-            ...matched,
-            id: bc.id,
-            dbId: bc.id,
-            templateId: matched.id || bc.name?.toLowerCase(),
-            name: bc.name || matched.name,
-            title: bc.name?.toUpperCase() || matched.title,
-            type: matched.type || bc.name?.toLowerCase(),
-          };
-        })
-      : templateCols;
+  const activeColumns = useMemo(() => {
+    let cols = [];
+    if (columnsSource && columnsSource.length > 0) {
+      cols = columnsSource.map((bc, idx) => {
+        const matched =
+          templateCols.find(
+            (tc) =>
+              tc?.name?.toLowerCase() === bc?.name?.toLowerCase() ||
+              tc?.id?.toLowerCase() === bc?.name?.toLowerCase() ||
+              tc?.type?.toLowerCase() === bc?.name?.toLowerCase()
+          ) ||
+          templateCols[idx % templateCols.length] ||
+          {};
+        return {
+          ...matched,
+          id: bc.id,
+          dbId: bc.id,
+          templateId: matched.id || bc.name?.toLowerCase(),
+          name: bc.name || matched.name,
+          title: bc.name?.toUpperCase() || matched.title,
+          type: matched.type || bc.name?.toLowerCase(),
+        };
+      });
+    } else {
+      cols = [...templateCols];
+    }
+
+    // Pastikan kolom ACTION ITEMS selalu hadir di canvas board retro
+    const hasActionCol = cols.some(
+      (c) =>
+        c.name?.toLowerCase().includes('action') ||
+        c.title?.toLowerCase().includes('action') ||
+        c.id?.toLowerCase().includes('action') ||
+        c.templateId?.toLowerCase().includes('action')
+    );
+    if (!hasActionCol) {
+      cols.push({
+        id: 'action_items',
+        dbId: 'action_items',
+        type: 'continue',
+        templateId: 'action_items',
+        title: 'ACTION ITEMS',
+        name: 'ACTION ITEMS',
+        color: '#2563eb',
+        bg: '#eff6ff',
+        border: '#bfdbfe',
+        badgeBg: '#dbeafe',
+        badgeColor: '#2563eb',
+      });
+    }
+
+    return cols;
+  }, [columnsSource, templateCols]);
 
   return (
     <div className="retro-board-full-view">
@@ -2864,6 +2900,7 @@ export default function RetroBoardDetail({
               }}
             >
               {activeColumns.map((col) => {
+                const seenIds = new Set();
                 const colCards = cards
                   .filter(
                     (c) =>
@@ -2879,6 +2916,12 @@ export default function RetroBoardDetail({
                       c.columnId?.toLowerCase() === col.name?.toLowerCase() ||
                       c.columnId?.toLowerCase() === col.templateId?.toLowerCase()
                   )
+                  .filter((card) => {
+                    const uniqueKey = card.id || `${card.content}_${card.createdAt}`;
+                    if (seenIds.has(uniqueKey)) return false;
+                    seenIds.add(uniqueKey);
+                    return true;
+                  })
                   .map((card) => {
                     const votesNum =
                       typeof card.votesCount === 'number'
