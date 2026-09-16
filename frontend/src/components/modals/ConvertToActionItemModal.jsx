@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Calendar, ChevronDown, Check, User } from 'lucide-react';
 import { getUserAvatar } from '../../utils/avatar';
 
@@ -51,17 +51,30 @@ export default function ConvertToActionItemModal({
       const dd = String(d.getDate()).padStart(2, '0');
       setDueDate(`${yyyy}-${mm}-${dd}`);
 
-      // Default Assignee: First member or currentUser
-      const defaultMember =
-        members.length > 0
-          ? members[0]
-          : {
-              id: currentUser?.id || 'u1',
-              name: currentUser?.name || 'Budi Santoso',
-              avatarUrl:
-                currentUser?.avatarUrl ||
-                'https://api.dicebear.com/7.x/avataaars/svg?seed=budi',
-            };
+      // Default Assignee: currentUser if available, otherwise first member
+      let defaultMember = null;
+      if (currentUser) {
+        const found = members.find(
+          (m) =>
+            m.id === currentUser.id ||
+            m.userId === currentUser.id ||
+            (m.email && m.email === currentUser.email)
+        );
+        defaultMember = found || {
+          id: currentUser.id || currentUser.userId,
+          name: currentUser.name || currentUser.fullName?.replace(' (Anda)', '') || 'Anda',
+          email: currentUser.email || '',
+          avatarUrl: currentUser.avatarUrl || getUserAvatar(currentUser),
+        };
+      } else if (members.length > 0) {
+        defaultMember = members[0];
+      } else {
+        defaultMember = {
+          id: 'me',
+          name: 'Anda',
+          avatarUrl: getUserAvatar(null, 'Anda'),
+        };
+      }
       setSelectedAssignee(defaultMember);
 
       setStatus('PENDING');
@@ -111,26 +124,26 @@ export default function ConvertToActionItemModal({
       : '10:20 AM');
 
   // Available members list
-  const availableMembers =
-    members.length > 0
-      ? members
-      : [
-          {
-            id: 'm1',
-            name: 'Budi Santoso',
-            avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-          },
-          {
-            id: 'm2',
-            name: 'Afrizal',
-            avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-          },
-          {
-            id: 'm3',
-            name: 'Sarah Wijaya',
-            avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-          },
-        ];
+  const availableMembers = useMemo(() => {
+    if (members && members.length > 0) return members;
+    if (currentUser) {
+      return [
+        {
+          id: currentUser.id || currentUser.userId || 'current-user',
+          name: currentUser.name || currentUser.fullName?.replace(' (Anda)', '') || 'Anda',
+          email: currentUser.email || '',
+          avatarUrl: currentUser.avatarUrl || getUserAvatar(currentUser),
+        },
+      ];
+    }
+    return [
+      {
+        id: 'me',
+        name: 'Anda',
+        avatarUrl: getUserAvatar(null, 'Anda'),
+      },
+    ];
+  }, [members, currentUser]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
