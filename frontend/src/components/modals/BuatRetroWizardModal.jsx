@@ -150,55 +150,33 @@ export default function BuatRetroWizardModal({
   const [selectedTemplateId, setSelectedTemplateId] = useState('start-stop-continue');
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+  const [customInvitedMembers, setCustomInvitedMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   // Available Workspace Members
   const allWorkspaceMembers = useMemo(() => {
+    let list = [];
     const rawMembers = workspace?.members || [];
     if (rawMembers.length > 0) {
-      return rawMembers.map((m, idx) => ({
-        id: m.id || `mem-${idx}`,
-        name: m.name || m.fullName || 'Member',
+      list = rawMembers.map((m, idx) => ({
+        id: m.id || m.userId || `mem-${idx}`,
+        name: m.name || m.user?.name || m.fullName || 'Member',
         team: workspace?.name || 'Mobile Team',
-        avatarUrl: m.avatarUrl || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80`,
+        avatarUrl: m.avatarUrl || m.user?.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name || m.user?.name || 'Member')}`,
       }));
+    } else if (currentUser) {
+      list = [
+        {
+          id: currentUser.id || 'current-user',
+          name: currentUser.name || currentUser.fullName || 'Anda',
+          team: workspace?.name || 'Mobile Team',
+          avatarUrl: currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.name || 'Anda')}`,
+        }
+      ];
     }
-
-    // Default mock list matching the Afrizal screenshot
-    return [
-      {
-        id: 'mem-1',
-        name: currentUser?.name || 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'mem-2',
-        name: 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'mem-3',
-        name: 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'mem-4',
-        name: 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'mem-5',
-        name: 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80',
-      }
-    ];
-  }, [workspace, currentUser]);
+    return [...list, ...customInvitedMembers];
+  }, [workspace, currentUser, customInvitedMembers]);
 
   const defaultTitle = `Sprint ${(workspace?.boards?.length || 0) + 16} Retrospective`;
   const [boardTitleInput, setBoardTitleInput] = useState(defaultTitle);
@@ -209,13 +187,15 @@ export default function BuatRetroWizardModal({
       setStep(1);
       setSelectedTemplateId('start-stop-continue');
       setSearchMemberQuery('');
+      setCustomInvitedMembers([]);
       setIsLoading(false);
       setLoadingProgress(0);
       setBoardTitleInput(`Sprint ${(workspace?.boards?.length || 0) + 16} Retrospective`);
-      // Preselect first 4 members (matching the screenshot)
-      setSelectedMemberIds(allWorkspaceMembers.slice(0, 4).map(m => m.id));
+      // Preselect current user / first members
+      const initialIds = (workspace?.members || []).slice(0, 4).map(m => m.id || m.userId);
+      setSelectedMemberIds(initialIds.length > 0 ? initialIds : (currentUser?.id ? [currentUser.id] : []));
     }
-  }, [isOpen, allWorkspaceMembers, workspace]);
+  }, [isOpen, workspace, currentUser]);
 
   // Loading progress effect when Mulai Retro is clicked
   useEffect(() => {
@@ -466,11 +446,70 @@ export default function BuatRetroWizardModal({
                     <input 
                       type="text"
                       className="search-input"
-                      placeholder="Cari anggota atau masukkan email..."
+                      placeholder="Cari anggota atau masukkan nama/email..."
                       value={searchMemberQuery}
                       onChange={(e) => setSearchMemberQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && searchMemberQuery.trim()) {
+                          e.preventDefault();
+                          const query = searchMemberQuery.trim();
+                          const exists = allWorkspaceMembers.find(m => m.name.toLowerCase() === query.toLowerCase());
+                          if (exists) {
+                            if (!selectedMemberIds.includes(exists.id)) {
+                              setSelectedMemberIds(prev => [...prev, exists.id]);
+                            }
+                          } else {
+                            const newM = {
+                              id: `custom-${Date.now()}`,
+                              name: query,
+                              team: workspace?.name || 'Tim',
+                              avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(query)}`,
+                            };
+                            setCustomInvitedMembers(prev => [...prev, newM]);
+                            setSelectedMemberIds(prev => [...prev, newM.id]);
+                          }
+                          setSearchMemberQuery('');
+                        }
+                      }}
                     />
                   </div>
+
+                  {searchMemberQuery.trim() && !allWorkspaceMembers.some(m => m.name.toLowerCase() === searchMemberQuery.trim().toLowerCase()) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const query = searchMemberQuery.trim();
+                        const newM = {
+                          id: `custom-${Date.now()}`,
+                          name: query,
+                          team: workspace?.name || 'Tim',
+                          avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(query)}`,
+                        };
+                        setCustomInvitedMembers(prev => [...prev, newM]);
+                        setSelectedMemberIds(prev => [...prev, newM.id]);
+                        setSearchMemberQuery('');
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '7px 10px',
+                        backgroundColor: '#f3f0ff',
+                        border: '1px dashed #7c3aed',
+                        borderRadius: '8px',
+                        color: '#7c3aed',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        margin: '6px 0 10px 0',
+                        width: '100%',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <Plus size={14} />
+                      <span>Tambahkan "{searchMemberQuery.trim()}" ke sesi ini</span>
+                    </button>
+                  )}
 
                   <h4 className="retro-wizard-group-title">
                     Anggota dipilih ({selectedMembers.length})
