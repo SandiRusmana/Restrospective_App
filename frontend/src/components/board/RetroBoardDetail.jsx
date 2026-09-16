@@ -117,7 +117,24 @@ export default function RetroBoardDetail({
   const boardId = board?.id;
   const [activeTab, setActiveTab] = useState('board');
   const [isBoardDropdownOpen, setIsBoardDropdownOpen] = useState(false);
-  const [cards, setCards] = useState([]);
+  const [cards, setCards] = useState(() => {
+    try {
+      if (board?.id) {
+        const cached = sessionStorage.getItem(`retro_cards_${board.id}`);
+        if (cached) return JSON.parse(cached);
+      }
+    } catch {}
+    return [];
+  });
+
+  // Sinkronisasi otomatis ke sessionStorage agar saat kembali ke board, card muncul instan tanpa delay
+  useEffect(() => {
+    if (boardId && cards && cards.length > 0) {
+      try {
+        sessionStorage.setItem(`retro_cards_${boardId}`, JSON.stringify(cards));
+      } catch {}
+    }
+  }, [boardId, cards]);
   const [selectedCardForDetail, setSelectedCardForDetail] = useState(null);
   const [members, setMembers] = useState([]);
 
@@ -1393,24 +1410,30 @@ export default function RetroBoardDetail({
   // ubah state isPrivateMode → false dan isRevealed → true,
   // lalu tampilkan banner sukses selama 5 detik.
   const handleRevealCards = useCallback(async () => {
+    // 1. Optimistic UI update secara instan (0ms delay)
+    setIsPrivateMode(false);
+    setIsRevealed(true);
+    setShowRevealedBanner(true);
+    if (onUpdateBoard) {
+      onUpdateBoard({ id: boardId, isRevealed: true });
+    }
+    if (onShowToast) onShowToast('Semua card berhasil di-reveal ke seluruh anggota tim!');
+    setTimeout(() => setShowRevealedBanner(false), 5000);
+
     try {
       if (boardId) {
         await api.revealBoard(boardId);
       }
-      setIsPrivateMode(false);
-      setIsRevealed(true);
-      setShowRevealedBanner(true);
-      if (onUpdateBoard) {
-        onUpdateBoard({ id: boardId, isRevealed: true });
-      }
-      if (onShowToast) onShowToast('Semua card berhasil di-reveal ke seluruh anggota tim!');
-      setTimeout(() => setShowRevealedBanner(false), 5000);
       loadCardsFromApi();
     } catch (err) {
       console.error('Gagal reveal card di server:', err);
       if (onShowToast) onShowToast(err.message || 'Gagal me-reveal kartu');
+      // Rollback jika server error
+      setIsPrivateMode(true);
+      setIsRevealed(false);
+      setShowRevealedBanner(false);
     }
-  }, [boardId, onShowToast, loadCardsFromApi]);
+  }, [boardId, onShowToast, loadCardsFromApi, onUpdateBoard]);
 
   // Sensor drag dengan activation constraint agar tidak mengganggu klik vote/menu
   const sensors = useSensors(

@@ -678,18 +678,16 @@ export default function BuatRetroWizardModal({
                     <span className="summary-label" style={{ width: '85px' }}>Nama Board</span>
                     <input
                       type="text"
+                      className="retro-wizard-board-input"
                       value={boardTitleInput}
                       onChange={(e) => setBoardTitleInput(e.target.value)}
                       placeholder="Contoh: Sprint 16 Retrospective"
                       style={{
                         flex: 1,
-                        border: '1px solid #cbd5e1',
                         borderRadius: '8px',
                         padding: '6px 12px',
                         fontSize: '13px',
                         fontWeight: 600,
-                        color: '#0f172a',
-                        background: '#ffffff',
                         outline: 'none',
                       }}
                     />
