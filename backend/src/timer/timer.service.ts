@@ -310,10 +310,12 @@ export class TimerService {
       },
     });
 
-    await this.broadcastTimerUpdate(boardId, updatedTimer, user);
-    return {
+    const result = {
       ...updatedTimer,
+      status: 'idle',
       facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
     };
+    await this.broadcastTimerUpdate(boardId, result, user);
+    return result;
   }
 }
