@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   X, 
   ArrowRight, 
@@ -201,50 +201,55 @@ export default function BuatRetroWizardModal({
     return [...list, ...customInvitedMembers];
   }, [workspace, currentUser, customInvitedMembers]);
 
-  const defaultTitle = `Sprint ${(workspace?.boards?.length || 0) + 16} Retrospective`;
+  const defaultTitle = `Sprint ${(workspace?.boards?.length || 0) + 1} Retrospective`;
   const [boardTitleInput, setBoardTitleInput] = useState(defaultTitle);
+  const prevIsOpenRef = useRef(false);
 
-  // Reset state when modal opens
+  // Reset state ONLY when modal transitions from closed to open
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       setStep(1);
       setSelectedTemplateId('start-stop-continue');
       setSearchMemberQuery('');
       setCustomInvitedMembers([]);
       setIsLoading(false);
       setLoadingProgress(0);
-      setBoardTitleInput(`Sprint ${(workspace?.boards?.length || 0) + 16} Retrospective`);
+      const nextSprint = (workspace?.boards?.length || 0) + 1;
+      setBoardTitleInput(`Sprint ${nextSprint} Retrospective`);
       // Preselect current user / first members
       const initialIds = (workspace?.members || []).slice(0, 4).map(m => m.id || m.userId);
       setSelectedMemberIds(initialIds.length > 0 ? initialIds : (currentUser?.id ? [currentUser.id] : []));
     }
-  }, [isOpen, workspace, currentUser]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, workspace?.boards?.length, workspace?.members, currentUser?.id]);
 
-  // Loading progress effect when Mulai Retro is clicked
+  // Loading progress effect when Mulai Retro is clicked (Super fast: ~0.3 detik)
   useEffect(() => {
     let timer;
+    let finishTimer;
     if (isLoading) {
-      setLoadingProgress(15);
+      setLoadingProgress(35);
       const interval = setInterval(() => {
         setLoadingProgress((prev) => {
-          if (prev >= 92) {
+          if (prev >= 90) {
             clearInterval(interval);
             return 95;
           }
-          return prev + 18;
+          return prev + 30;
         });
-      }, 180);
+      }, 50);
 
       timer = setTimeout(() => {
         setLoadingProgress(100);
-        setTimeout(() => {
+        finishTimer = setTimeout(() => {
           handleExecuteCreateBoard();
-        }, 300);
-      }, 1200);
+        }, 100);
+      }, 200);
 
       return () => {
         clearInterval(interval);
         clearTimeout(timer);
+        clearTimeout(finishTimer);
       };
     }
   }, [isLoading]);
@@ -272,7 +277,7 @@ export default function BuatRetroWizardModal({
 
   // Final Action: Create Board
   const handleExecuteCreateBoard = async () => {
-    const nextSprintNum = (workspace?.boards?.length || 0) + 16;
+    const nextSprintNum = (workspace?.boards?.length || 0) + 1;
     const finalTitle = boardTitleInput.trim() || `Sprint ${nextSprintNum} Retrospective`;
     const newBoard = {
       id: `board_${Date.now()}`,
@@ -290,18 +295,29 @@ export default function BuatRetroWizardModal({
       columns: currentTemplate.columns,
     };
 
-    let createdBoard = newBoard;
-    if (onCreateBoard) {
-      const res = await onCreateBoard(newBoard);
-      if (res && res.id) {
-        createdBoard = { ...newBoard, ...res, id: res.id, dbId: res.id };
-      }
-    }
-    if (onOpenBoard) {
-      onOpenBoard(createdBoard);
-    }
+    // 1. Immediately close modal & dismiss loading screen
     setIsLoading(false);
     onClose();
+
+    // 2. Open board view immediately for a fast, responsive transition
+    if (onOpenBoard) {
+      onOpenBoard(newBoard);
+    }
+
+    // 3. Sync to workspace state and backend
+    if (onCreateBoard) {
+      try {
+        const res = await onCreateBoard(newBoard);
+        if (res && res.id && res.id !== newBoard.id) {
+          const syncedBoard = { ...newBoard, ...res, id: res.id, dbId: res.id };
+          if (onOpenBoard) {
+            onOpenBoard(syncedBoard);
+          }
+        }
+      } catch (err) {
+        console.warn('Gagal sinkronisasi board baru:', err);
+      }
+    }
   };
 
   return (
