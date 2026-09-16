@@ -23,6 +23,7 @@ export default function IcebreakerOverlay({
   const [localVote, setLocalVote] = useState(userVote || null);
   const [countdown, setCountdown] = useState(null);
   const autoRevealTriggeredRef = useRef(false);
+  const skipTriggeredRef = useRef(false);
 
   // Reset pilihan ketika pertanyaan berganti atau ronde di-skip (votes dikosongkan)
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function IcebreakerOverlay({
   // Reset auto-reveal flag and countdown when round/question changes
   useEffect(() => {
     autoRevealTriggeredRef.current = false;
+    skipTriggeredRef.current = false;
     setCountdown(null);
     setQuestionTimer(QUESTION_TIME_LIMIT);
   }, [session?.currentQuestionIndex, session?.roundNumber, session?.question]);
@@ -125,15 +127,17 @@ export default function IcebreakerOverlay({
       return;
     }
 
-    // Mulai hitung mundur 5 detik jika belum aktif
+    // Mulai hitung mundur 5 detik jika belum aktif dan belum pernah di-skip
     if (countdown === null) {
+      if (skipTriggeredRef.current) return; // Jangan restart setelah skip
       setCountdown(5);
       return;
     }
 
     // Ketika countdown mencapai 0, fasilitator otomatis memicu skip ke pertanyaan berikutnya
     if (countdown <= 0) {
-      if (isFacilitator && onSkip) {
+      if (isFacilitator && onSkip && !skipTriggeredRef.current) {
+        skipTriggeredRef.current = true;
         onSkip();
       }
       setCountdown(null);
