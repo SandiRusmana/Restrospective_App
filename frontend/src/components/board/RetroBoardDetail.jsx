@@ -476,16 +476,29 @@ export default function RetroBoardDetail({
         : totalSecs;
 
     if (t.isRunning && t.startedAt) {
-      const elapsed = Math.floor((Date.now() - new Date(t.startedAt).getTime()) / 1000);
+      // Pastikan elapsed tidak pernah negatif akibat selisih jam antara client dan server
+      const elapsedMs = Math.max(0, Date.now() - new Date(t.startedAt).getTime());
+      const elapsed = Math.floor(elapsedMs / 1000);
       rem = Math.max(0, rem - elapsed);
     }
+
+    // Pastikan sisa waktu tidak pernah melebihi total durasi
+    rem = Math.min(totalSecs, Math.max(0, rem));
 
     // Jika timer sudah tidak berjalan dan sisa waktunya 0 (sesi lama sudah selesai),
     // kembalikan ke totalSecs dan jadikan status idle saat user baru buka/refresh board
     if (!t.isRunning && rem <= 0 && !isLiveUpdate) {
       rem = totalSecs;
     }
-    setTimerRemaining(rem);
+
+    setTimerRemaining((prev) => {
+      // Jika timer sedang aktif berjalan dan selisih waktu server dengan lokal hanya 1-2 detik,
+      // biarkan timer lokal berjalan mulus tanpa melompat/reset mundur
+      if (t.isRunning && prev > 0 && Math.abs(prev - rem) <= 2) {
+        return prev;
+      }
+      return rem;
+    });
 
     const facilitatorName = data.facilitator || t.facilitator;
     if (facilitatorName) {

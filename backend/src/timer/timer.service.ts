@@ -115,8 +115,8 @@ export class TimerService {
     if (timer.isRunning && timer.startedAt) {
       const now = Date.now();
       const started = new Date(timer.startedAt).getTime();
-      const elapsed = Math.floor((now - started) / 1000);
-      const computedRemaining = Math.max(0, timer.remaining - elapsed);
+      const elapsed = Math.max(0, Math.floor((now - started) / 1000));
+      const computedRemaining = Math.min(timer.duration, Math.max(0, timer.remaining - elapsed));
 
       if (computedRemaining <= 0) {
         // Waktu telah habis
@@ -219,8 +219,8 @@ export class TimerService {
     if (timer.startedAt) {
       const now = Date.now();
       const started = new Date(timer.startedAt).getTime();
-      const elapsed = Math.floor((now - started) / 1000);
-      computedRemaining = Math.max(0, timer.remaining - elapsed);
+      const elapsed = Math.max(0, Math.floor((now - started) / 1000));
+      computedRemaining = Math.min(timer.duration, Math.max(0, timer.remaining - elapsed));
     }
 
     const updatedTimer = await this.prisma.boardTimer.update({
