@@ -82,21 +82,6 @@ export default function App() {
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Dark Mode State: Default saat pertama kali masuk adalah LIGHT MODE (false)
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    try {
-      const explicit = localStorage.getItem('retro_theme_explicit');
-      const saved = localStorage.getItem('retro_theme');
-      // Hanya aktifkan dark mode jika user secara eksplisit pernah mengubahnya ke dark
-      if (explicit === 'true' && saved === 'dark') {
-        return true;
-      }
-      return false; // Default selalu Light Mode saat pertama kali masuk
-    } catch {
-      return false;
-    }
-  });
-
   // Collapsible Sidebar State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     try {
@@ -116,32 +101,16 @@ export default function App() {
     });
   }, []);
 
+  // Pastikan aplikasi selalu aktif dalam Mode Terang (Light Mode)
   useEffect(() => {
     try {
-      if (isDarkMode) {
-        document.documentElement.classList.add('dark-theme');
-        document.body.classList.add('dark-theme');
-        localStorage.setItem('retro_theme', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark-theme');
-        document.body.classList.remove('dark-theme');
-        localStorage.setItem('retro_theme', 'light');
-      }
+      document.documentElement.classList.remove('dark-theme');
+      document.body.classList.remove('dark-theme');
+      localStorage.removeItem('retro_theme');
+      localStorage.removeItem('retro_theme_explicit');
     } catch (e) {
       console.error(e);
     }
-  }, [isDarkMode]);
-
-  const handleToggleDarkMode = useCallback(() => {
-    setIsDarkMode((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem('retro_theme_explicit', 'true');
-      } catch (e) {
-        console.error(e);
-      }
-      return next;
-    });
   }, []);
   
   // Modals & Toast State
@@ -1160,8 +1129,6 @@ export default function App() {
               onNavigateAllWorkspaces={handleNavigateAllWorkspaces}
               onSwitchBoard={handleOpenBoard}
               onShowToast={showToast}
-              isDarkMode={isDarkMode}
-              onToggleDarkMode={handleToggleDarkMode}
               onUpdateBoard={(updated) => {
                 setActiveBoard((prev) => (prev ? { ...prev, ...updated } : prev));
                 setWorkspaces((prevWs) =>
@@ -1182,8 +1149,6 @@ export default function App() {
               workspace={activeWorkspace}
               workspaces={workspaces}
               currentUser={user}
-              isDarkMode={isDarkMode}
-              onToggleDarkMode={handleToggleDarkMode}
               onSelectWorkspace={handleSelectWorkspace}
               onOpenBoard={handleOpenBoard}
               onCreateBoardModalOpen={() => setIsWizardModalOpen(true)}
@@ -1415,8 +1380,6 @@ export default function App() {
               onDeleteWorkspace={handleDeleteWorkspace}
               onInviteMember={() => setIsInviteModalOpen(true)}
               onShowToast={showToast}
-              isDarkMode={isDarkMode}
-              onToggleDarkMode={handleToggleDarkMode}
             />
           )}
               </>

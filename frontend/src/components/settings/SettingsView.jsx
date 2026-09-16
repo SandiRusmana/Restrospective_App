@@ -74,8 +74,6 @@ export default function SettingsView({
   onDeleteWorkspace,
   onInviteMember,
   onShowToast,
-  isDarkMode,
-  onToggleDarkMode,
 }) {
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'workspace' | 'members' | 'preferences'
 
@@ -697,25 +695,6 @@ export default function SettingsView({
                   <span className="settings-switch-slider"></span>
                 </button>
               </div>
-
-              {onToggleDarkMode && (
-                <div className="settings-toggle-row">
-                  <div>
-                    <div className="settings-toggle-title">Mode Gelap (Dark Mode)</div>
-                    <div className="settings-toggle-desc">
-                      Mengaktifkan tema gelap modern pada seluruh aplikasi (Board, Kartu, Dashboard, Modal) untuk mengurangi ketegangan mata.
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={`settings-switch-btn ${isDarkMode ? 'active' : ''}`}
-                    onClick={onToggleDarkMode}
-                    title={isDarkMode ? 'Nonaktifkan Mode Gelap' : 'Aktifkan Mode Gelap'}
-                  >
-                    <span className="settings-switch-slider"></span>
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </main>

@@ -23,8 +23,6 @@ import {
   Lock,
   CheckCircle,
   X,
-  Sun,
-  Moon,
   Play,
   Unlock,
   RotateCcw,
@@ -111,8 +109,6 @@ export default function RetroBoardDetail({
   onShowToast,
   onUpdateBoard,
   onNavigateAllWorkspaces,
-  isDarkMode,
-  onToggleDarkMode,
 }) {
   const boardId = board?.id;
   const [activeTab, setActiveTab] = useState('board');
@@ -2458,18 +2454,6 @@ export default function RetroBoardDetail({
             onShowToast={onShowToast}
             onNavigateActionItems={() => setActiveTab('action-items')}
           />
-
-          {onToggleDarkMode && (
-            <button
-              type="button"
-              className="btn-icon-top"
-              title={isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
-              onClick={onToggleDarkMode}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-            >
-              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-          )}
 
           <div className="top-user-avatar-wrapper">
             <img
