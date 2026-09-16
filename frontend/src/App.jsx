@@ -254,6 +254,8 @@ export default function App() {
                   title: b.name || b.title,
                   name: b.name || b.title,
                   template: b.template,
+                  status: b.status || 'aktif',
+                  isRevealed: Boolean(b.isRevealed),
                   isAnonymous: b.isAnonymous,
                   voteLimit: b.voteLimit,
                   cardsCount: b.cardsCount || (b._count ? b._count.cards : 0) || 0,

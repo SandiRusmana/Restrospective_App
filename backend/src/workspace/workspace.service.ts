@@ -70,6 +70,8 @@ export class WorkspaceService {
                 id: true,
                 name: true,
                 template: true,
+                status: true,
+                isRevealed: true,
                 createdAt: true,
               },
             },
