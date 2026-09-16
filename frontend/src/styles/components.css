@@ -11166,6 +11166,130 @@
   background-color: #1e2942 !important;
 }
 
+.dark-theme .action-items-row {
+  border-bottom-color: #25334a !important;
+}
+
+.dark-theme .action-item-title-text {
+  color: #f8fafc !important;
+}
+
+.dark-theme .action-item-assignee-name {
+  color: #f1f5f9 !important;
+}
+
+.dark-theme .action-item-due-date {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .action-item-due-date.has-date {
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .action-item-due-date-btn:hover {
+  background-color: #1e2942 !important;
+  border-color: #3b4261 !important;
+}
+
+.dark-theme .action-item-menu-btn {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .action-item-menu-btn:hover {
+  background-color: #1e2942 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .action-item-menu-dropdown {
+  background-color: #1e2942 !important;
+  border-color: #3b4261 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── Create Workspace Card (Dark Mode) ── */
+.dark-theme .create-workspace-card {
+  background-color: #172033 !important;
+  border-color: #3b4261 !important;
+}
+
+.dark-theme .create-workspace-card:hover {
+  background-color: #1e2942 !important;
+  border-color: #6366f1 !important;
+}
+
+.dark-theme .create-icon-box {
+  background-color: #1e2942 !important;
+  border-color: #3b4261 !important;
+  color: #818cf8 !important;
+}
+
+.dark-theme .create-card-title {
+  color: #f8fafc !important;
+}
+
+.dark-theme .create-card-desc {
+  color: #94a3b8 !important;
+}
+
+/* ── Workspace Switcher (Dark Mode) ── */
+.dark-theme .switcher-panel {
+  background-color: #172033 !important;
+  border-color: #25334a !important;
+}
+
+.dark-theme .switcher-dropdown-trigger {
+  background-color: #1e2942 !important;
+  border-color: #2e3d5b !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .dropdown-current-item {
+  color: #f8fafc !important;
+}
+
+.dark-theme .switcher-dropdown-menu {
+  background-color: #172033 !important;
+  border-color: #2e3d5b !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark-theme .dropdown-item {
+  color: #f1f5f9 !important;
+}
+
+.dark-theme .dropdown-item:hover {
+  background-color: #1e2942 !important;
+}
+
+.dark-theme .switcher-search-input {
+  background-color: #1e2942 !important;
+  border-color: #2e3d5b !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .switcher-search-input::placeholder {
+  color: #64748b !important;
+}
+
+.dark-theme .switcher-filter-btn {
+  background-color: #1e2942 !important;
+  border-color: #2e3d5b !important;
+  color: #94a3b8 !important;
+}
+
+.dark-theme .tips-banner {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+.dark-theme .tips-text {
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .tips-text strong {
+  color: #a5b4fc !important;
+}
+
 /* ── 8. Workspace Detail & Board Cards (Dark Mode) ── */
 .dark-theme .ws-banner-title {
   color: #f8fafc !important;
