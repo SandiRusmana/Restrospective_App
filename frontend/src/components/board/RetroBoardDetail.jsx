@@ -224,6 +224,8 @@ export default function RetroBoardDetail({
   // ── Icebreaker State ──
   const [isIcebreakerSelectModalOpen, setIsIcebreakerSelectModalOpen] = useState(false);
   const [activeIcebreaker, setActiveIcebreaker] = useState(null);
+  // Ref to suppress duplicate Pusher events after a local facilitator action (skip/end)
+  const icebreakerActionRef = useRef({ suppressSkip: false, suppressEnd: false });
 
   // ── Presentation Mode State ──
   const [isPresentationOpen, setIsPresentationOpen] = useState(Boolean(board?.presentationMode));
@@ -1103,6 +1105,11 @@ export default function RetroBoardDetail({
     },
 
     onIcebreakerSkipped: (session) => {
+      // Suppress Pusher echo if this client triggered the skip locally
+      if (icebreakerActionRef.current.suppressSkip) {
+        icebreakerActionRef.current.suppressSkip = false;
+        return;
+      }
       setActiveIcebreaker(session);
       if (onShowToast) {
         onShowToast('Pertanyaan icebreaker diganti oleh fasilitator');
@@ -1117,6 +1124,11 @@ export default function RetroBoardDetail({
     },
 
     onIcebreakerEnded: () => {
+      // Suppress Pusher echo if this client triggered the end locally
+      if (icebreakerActionRef.current.suppressEnd) {
+        icebreakerActionRef.current.suppressEnd = false;
+        return;
+      }
       setActiveIcebreaker((prev) => (prev ? { ...prev, status: 'ended' } : null));
       if (onShowToast) {
         onShowToast('Sesi icebreaker telah selesai!');
@@ -1198,16 +1210,16 @@ export default function RetroBoardDetail({
   };
 
   // Handler: Submit Icebreaker Vote
-  const handleVoteIcebreaker = async (optionId) => {
+  const handleVoteIcebreaker = useCallback(async (optionId) => {
     try {
       await api.submitIcebreakerVote(boardId, optionId);
     } catch (err) {
       console.error('Gagal kirim vote icebreaker:', err);
     }
-  };
+  }, [boardId]);
 
   // Handler: Reveal Icebreaker Answer
-  const handleRevealIcebreaker = async () => {
+  const handleRevealIcebreaker = useCallback(async () => {
     try {
       const session = await api.revealIcebreaker(boardId);
       setActiveIcebreaker(session);
@@ -1215,29 +1227,44 @@ export default function RetroBoardDetail({
       console.error('Gagal membuka jawaban icebreaker:', err);
       if (onShowToast) onShowToast(err.message || 'Gagal membuka jawaban');
     }
-  };
+  }, [boardId, onShowToast]);
 
   // Handler: Skip Icebreaker Question
-  const handleSkipIcebreaker = async () => {
+  const handleSkipIcebreaker = useCallback(async () => {
     try {
+      // Flag to suppress the Pusher echo that arrives after the API call
+      icebreakerActionRef.current.suppressSkip = true;
+      icebreakerActionRef.current.suppressEnd = true; // skip on last Q calls endIcebreaker
       const session = await api.skipIcebreaker(boardId);
-      setActiveIcebreaker(session);
+      if (session?.status === 'ended') {
+        // Backend auto-ended because it was the last question
+        icebreakerActionRef.current.suppressSkip = false;
+        setActiveIcebreaker((prev) => (prev ? { ...prev, status: 'ended' } : null));
+      } else {
+        icebreakerActionRef.current.suppressEnd = false;
+        setActiveIcebreaker(session);
+      }
     } catch (err) {
+      icebreakerActionRef.current.suppressSkip = false;
+      icebreakerActionRef.current.suppressEnd = false;
       console.error('Gagal skip icebreaker:', err);
       if (onShowToast) onShowToast(err.message || 'Gagal skip icebreaker');
     }
-  };
+  }, [boardId, onShowToast]);
 
   // Handler: End Icebreaker Session
-  const handleEndIcebreaker = async () => {
+  const handleEndIcebreaker = useCallback(async () => {
     try {
+      // Flag to suppress the Pusher echo that arrives after the API call
+      icebreakerActionRef.current.suppressEnd = true;
       await api.endIcebreaker(boardId);
       setActiveIcebreaker((prev) => (prev ? { ...prev, status: 'ended' } : null));
     } catch (err) {
+      icebreakerActionRef.current.suppressEnd = false;
       console.error('Gagal mengakhiri icebreaker:', err);
       if (onShowToast) onShowToast(err.message || 'Gagal mengakhiri icebreaker');
     }
-  };
+  }, [boardId, onShowToast]);
 
   // ── Synchronize Presentation Mode if already active on board ──
   useEffect(() => {
