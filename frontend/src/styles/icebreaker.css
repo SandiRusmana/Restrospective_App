@@ -6,13 +6,15 @@
 .retro-icebreaker-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  gap: 5px;
+  padding: 5px 12px;
+  height: 32px;
+  box-sizing: border-box;
   border-radius: 9999px;
   border: 1.5px solid #5956e9;
   background-color: #ffffff;
   color: #5956e9;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
