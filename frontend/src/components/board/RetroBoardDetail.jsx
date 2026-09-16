@@ -279,7 +279,20 @@ export default function RetroBoardDetail({
     try {
       const res = await api.getActionItems(boardId);
       if (Array.isArray(res)) {
-        setActionItems(res.map(formatActionItem));
+        const formattedServerItems = res.map(formatActionItem);
+        setActionItems((prev) => {
+          // Pertahankan item optimistik yang belum selesai di-commit ke server
+          const serverCardIds = new Set(formattedServerItems.map((s) => s.cardId));
+          const serverItemIds = new Set(formattedServerItems.map((s) => s.id));
+          const pendingOptimistic = prev.filter(
+            (p) =>
+              typeof p.id === 'string' &&
+              p.id.startsWith('ai_') &&
+              !serverCardIds.has(p.cardId) &&
+              !serverItemIds.has(p.id)
+          );
+          return [...pendingOptimistic, ...formattedServerItems];
+        });
       }
     } catch (err) {
       console.warn('[ActionItems] Gagal memuat action items:', err);
@@ -3050,6 +3063,7 @@ export default function RetroBoardDetail({
         onClose={() => setConvertModalCard(null)}
         card={convertModalCard}
         members={members}
+        currentUser={currentUser}
         onConfirm={handleConfirmConvert}
       />
 
