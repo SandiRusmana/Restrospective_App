@@ -1167,6 +1167,17 @@ export default function App() {
               onDeleteWorkspace={handleDeleteWorkspace}
               onUpdateWorkspace={handleUpdateWorkspace}
               onDeleteBoard={handleDeleteBoard}
+              onUpdateBoard={(updated) => {
+                setActiveBoard((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+                setWorkspaces((prevWs) =>
+                  prevWs.map((ws) => ({
+                    ...ws,
+                    boards: (ws.boards || []).map((b) =>
+                      b.id === updated.id ? { ...b, ...updated } : b
+                    ),
+                  }))
+                );
+              }}
               onShowToast={showToast}
               onNavigateAllWorkspaces={handleNavigateAllWorkspaces}
             />
@@ -1218,18 +1229,21 @@ export default function App() {
 
                 <section className="workspaces-section">
                   <div className="section-header-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <button 
                         type="button" 
                         className="btn btn-outline" 
                         onClick={() => setDashboardView('workspace-detail')}
-                        style={{ padding: '6px 12px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        style={{ padding: '6px 14px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '8px', fontWeight: 500 }}
                         title={`Kembali ke ${activeWorkspace?.name || 'Workspace'}`}
                       >
-                        <ArrowLeft size={16} />
+                        <ArrowLeft size={15} />
                         <span>Kembali ke {activeWorkspace?.name || 'Workspace'}</span>
                       </button>
-                      <h2 className="section-title" style={{ margin: 0 }}>Semua Workspace</h2>
+                      <span style={{ color: '#cbd5e1', fontSize: '14px', userSelect: 'none' }}>/</span>
+                      <span style={{ margin: 0, fontSize: '15px', fontWeight: 500, color: '#475569' }}>
+                        Semua Workspace
+                      </span>
                     </div>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, justifyContent: 'flex-end', maxWidth: '450px' }}>
