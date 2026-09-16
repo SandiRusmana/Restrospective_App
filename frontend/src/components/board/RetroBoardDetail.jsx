@@ -459,6 +459,7 @@ export default function RetroBoardDetail({
   const [timerFacilitator, setTimerFacilitator] = useState(
     currentUser?.name || currentUser?.email?.split('@')[0] || 'Afrizal'
   );
+  const lastResetActionTimeRef = useRef(0);
 
   // Helper: Apply timer data from server or Pusher
   const applyTimerState = useCallback((data, isLiveUpdate = false) => {
@@ -515,12 +516,17 @@ export default function RetroBoardDetail({
       nextStatus = t.status;
     } else if (t.isRunning) {
       nextStatus = rem > 0 ? 'running' : (isLiveUpdate ? 'ended' : 'idle');
-    } else if (rem > 0 && rem < totalSecs) {
+    } else if (t.pausedAt) {
       nextStatus = 'paused';
     } else if (rem === 0 && isLiveUpdate) {
       nextStatus = 'ended';
     } else {
       nextStatus = 'idle';
+    }
+
+    // Jika user baru saja menekan Reset dalam 2.5 detik terakhir, abaikan status lama (seperti event pause yang tertunda)
+    if (Date.now() - lastResetActionTimeRef.current < 2500 && nextStatus !== 'idle') {
+      return;
     }
 
     setTimerStatus(nextStatus);
@@ -616,13 +622,14 @@ export default function RetroBoardDetail({
   };
 
   const handleResetTimer = async () => {
+    lastResetActionTimeRef.current = Date.now();
     setTimerStatus('idle');
     setTimerRemaining(timerTotal);
     if (onShowToast) onShowToast('Timer sesi direset');
     if (!boardId) return;
     try {
       const res = await api.resetTimer(boardId);
-      if (res) applyTimerState(res);
+      if (res) applyTimerState({ ...res, status: 'idle' });
     } catch (err) {
       console.warn('Gagal reset timer di server:', err);
     }

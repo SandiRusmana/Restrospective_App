@@ -112,11 +112,12 @@ export class TimerService {
     }
 
     // Hitung sisa waktu terkini jika timer sedang berjalan
+    let computedRemaining = timer.remaining;
     if (timer.isRunning && timer.startedAt) {
       const now = Date.now();
       const started = new Date(timer.startedAt).getTime();
       const elapsed = Math.max(0, Math.floor((now - started) / 1000));
-      const computedRemaining = Math.min(timer.duration, Math.max(0, timer.remaining - elapsed));
+      computedRemaining = Math.min(timer.duration, Math.max(0, timer.remaining - elapsed));
 
       if (computedRemaining <= 0) {
         // Waktu telah habis
@@ -129,18 +130,17 @@ export class TimerService {
             pausedAt: new Date(),
           },
         });
-      } else {
-        return {
-          ...timer,
-          remaining: computedRemaining,
-          startedById: timer.startedById || null,
-          facilitator,
-        };
       }
     }
 
+    const timerStatus = timer.isRunning
+      ? (computedRemaining > 0 ? 'running' : 'ended')
+      : (timer.pausedAt ? 'paused' : 'idle');
+
     return {
       ...timer,
+      status: timerStatus,
+      remaining: computedRemaining,
       startedById: timer.startedById || null,
       facilitator,
     };
@@ -178,12 +178,14 @@ export class TimerService {
       },
     });
 
-    await this.broadcastTimerUpdate(boardId, updatedTimer, user);
-    return {
+    const result = {
       ...updatedTimer,
+      status: 'running',
       startedById: userId,
       facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
     };
+    await this.broadcastTimerUpdate(boardId, result, user);
+    return result;
   }
 
   /**
@@ -233,12 +235,14 @@ export class TimerService {
       },
     });
 
-    await this.broadcastTimerUpdate(boardId, updatedTimer, user);
-    return {
+    const result = {
       ...updatedTimer,
+      status: 'paused',
       startedById: timer.startedById || userId,
       facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
     };
+    await this.broadcastTimerUpdate(boardId, result, user);
+    return result;
   }
 
   /**
@@ -272,12 +276,14 @@ export class TimerService {
       },
     });
 
-    await this.broadcastTimerUpdate(boardId, updatedTimer, user);
-    return {
+    const result = {
       ...updatedTimer,
+      status: 'idle',
       startedById: timer.startedById || userId,
       facilitator: user?.name || user?.email?.split('@')[0] || 'Facilitator',
     };
+    await this.broadcastTimerUpdate(boardId, result, user);
+    return result;
   }
 
   /**
