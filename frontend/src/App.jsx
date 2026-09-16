@@ -859,6 +859,8 @@ export default function App() {
 
   // Handler: Open Retrospective Board
   const handleOpenBoard = (board, readOnly = false) => {
+    setIsWizardModalOpen(false);
+    setIsCreateBoardModalOpen(false);
     if (board?.workspaceId && board.workspaceId !== activeWorkspaceId) {
       setActiveWorkspaceId(board.workspaceId);
     }
@@ -1411,7 +1413,11 @@ export default function App() {
               setIsCreateBoardModalOpen(false);
               setSelectedTemplateForCreate(null);
             }}
-            onCreateBoard={handleCreateBoard}
+            onCreateBoard={async (board) => {
+              setIsCreateBoardModalOpen(false);
+              const created = await handleCreateBoard(board);
+              handleOpenBoard(created || board);
+            }}
             workspaceName={activeWorkspace?.name}
             workspace={activeWorkspace}
             workspaces={workspaces}
@@ -1422,7 +1428,10 @@ export default function App() {
             isOpen={isWizardModalOpen}
             onClose={() => setIsWizardModalOpen(false)}
             onCreateBoard={handleCreateBoard}
-            onOpenBoard={handleOpenBoard}
+            onOpenBoard={(board) => {
+              setIsWizardModalOpen(false);
+              handleOpenBoard(board);
+            }}
             workspace={activeWorkspace}
             currentUser={user}
           />
