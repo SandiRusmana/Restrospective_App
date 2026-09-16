@@ -10713,6 +10713,12 @@
   text-align: right;
 }
 
+.retro-wizard-board-input {
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
 /* Loading Modal (Screen 4) */
 .retro-wizard-loading-card {
   background: #ffffff;
@@ -11288,6 +11294,236 @@
 
 .dark-theme .tips-text strong {
   color: #a5b4fc !important;
+}
+
+/* ── Buat Retro Wizard Modal (Dark Mode) ── */
+.dark-theme .retro-wizard-modal-box {
+  background: #172033 !important;
+  border: 1px solid #2e3d55 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 25px 55px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark-theme .retro-wizard-title {
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-close-btn {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .retro-wizard-close-btn:hover {
+  background-color: #1e2942 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .stepper-circle {
+  background-color: #1e2942 !important;
+  border-color: #3b4261 !important;
+  color: #94a3b8 !important;
+}
+
+.dark-theme .stepper-step.active .stepper-circle {
+  background-color: #6366f1 !important;
+  border-color: #6366f1 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .stepper-step.completed .stepper-circle {
+  background-color: #10b981 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .stepper-line {
+  background-color: #2e3d5b !important;
+}
+
+.dark-theme .stepper-line.completed {
+  background-color: #10b981 !important;
+}
+
+.dark-theme .stepper-label {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .stepper-step.active .stepper-label {
+  color: #a5b4fc !important;
+}
+
+.dark-theme .retro-wizard-section-title {
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-section-desc {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .retro-wizard-template-card {
+  background-color: #1e2942 !important;
+  border-color: #2e3d5b !important;
+}
+
+.dark-theme .retro-wizard-template-card:hover {
+  background-color: #25334a !important;
+  border-color: #4f46e5 !important;
+}
+
+.dark-theme .retro-wizard-template-card.selected {
+  background-color: rgba(99, 102, 241, 0.15) !important;
+  border-color: #6366f1 !important;
+}
+
+.dark-theme .retro-wizard-template-name {
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-template-desc {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .retro-wizard-select-btn {
+  background-color: #1e2942 !important;
+  border-color: #3b4261 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .retro-wizard-select-btn:hover {
+  background-color: #25334a !important;
+  border-color: #6366f1 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .retro-wizard-select-btn.is-selected {
+  background-color: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+  color: #ffffff !important;
+}
+
+.dark-theme .retro-wizard-search-box {
+  background-color: #1e2942 !important;
+  border-color: #2e3d5b !important;
+}
+
+.dark-theme .retro-wizard-search-box .search-icon {
+  color: #64748b !important;
+}
+
+.dark-theme .retro-wizard-search-box .search-input {
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-search-box .search-input::placeholder {
+  color: #64748b !important;
+}
+
+.dark-theme .retro-wizard-group-title {
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-empty-members {
+  background-color: #1e2942 !important;
+  border-color: #2e3d5b !important;
+  color: #94a3b8 !important;
+}
+
+.dark-theme .retro-wizard-member-item,
+.dark-theme .retro-wizard-ws-member-item {
+  background-color: #1e2942 !important;
+  border-color: #2e3d5b !important;
+}
+
+.dark-theme .retro-wizard-member-item:hover,
+.dark-theme .retro-wizard-ws-member-item:hover {
+  background-color: #25334a !important;
+}
+
+.dark-theme .retro-wizard-member-item .member-name,
+.dark-theme .retro-wizard-ws-member-item .member-name {
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-member-item .member-team,
+.dark-theme .retro-wizard-ws-member-item .member-team {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .retro-wizard-info-tip {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+.dark-theme .retro-wizard-info-tip p {
+  color: #cbd5e1 !important;
+}
+
+.dark-theme .retro-wizard-btn-skip {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .retro-wizard-btn-skip:hover {
+  background-color: #1e2942 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-btn-outline {
+  border-color: #3b4261 !important;
+  color: #cbd5e1 !important;
+  background-color: transparent !important;
+}
+
+.dark-theme .retro-wizard-btn-outline:hover {
+  background-color: #1e2942 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-mulai-title {
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-mulai-subtitle {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .retro-wizard-summary-card {
+  background-color: #1e2942 !important;
+  border-color: #2e3d5b !important;
+}
+
+.dark-theme .retro-wizard-summary-row {
+  background-color: #172033 !important;
+  border-color: #2e3d5b !important;
+}
+
+.dark-theme .summary-label {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .summary-value {
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-board-input {
+  background-color: #1e2942 !important;
+  border-color: #3b4261 !important;
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-loading-card {
+  background-color: #172033 !important;
+  border-color: #2e3d5b !important;
+}
+
+.dark-theme .retro-wizard-loading-title {
+  color: #f8fafc !important;
+}
+
+.dark-theme .retro-wizard-loading-subtitle {
+  color: #94a3b8 !important;
+}
+
+.dark-theme .retro-wizard-progress-bar-bg {
+  background-color: #25334a !important;
 }
 
 /* ── 8. Workspace Detail & Board Cards (Dark Mode) ── */
