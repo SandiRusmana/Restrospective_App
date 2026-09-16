@@ -406,6 +406,9 @@ export default function RetroBoardDetail({
         if (fullBoard.isRevealed !== undefined) {
           setIsRevealed(Boolean(fullBoard.isRevealed));
           setIsPrivateMode(!Boolean(fullBoard.isRevealed));
+          if (onUpdateBoard) {
+            onUpdateBoard({ id: boardId, isRevealed: Boolean(fullBoard.isRevealed) });
+          }
         }
         if (fullBoard.status) {
           setBoardStatus(fullBoard.status);
@@ -1004,6 +1007,9 @@ export default function RetroBoardDetail({
       setIsPrivateMode(false);
       setIsRevealed(true);
       setShowRevealedBanner(true);
+      if (onUpdateBoard) {
+        onUpdateBoard({ id: boardId, isRevealed: true });
+      }
       if (onShowToast) {
         onShowToast('Fasilitator telah me-reveal semua kartu! Diskusi tim dimulai.');
       }
@@ -1394,6 +1400,9 @@ export default function RetroBoardDetail({
       setIsPrivateMode(false);
       setIsRevealed(true);
       setShowRevealedBanner(true);
+      if (onUpdateBoard) {
+        onUpdateBoard({ id: boardId, isRevealed: true });
+      }
       if (onShowToast) onShowToast('Semua card berhasil di-reveal ke seluruh anggota tim!');
       setTimeout(() => setShowRevealedBanner(false), 5000);
       loadCardsFromApi();
