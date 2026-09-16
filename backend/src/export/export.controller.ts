@@ -19,21 +19,31 @@ export class ExportController {
     @Param('id') boardId: string,
     @Res() res: Response,
   ) {
-    const { buffer, boardName } = await this.exportService.exportBoardToPdf(userId, boardId);
+    try {
+      const { buffer, boardName } = await this.exportService.exportBoardToPdf(userId, boardId);
 
-    const safeName = (boardName || 'Retrospective')
-      .replace(/[^a-zA-Z0-9_\- ]/g, '')
-      .trim()
-      .replace(/\s+/g, '_');
+      const safeName = (boardName || 'Retrospective')
+        .replace(/[^a-zA-Z0-9_\- ]/g, '')
+        .trim()
+        .replace(/\s+/g, '_');
 
-    const fileName = `Retro_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
+      const fileName = `Retro_${safeName}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${fileName}"`,
-      'Content-Length': buffer.length,
-    });
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Length': buffer.length,
+      });
 
-    res.end(buffer);
+      return res.end(buffer);
+    } catch (err: any) {
+      console.error('[Export PDF Error]:', err);
+      const status = err.status || (typeof err.getStatus === 'function' ? err.getStatus() : 500);
+      const message = err.message || 'Gagal mengekspor PDF';
+      return res.status(status).json({
+        statusCode: status,
+        message,
+      });
+    }
   }
 }
