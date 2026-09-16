@@ -14,7 +14,6 @@ import {
   Zap,
   Calendar,
   Lock,
-  EyeOff,
 } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -495,12 +494,6 @@ export default function RetroCard({
                   title="Ditampilkan sebagai Anonymous bagi anggota lain"
                 >
                   Anonim
-                </span>
-              )}
-              {isPrivateMode && !isRevealed && card?.isOwner && (
-                <span className="retro-card-private-subtag" title="Catatan ini belum di-reveal ke tim">
-                  <EyeOff size={10} strokeWidth={2.2} />
-                  <span>Belum Reveal</span>
                 </span>
               )}
             </div>
