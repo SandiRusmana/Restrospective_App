@@ -88,18 +88,7 @@ export class CardService {
     }
 
     if (!column) {
-      if (columnId.toLowerCase().includes('action')) {
-        const colCount = await this.prisma.boardColumn.count({ where: { boardId: board.id } });
-        column = await this.prisma.boardColumn.create({
-          data: {
-            boardId: board.id,
-            name: 'Action Items',
-            order: colCount + 1,
-          },
-        });
-      } else {
-        throw new NotFoundException('Kolom tidak ditemukan di dalam board ini');
-      }
+      throw new NotFoundException('Kolom tidak ditemukan di dalam board ini');
     }
 
     // 3. Simpan Card ke Database

@@ -57,7 +57,6 @@ const TEMPLATE_COLUMNS_MAP = {
     { id: 'start', type: 'start', title: 'START', name: 'START', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', badgeBg: '#dcfce7', badgeColor: '#16a34a' },
     { id: 'stop', type: 'stop', title: 'STOP', name: 'STOP', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', badgeBg: '#fee2e2', badgeColor: '#dc2626' },
     { id: 'continue', type: 'continue', title: 'CONTINUE', name: 'CONTINUE', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', badgeBg: '#dbeafe', badgeColor: '#2563eb' },
-    { id: 'action_items', type: 'continue', title: 'ACTION ITEMS', name: 'ACTION ITEMS', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', badgeBg: '#dbeafe', badgeColor: '#2563eb' },
   ],
   'mad-sad-glad': [
     { id: 'mad', type: 'mad', title: 'MAD', name: 'MAD', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', badgeBg: '#fee2e2', badgeColor: '#dc2626' },
@@ -2299,31 +2298,14 @@ export default function RetroBoardDetail({
       cols = [...templateCols];
     }
 
-    // Pastikan kolom ACTION ITEMS selalu hadir di canvas board retro
-    const hasActionCol = cols.some(
+    // Kolom retrospective murni (Action Items memiliki tab tersendiri, bukan kolom di canvas)
+    return cols.filter(
       (c) =>
-        c.name?.toLowerCase().includes('action') ||
-        c.title?.toLowerCase().includes('action') ||
-        c.id?.toLowerCase().includes('action') ||
-        c.templateId?.toLowerCase().includes('action')
+        !c.name?.toLowerCase().includes('action') &&
+        !c.title?.toLowerCase().includes('action') &&
+        !c.id?.toLowerCase().includes('action') &&
+        !c.templateId?.toLowerCase().includes('action')
     );
-    if (!hasActionCol) {
-      cols.push({
-        id: 'action_items',
-        dbId: 'action_items',
-        type: 'continue',
-        templateId: 'action_items',
-        title: 'ACTION ITEMS',
-        name: 'ACTION ITEMS',
-        color: '#2563eb',
-        bg: '#eff6ff',
-        border: '#bfdbfe',
-        badgeBg: '#dbeafe',
-        badgeColor: '#2563eb',
-      });
-    }
-
-    return cols;
   }, [columnsSource, templateCols]);
 
   return (
