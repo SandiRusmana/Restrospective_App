@@ -143,72 +143,58 @@ export function useBoardPusher(boardId, currentUser, handlers = {}) {
       console.warn(`[useBoardPusher] Private subscription error:`, error);
     });
 
+    // Cache untuk deduplikasi event paralel antar-channel (presence, private, public)
+    const lastEventMap = new Map();
+    const shouldHandleEvent = (eventName, data) => {
+      try {
+        const key = `${eventName}:${typeof data === 'object' ? JSON.stringify(data) : data}`;
+        const now = Date.now();
+        const lastTime = lastEventMap.get(key) || 0;
+        if (now - lastTime < 300) {
+          return false; // Abaikan duplikat identik dari channel paralel
+        }
+        lastEventMap.set(key, now);
+        if (lastEventMap.size > 200) {
+          lastEventMap.clear();
+        }
+        return true;
+      } catch (e) {
+        return true;
+      }
+    };
+
     // Bind event-event realtime pada channel
     const bindEvents = (ch) => {
       if (!ch) return;
-      ch.bind('card.created', (data) => {
-        if (handlersRef.current?.onCardCreated) handlersRef.current.onCardCreated(data);
-      });
-      ch.bind('card.updated', (data) => {
-        if (handlersRef.current?.onCardUpdated) handlersRef.current.onCardUpdated(data);
-      });
-      ch.bind('card.deleted', (data) => {
-        if (handlersRef.current?.onCardDeleted) handlersRef.current.onCardDeleted(data);
-      });
-      ch.bind('vote.updated', (data) => {
-        if (handlersRef.current?.onVoteUpdated) handlersRef.current.onVoteUpdated(data);
-      });
-      ch.bind('comment.created', (data) => {
-        if (handlersRef.current?.onCommentCreated) handlersRef.current.onCommentCreated(data);
-      });
-      ch.bind('card.grouped', (data) => {
-        if (handlersRef.current?.onCardGrouped) handlersRef.current.onCardGrouped(data);
-      });
-      ch.bind('timer.updated', (data) => {
-        if (handlersRef.current?.onTimerUpdated) handlersRef.current.onTimerUpdated(data);
-      });
-      ch.bind('board.anonymous.updated', (data) => {
-        if (handlersRef.current?.onAnonymousUpdated) handlersRef.current.onAnonymousUpdated(data);
-      });
-      ch.bind('board.status.updated', (data) => {
-        if (handlersRef.current?.onBoardStatusUpdated) handlersRef.current.onBoardStatusUpdated(data);
-      });
-      ch.bind('board.revealed', (data) => {
-        if (handlersRef.current?.onBoardRevealed) handlersRef.current.onBoardRevealed(data);
-      });
-      ch.bind('board.cards_count', (data) => {
-        if (handlersRef.current?.onCardsCountUpdated) handlersRef.current.onCardsCountUpdated(data);
-      });
-      ch.bind('action-item.created', (data) => {
-        if (handlersRef.current?.onActionItemCreated) handlersRef.current.onActionItemCreated(data);
-      });
-      ch.bind('action-item.updated', (data) => {
-        if (handlersRef.current?.onActionItemUpdated) handlersRef.current.onActionItemUpdated(data);
-      });
-      ch.bind('icebreaker.started', (data) => {
-        if (handlersRef.current?.onIcebreakerStarted) handlersRef.current.onIcebreakerStarted(data);
-      });
-      ch.bind('icebreaker.voted', (data) => {
-        if (handlersRef.current?.onIcebreakerVoted) handlersRef.current.onIcebreakerVoted(data);
-      });
-      ch.bind('icebreaker.skipped', (data) => {
-        if (handlersRef.current?.onIcebreakerSkipped) handlersRef.current.onIcebreakerSkipped(data);
-      });
-      ch.bind('icebreaker.revealed', (data) => {
-        if (handlersRef.current?.onIcebreakerRevealed) handlersRef.current.onIcebreakerRevealed(data);
-      });
-      ch.bind('icebreaker.ended', (data) => {
-        if (handlersRef.current?.onIcebreakerEnded) handlersRef.current.onIcebreakerEnded(data);
-      });
-      ch.bind('presentation.started', (data) => {
-        if (handlersRef.current?.onPresentationStarted) handlersRef.current.onPresentationStarted(data);
-      });
-      ch.bind('presentation.card.changed', (data) => {
-        if (handlersRef.current?.onPresentationCardChanged) handlersRef.current.onPresentationCardChanged(data);
-      });
-      ch.bind('presentation.stopped', (data) => {
-        if (handlersRef.current?.onPresentationStopped) handlersRef.current.onPresentationStopped(data);
-      });
+      const bindSafe = (eventName, callback) => {
+        ch.bind(eventName, (data) => {
+          if (shouldHandleEvent(eventName, data)) {
+            callback(data);
+          }
+        });
+      };
+
+      bindSafe('card.created', (data) => handlersRef.current?.onCardCreated?.(data));
+      bindSafe('card.updated', (data) => handlersRef.current?.onCardUpdated?.(data));
+      bindSafe('card.deleted', (data) => handlersRef.current?.onCardDeleted?.(data));
+      bindSafe('vote.updated', (data) => handlersRef.current?.onVoteUpdated?.(data));
+      bindSafe('comment.created', (data) => handlersRef.current?.onCommentCreated?.(data));
+      bindSafe('card.grouped', (data) => handlersRef.current?.onCardGrouped?.(data));
+      bindSafe('timer.updated', (data) => handlersRef.current?.onTimerUpdated?.(data));
+      bindSafe('board.anonymous.updated', (data) => handlersRef.current?.onAnonymousUpdated?.(data));
+      bindSafe('board.status.updated', (data) => handlersRef.current?.onBoardStatusUpdated?.(data));
+      bindSafe('board.revealed', (data) => handlersRef.current?.onBoardRevealed?.(data));
+      bindSafe('board.cards_count', (data) => handlersRef.current?.onCardsCountUpdated?.(data));
+      bindSafe('action-item.created', (data) => handlersRef.current?.onActionItemCreated?.(data));
+      bindSafe('action-item.updated', (data) => handlersRef.current?.onActionItemUpdated?.(data));
+      bindSafe('icebreaker.started', (data) => handlersRef.current?.onIcebreakerStarted?.(data));
+      bindSafe('icebreaker.voted', (data) => handlersRef.current?.onIcebreakerVoted?.(data));
+      bindSafe('icebreaker.skipped', (data) => handlersRef.current?.onIcebreakerSkipped?.(data));
+      bindSafe('icebreaker.revealed', (data) => handlersRef.current?.onIcebreakerRevealed?.(data));
+      bindSafe('icebreaker.ended', (data) => handlersRef.current?.onIcebreakerEnded?.(data));
+      bindSafe('presentation.started', (data) => handlersRef.current?.onPresentationStarted?.(data));
+      bindSafe('presentation.card.changed', (data) => handlersRef.current?.onPresentationCardChanged?.(data));
+      bindSafe('presentation.stopped', (data) => handlersRef.current?.onPresentationStopped?.(data));
     };
 
     bindEvents(presenceChannel);

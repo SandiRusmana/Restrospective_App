@@ -460,6 +460,7 @@ export default function RetroBoardDetail({
     currentUser?.name || currentUser?.email?.split('@')[0] || 'Afrizal'
   );
   const lastResetActionTimeRef = useRef(0);
+  const lastStartActionTimeRef = useRef(0);
 
   // Helper: Apply timer data from server or Pusher
   const applyTimerState = useCallback((data, isLiveUpdate = false) => {
@@ -524,12 +525,27 @@ export default function RetroBoardDetail({
       nextStatus = 'idle';
     }
 
-    // Jika user baru saja menekan Reset dalam 2.5 detik terakhir, abaikan status lama (seperti event pause yang tertunda)
-    if (Date.now() - lastResetActionTimeRef.current < 2500 && nextStatus !== 'idle') {
+    // 1. Jika user baru saja menekan Start/Resume dalam 3 detik terakhir,
+    // abaikan event atau response lama yang berstatus 'idle' (seperti sisa response reset sebelumnya)
+    if (Date.now() - lastStartActionTimeRef.current < 3000 && nextStatus === 'idle') {
       return;
     }
 
-    setTimerStatus(nextStatus);
+    // 2. Jika user baru saja menekan Reset dalam 3 detik terakhir,
+    // abaikan status selain 'idle' (seperti event running/pause yang tertunda)
+    if (Date.now() - lastResetActionTimeRef.current < 3000 && nextStatus !== 'idle') {
+      return;
+    }
+
+    setTimerStatus((prevStatus) => {
+      // Jika timer saat ini sedang running dan server juga mengonfirmasi isRunning,
+      // pertahankan status 'running' agar banner tidak berkedip/hilang sesaat
+      if (prevStatus === 'running' && t.isRunning && nextStatus !== 'paused') {
+        return 'running';
+      }
+      return nextStatus;
+    });
+
     // Hanya tampilkan popup modal jika timer aktif baru saja selesai (live update),
     // bukan saat baru membuka/refresh halaman yang sesi sebelumnya sudah selesai
     if (nextStatus === 'ended' && isLiveUpdate) {
@@ -580,6 +596,8 @@ export default function RetroBoardDetail({
 
   const handleStartTimer = async (durationMinutes) => {
     const totalSecs = Math.max(1, durationMinutes) * 60;
+    lastStartActionTimeRef.current = Date.now();
+    lastResetActionTimeRef.current = 0;
     setTimerTotal(totalSecs);
     setTimerRemaining(totalSecs);
     setTimerStatus('running');
@@ -598,24 +616,28 @@ export default function RetroBoardDetail({
   };
 
   const handlePauseTimer = async () => {
+    lastStartActionTimeRef.current = 0;
+    lastResetActionTimeRef.current = 0;
     setTimerStatus('paused');
     if (onShowToast) onShowToast('Timer sesi dijeda');
     if (!boardId) return;
     try {
       const res = await api.pauseTimer(boardId);
-      if (res) applyTimerState(res);
+      if (res) applyTimerState(res, true);
     } catch (err) {
       console.warn('Gagal pause timer di server:', err);
     }
   };
 
   const handleResumeTimer = async () => {
+    lastStartActionTimeRef.current = Date.now();
+    lastResetActionTimeRef.current = 0;
     setTimerStatus('running');
     if (onShowToast) onShowToast('Timer sesi dilanjutkan');
     if (!boardId) return;
     try {
       const res = await api.startTimer(boardId);
-      if (res) applyTimerState(res);
+      if (res) applyTimerState(res, true);
     } catch (err) {
       console.warn('Gagal resume timer di server:', err);
     }
@@ -623,6 +645,7 @@ export default function RetroBoardDetail({
 
   const handleResetTimer = async () => {
     lastResetActionTimeRef.current = Date.now();
+    lastStartActionTimeRef.current = 0;
     setTimerStatus('idle');
     setTimerRemaining(timerTotal);
     if (onShowToast) onShowToast('Timer sesi direset');
