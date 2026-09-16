@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Calendar, Check, Trash2, Edit2 } from 'lucide-react';
+import { MoreVertical, Calendar, Check, Trash2, Edit2, CheckCircle2 } from 'lucide-react';
 import { getUserAvatar } from '../../utils/avatar';
 
 function StatusPill({ status, onChangeStatus, itemId }) {
@@ -270,7 +270,9 @@ export default function ActionItemsTable({ actionItems = [], onChangeStatus, onD
   if (actionItems.length === 0) {
     return (
       <div className="action-items-empty">
-        <div className="action-items-empty-icon">✅</div>
+        <div className="action-items-empty-icon" style={{ display: 'flex', justifyContent: 'center' }}>
+          <CheckCircle2 size={42} color="#10b981" />
+        </div>
         <h3 className="action-items-empty-title">Belum ada Action Item</h3>
         <p className="action-items-empty-desc">
           Konversi kartu retro menjadi action item menggunakan menu <strong>Convert To Action Item</strong> pada kartu.

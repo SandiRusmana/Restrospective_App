@@ -394,18 +394,77 @@
   color: #ffffff;
 }
 
+/* Brand Header Khusus Mobile di Form Panel */
+.auth-mobile-brand {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .auth-card-container {
     flex-direction: column;
     max-width: 520px;
+    height: auto;
     min-height: auto;
   }
   .auth-hero-panel {
-    padding: 32px 28px;
+    padding: 28px 24px;
   }
   .auth-form-panel {
-    padding: 36px 28px;
+    padding: 32px 24px;
+    height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-page-wrapper {
+    padding: 16px 12px;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .auth-card-container {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.12);
+  }
+
+  /* Sembunyikan panel ilustrasi hero di mobile agar formulir login/register langsung terlihat */
+  .auth-hero-panel {
+    display: none !important;
+  }
+
+  .auth-mobile-brand {
+    display: flex;
+  }
+
+  .auth-form-panel {
+    padding: 24px 18px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .auth-form-title {
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+
+  .auth-input-container {
+    height: 44px;
+  }
+
+  .auth-submit-btn {
+    height: 46px;
+    font-size: 15px;
+  }
+
+  .auth-oauth-btn {
+    height: 44px;
+    font-size: 13px;
   }
 }
 

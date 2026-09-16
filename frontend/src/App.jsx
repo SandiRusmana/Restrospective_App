@@ -1035,104 +1035,100 @@ export default function App() {
           />
 
           <ErrorBoundary onReset={handleBackToWorkspace}>
-            {/* Loading Indicator during Auth/Workspaces Fetch */}
-            {isLoadingAuth && (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 40px)', color: '#64748b', width: '100%' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                <Loader2 size={36} color="#5956e9" style={{ animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Memuat workspace...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Loading Indicator during Direct Board Load */}
-          {isBoardDirectLoading && (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 40px)', color: '#64748b', width: '100%' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', textAlign: 'center' }}>
-                <Loader2 size={40} color="#5956e9" style={{ animation: 'spin 1s linear infinite' }} />
-                <div>
-                  <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Memvalidasi & Memuat Board...</h3>
-                  <span style={{ fontSize: '14px', color: '#64748b' }}>Memverifikasi izin akses workspace Anda</span>
+            {isLoadingAuth ? (
+              /* Loading Indicator during Auth/Workspaces Fetch */
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 40px)', color: '#64748b', width: '100%' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                  <Loader2 size={36} color="#5956e9" style={{ animation: 'spin 1s linear infinite' }} />
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748b' }}>Memuat workspace...</span>
                 </div>
               </div>
-            </div>
-          )}
+            ) : isBoardDirectLoading ? (
+              /* Loading Indicator during Direct Board Load */
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 40px)', color: '#64748b', width: '100%' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', textAlign: 'center' }}>
+                  <Loader2 size={40} color="#5956e9" style={{ animation: 'spin 1s linear infinite' }} />
+                  <div>
+                    <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Memvalidasi & Memuat Board...</h3>
+                    <span style={{ fontSize: '14px', color: '#64748b' }}>Memverifikasi izin akses workspace Anda</span>
+                  </div>
+                </div>
+              </div>
+            ) : boardAccessError ? (
+              /* Access Denied (403) or Not Found (404) Screen */
+              <div className="board-access-error-container">
+                <div className="board-access-error-card">
+                  <div className={`board-access-error-icon-box ${boardAccessError.status === 403 ? 'forbidden' : 'not-found'}`}>
+                    {boardAccessError.status === 403 ? (
+                      <ShieldAlert size={44} />
+                    ) : (
+                      <SearchX size={44} />
+                    )}
+                  </div>
 
-          {/* Access Denied (403) or Not Found (404) Screen */}
-          {boardAccessError && (
-            <div className="board-access-error-container">
-              <div className="board-access-error-card">
-                <div className={`board-access-error-icon-box ${boardAccessError.status === 403 ? 'forbidden' : 'not-found'}`}>
+                  <div className={`board-access-error-badge ${boardAccessError.status === 403 ? 'forbidden' : 'not-found'}`}>
+                    {boardAccessError.status === 403 ? '403 · Akses Ditolak' : '404 · Board Tidak Ditemukan'}
+                  </div>
+
+                  <h2 className="board-access-error-title">
+                    {boardAccessError.status === 403 ? 'Akses Board Dibatasi' : 'Sesi Board Tidak Ditemukan'}
+                  </h2>
+
+                  <p className="board-access-error-desc">
+                    {boardAccessError.message}
+                  </p>
+
                   {boardAccessError.status === 403 ? (
-                    <ShieldAlert size={44} />
+                    <div className="board-access-error-tip">
+                      <strong>Catatan Keamanan:</strong> Retrospective ini bersifat privat. Hanya anggota workspace yang terdaftar dan telah diautentikasi yang diizinkan untuk melihat serta berpartisipasi dalam sesi ini.
+                    </div>
                   ) : (
-                    <SearchX size={44} />
+                    <div className="board-access-error-tip not-found-tip">
+                      <strong>Kemungkinan Penyebab:</strong>
+                      <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px', color: '#475569', fontSize: '12px', lineHeight: '1.6' }}>
+                        <li>UUID board salah disalin atau URL terpotong.</li>
+                        <li>Board telah dihapus oleh fasilitator atau pemilik workspace.</li>
+                        <li>Board berada pada workspace yang berbeda atau akun lain.</li>
+                      </ul>
+                    </div>
                   )}
-                </div>
 
-                <div className={`board-access-error-badge ${boardAccessError.status === 403 ? 'forbidden' : 'not-found'}`}>
-                  {boardAccessError.status === 403 ? '403 · Akses Ditolak' : '404 · Board Tidak Ditemukan'}
-                </div>
-
-                <h2 className="board-access-error-title">
-                  {boardAccessError.status === 403 ? 'Akses Board Dibatasi' : 'Sesi Board Tidak Ditemukan'}
-                </h2>
-
-                <p className="board-access-error-desc">
-                  {boardAccessError.message}
-                </p>
-
-                {boardAccessError.status === 403 ? (
-                  <div className="board-access-error-tip">
-                    <strong>Catatan Keamanan:</strong> Retrospective ini bersifat privat. Hanya anggota workspace yang terdaftar dan telah diautentikasi yang diizinkan untuk melihat serta berpartisipasi dalam sesi ini.
-                  </div>
-                ) : (
-                  <div className="board-access-error-tip not-found-tip">
-                    <strong>Kemungkinan Penyebab:</strong>
-                    <ul style={{ margin: '6px 0 0 0', paddingLeft: '18px', color: '#475569', fontSize: '12px', lineHeight: '1.6' }}>
-                      <li>UUID board salah disalin atau URL terpotong.</li>
-                      <li>Board telah dihapus oleh fasilitator atau pemilik workspace.</li>
-                      <li>Board berada pada workspace yang berbeda atau akun lain.</li>
-                    </ul>
-                  </div>
-                )}
-
-                <div className="board-access-error-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={handleBackToWorkspace}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontWeight: 600, borderRadius: '8px' }}
-                  >
-                    <ArrowLeft size={16} />
-                    <span>Kembali ke Dashboard</span>
-                  </button>
-
-                  {boardAccessError.status === 404 && (
+                  <div className="board-access-error-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
                     <button
                       type="button"
-                      className="btn btn-outline"
-                      onClick={() => {
-                        setBoardAccessError(null);
-                        setDashboardView('all-workspaces');
-                        window.history.pushState({}, '', '/');
-                      }}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontWeight: 600, borderRadius: '8px' }}
+                      className="btn btn-primary"
+                      onClick={handleBackToWorkspace}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontWeight: 600, borderRadius: '8px' }}
                     >
-                      <Compass size={16} />
-                      <span>Jelajahi Workspace Lain</span>
+                      <ArrowLeft size={16} />
+                      <span>Kembali ke Dashboard</span>
                     </button>
-                  )}
+
+                    {boardAccessError.status === 404 && (
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() => {
+                          setBoardAccessError(null);
+                          setDashboardView('all-workspaces');
+                          window.history.pushState({}, '', '/');
+                        }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', fontWeight: 600, borderRadius: '8px' }}
+                      >
+                        <Compass size={16} />
+                        <span>Jelajahi Workspace Lain</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Interactive Retrospective Board View (When a board is opened) */}
-          {dashboardView === 'board-detail' && activeBoard && !isLoadingAuth && !boardAccessError && (
-            <RetroBoardDetail 
-              key={activeBoard.id}
-              workspace={activeWorkspace}
+            ) : (
+              <>
+                {/* Interactive Retrospective Board View (When a board is opened) */}
+                {dashboardView === 'board-detail' && activeBoard && (
+                  <RetroBoardDetail 
+                    key={activeBoard.id}
+                    workspace={activeWorkspace}
               board={activeBoard}
               currentUser={user}
               onBack={handleBackToWorkspace}
@@ -1384,6 +1380,8 @@ export default function App() {
               onToggleDarkMode={handleToggleDarkMode}
             />
           )}
+              </>
+            )}
           </ErrorBoundary>
 
           {/* Modals */}

@@ -9,6 +9,7 @@ import {
   X,
   ArrowRightLeft,
   MoreVertical,
+  ThumbsUp,
 } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
@@ -215,8 +216,9 @@ export default function RetroCardGroup({
                   {displayGroupName}
                 </span>
                 {totalVotes > 0 && (
-                  <span className="retro-group-votes-badge">
-                    👍 {totalVotes}
+                  <span className="retro-group-votes-badge" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <ThumbsUp size={11} />
+                    <span>{totalVotes}</span>
                   </span>
                 )}
               </div>

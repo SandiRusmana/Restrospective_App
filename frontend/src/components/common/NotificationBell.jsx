@@ -11,6 +11,9 @@ import {
   MessageSquare,
   AlertCircle,
   Edit2,
+  AlertTriangle,
+  Target,
+  CheckCircle2,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { getUserAvatar } from '../../utils/avatar';
@@ -109,7 +112,7 @@ export default function NotificationBell({
       setSelectedItem(null);
 
       if (onShowToast) {
-        onShowToast(`Action item "${item.title}" ditandai sebagai Done ✓`);
+        onShowToast(`Action item "${item.title}" ditandai sebagai Done`);
       }
     } catch (err) {
       console.error('Gagal memperbarui status action item:', err);
@@ -163,7 +166,7 @@ export default function NotificationBell({
         prev.map((n) => (n.id === selectedItem.id ? updated : n))
       );
       setIsEditingDueDate(false);
-      if (onShowToast) onShowToast('Tenggat waktu berhasil diperbarui ✓');
+      if (onShowToast) onShowToast('Tenggat waktu berhasil diperbarui');
     } catch (err) {
       console.error('Gagal memperbarui due date:', err);
       if (onShowToast) onShowToast('Gagal memperbarui tenggat waktu');
@@ -228,7 +231,7 @@ export default function NotificationBell({
               </div>
             ) : notifications.length === 0 ? (
               <div className="notification-empty-state">
-                <span style={{ fontSize: '20px', marginBottom: '4px' }}>🎉</span>
+                <CheckCircle2 size={28} color="#10b981" style={{ marginBottom: '6px' }} />
                 <strong>Semua Selesai!</strong>
                 <span>Tidak ada action item pending atau terlambat saat ini.</span>
               </div>
@@ -237,8 +240,9 @@ export default function NotificationBell({
                 {/* 1. Group: Action Item Terlambat */}
                 {overdueItems.length > 0 && (
                   <div className="notification-group-section" style={{ marginBottom: '8px' }}>
-                    <div className="notification-section-heading" style={{ color: '#ef4444' }}>
-                      ⚠️ Action item terlambat ({overdueItems.length})
+                    <div className="notification-section-heading" style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <AlertTriangle size={14} />
+                      <span>Action item terlambat ({overdueItems.length})</span>
                     </div>
                     {overdueItems.map((item) => (
                       <div
@@ -276,8 +280,9 @@ export default function NotificationBell({
                 {/* 2. Group: Ditugaskan ke Anda */}
                 {assignedItems.length > 0 && (
                   <div className="notification-group-section">
-                    <div className="notification-section-heading" style={{ color: '#4f46e5' }}>
-                      🎯 Ditugaskan ke Anda ({assignedItems.length})
+                    <div className="notification-section-heading" style={{ color: '#4f46e5', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Target size={14} />
+                      <span>Ditugaskan ke Anda ({assignedItems.length})</span>
                     </div>
                     {assignedItems.map((item) => (
                       <div
@@ -515,7 +520,7 @@ export default function NotificationBell({
               >
                 <Check size={17} strokeWidth={2.5} />
                 <span>
-                  {isUpdatingStatus ? 'Memperbarui...' : '✓ Tandai sebagai Done'}
+                  {isUpdatingStatus ? 'Memperbarui...' : 'Tandai sebagai Done'}
                 </span>
               </button>
             </div>

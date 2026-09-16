@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Gamepad2, X, Users, Clock, CheckCircle2, Eye, Sparkles } from 'lucide-react';
+import { Gamepad2, X, Users, Clock, CheckCircle2, Eye, Sparkles, PartyPopper } from 'lucide-react';
 import '../../styles/icebreaker.css';
 
 export default function IcebreakerOverlay({
@@ -187,8 +187,8 @@ export default function IcebreakerOverlay({
           </button>
 
           {/* Celebration Emoji Icon */}
-          <div className="icebreaker-celebration-icon-circle">
-            <span>🎉</span>
+          <div className="icebreaker-celebration-icon-circle" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PartyPopper size={32} color="#f59e0b" />
           </div>
 
           <h3 className="icebreaker-celebration-title">Icebreaker Selesai!</h3>
