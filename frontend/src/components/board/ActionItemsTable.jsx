@@ -150,7 +150,7 @@ function ActionItemDueDateCell({ item, onUpdateDueDate }) {
   return (
     <button
       type="button"
-      className="action-item-due-date action-item-due-date-btn"
+      className={`action-item-due-date action-item-due-date-btn ${item.dueDate ? 'has-date' : 'no-date'}`}
       onClick={() => setIsEditing(true)}
       title="Klik untuk mengubah due date"
       style={{
@@ -162,18 +162,9 @@ function ActionItemDueDateCell({ item, onUpdateDueDate }) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: '6px',
-        color: item.dueDate ? '#374151' : '#94a3b8',
         fontSize: '13px',
         fontWeight: 500,
         transition: 'all 0.15s ease',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#f1f5f9';
-        e.currentTarget.style.borderColor = '#cbd5e1';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = 'transparent';
-        e.currentTarget.style.borderColor = 'transparent';
       }}
     >
       <Calendar size={14} className="action-item-calendar-icon" />
