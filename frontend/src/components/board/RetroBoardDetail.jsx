@@ -80,6 +80,19 @@ const TEMPLATE_COLUMNS_MAP = {
     { id: 'went_wrong', type: 'stop', title: 'WHAT WENT WRONG', name: 'WHAT WENT WRONG', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', badgeBg: '#fee2e2', badgeColor: '#dc2626' },
     { id: 'action_items', type: 'continue', title: 'ACTION ITEMS', name: 'ACTION ITEMS', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', badgeBg: '#dbeafe', badgeColor: '#2563eb' },
   ],
+  sailboat: [
+    { id: 'wind', type: 'start', title: 'WIND (ANGIN)', name: 'WIND (ANGIN)', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd', badgeBg: '#e0f2fe', badgeColor: '#0284c7' },
+    { id: 'anchor', type: 'stop', title: 'ANCHOR (JANGKAR)', name: 'ANCHOR (JANGKAR)', color: '#64748b', bg: '#f8fafc', border: '#cbd5e1', badgeBg: '#f1f5f9', badgeColor: '#64748b' },
+    { id: 'rocks', type: 'stop', title: 'ROCKS (KARANG)', name: 'ROCKS (KARANG)', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', badgeBg: '#fee2e2', badgeColor: '#dc2626' },
+    { id: 'island', type: 'start', title: 'ISLAND (PULAU)', name: 'ISLAND (PULAU)', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', badgeBg: '#dcfce7', badgeColor: '#16a34a' },
+  ],
+  starfish: [
+    { id: 'keep_doing', type: 'continue', title: 'KEEP DOING', name: 'KEEP DOING', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', badgeBg: '#dcfce7', badgeColor: '#16a34a' },
+    { id: 'less_of', type: 'stop', title: 'LESS OF', name: 'LESS OF', color: '#ea580c', bg: '#fff7ed', border: '#ffedd5', badgeBg: '#ffedd5', badgeColor: '#ea580c' },
+    { id: 'more_of', type: 'start', title: 'MORE OF', name: 'MORE OF', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', badgeBg: '#dbeafe', badgeColor: '#2563eb' },
+    { id: 'stop_doing', type: 'stop', title: 'STOP DOING', name: 'STOP DOING', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', badgeBg: '#fee2e2', badgeColor: '#dc2626' },
+    { id: 'start_doing', type: 'start', title: 'START DOING', name: 'START DOING', color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe', badgeBg: '#ede9fe', badgeColor: '#8b5cf6' },
+  ],
 };
 
 // Board navigation tabs (3 core retro phases)

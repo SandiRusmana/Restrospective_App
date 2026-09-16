@@ -12,11 +12,14 @@ import {
   Layers,
   Sparkles,
   Lightbulb,
-  Pencil
+  Pencil,
+  Compass,
+  Star,
+  Scale
 } from 'lucide-react';
 import RocketIllustration from '../common/RocketIllustration';
 
-// Template Definitions exactly as shown in Screenshots
+// Template Definitions (6 complete templates matching catalog)
 const RETRO_TEMPLATES = [
   {
     id: 'start-stop-continue',
@@ -44,8 +47,8 @@ const RETRO_TEMPLATES = [
   },
   {
     id: '4ls',
-    name: '4Ls',
-    desc: 'Refleksi mendalam dengan mencari tahu apa yang disukai, dipelajari, kurang, dan diharapkan',
+    name: '4Ls Retrospective',
+    desc: 'Refleksi mendalam: apa yang disukai, dipelajari, kurang, dan diharapkan',
     badge: null,
     badgeType: null,
     iconBg: '#e0f2fe',
@@ -57,12 +60,36 @@ const RETRO_TEMPLATES = [
   {
     id: 'went-well-wrong',
     name: 'Went Well / Went Wrong',
-    desc: 'Evaluasi apa yang berjalan baik, jadi masalah, dan rencana perbaikannya',
+    desc: 'Evaluasi apa yang berjalan baik, jadi kendala, dan tindak lanjutnya',
     badge: 'Baru',
     badgeType: 'new',
     iconBg: '#fef3c7',
     iconColor: '#d97706',
     columns: ['What Went Well', 'What Went Wrong', 'Action Items'],
+    color: '#d97706',
+    bg: '#fffbeb',
+  },
+  {
+    id: 'sailboat',
+    name: 'Sailboat Retrospective',
+    desc: 'Metafora kapal layar: angin pendorong, jangkar beban, karang bahaya, dan pulau tujuan',
+    badge: null,
+    badgeType: null,
+    iconBg: '#e0f2fe',
+    iconColor: '#0284c7',
+    columns: ['Wind (Angin)', 'Anchor (Jangkar)', 'Rocks (Karang)', 'Island (Pulau)'],
+    color: '#0284c7',
+    bg: '#f0f9ff',
+  },
+  {
+    id: 'starfish',
+    name: 'Starfish Retrospective',
+    desc: 'Optimasi porsi kebiasaan tim: Keep Doing, Less Of, More Of, Stop Doing, Start Doing',
+    badge: null,
+    badgeType: null,
+    iconBg: '#fef3c7',
+    iconColor: '#d97706',
+    columns: ['Keep Doing', 'Less Of', 'More Of', 'Stop Doing', 'Start Doing'],
     color: '#d97706',
     bg: '#fffbeb',
   },
@@ -73,7 +100,6 @@ function TemplateIcon({ id, iconBg, iconColor }) {
   if (id === 'start-stop-continue') {
     return (
       <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
-        {/* Plant / Sprout Icon */}
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M7 20h10" />
           <path d="M10 20c0-4 1.5-7 5-8" />
@@ -87,17 +113,13 @@ function TemplateIcon({ id, iconBg, iconColor }) {
   if (id === 'mad-sad-glad') {
     return (
       <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
-        {/* 3 Faces Icon */}
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          {/* Top Face (Sad / Worried) */}
           <circle cx="13" cy="7" r="4.5" />
           <path d="M11.5 6h.01M14.5 6h.01" strokeWidth="2" />
           <path d="M11.5 8.5c.5-.5 2.5-.5 3 0" />
-          {/* Bottom Left Face (Mad / Angry) */}
           <circle cx="7" cy="18" r="4.5" />
           <path d="M5.5 16.5l1 .5M8.5 17l-1-.5" />
           <path d="M6 19.5h2" />
-          {/* Bottom Right Face (Glad / Happy) */}
           <circle cx="19" cy="18" r="4.5" />
           <path d="M17.5 17h.01M20.5 17h.01" strokeWidth="2" />
           <path d="M17.5 19c.5.8 2.5.8 3 0" />
@@ -109,30 +131,31 @@ function TemplateIcon({ id, iconBg, iconColor }) {
   if (id === '4ls') {
     return (
       <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
-        {/* 4 Rounded Squares Grid */}
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="7.5" height="7.5" rx="2.5" fill={iconColor} />
-          <rect x="13.5" y="3" width="7.5" height="7.5" rx="2.5" fill={iconColor} />
-          <rect x="3" y="13.5" width="7.5" height="7.5" rx="2.5" fill={iconColor} />
-          <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.5" fill={iconColor} />
-        </svg>
+        <Layers size={22} color={iconColor} />
       </div>
     );
   }
 
-  // Went Well / Went Wrong (Lightbulb)
+  if (id === 'sailboat') {
+    return (
+      <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
+        <Compass size={22} color={iconColor} />
+      </div>
+    );
+  }
+
+  if (id === 'starfish') {
+    return (
+      <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
+        <Star size={22} color={iconColor} />
+      </div>
+    );
+  }
+
+  // Went Well / Went Wrong (Scale)
   return (
     <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 18h6" />
-        <path d="M10 22h4" />
-        <path d="M12 2v1" />
-        <path d="M12 7a5 5 0 0 0-3 9h6a5 5 0 0 0-3-9Z" />
-        <path d="M4.9 4.9l.7.7" />
-        <path d="M19.1 4.9l-.7.7" />
-        <path d="M2 12h1" />
-        <path d="M21 12h1" />
-      </svg>
+      <Scale size={22} color={iconColor} />
     </div>
   );
 }
