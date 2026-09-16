@@ -109,21 +109,7 @@ export default function ConvertToActionItemModal({
     };
   }, [isAssigneeDropdownOpen, isStatusDropdownOpen]);
 
-  if (!isOpen || !card) return null;
-
-  const cardText = card.content || card.text || 'Catatan Retrospective';
-  const authorName =
-    card.author?.name || card.authorName || (typeof card.author === 'string' ? card.author : 'Anggota Tim');
-  const authorTime =
-    card.time ||
-    (card.createdAt
-      ? new Date(card.createdAt).toLocaleTimeString('id-ID', {
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : '10:20 AM');
-
-  // Available members list
+  // Available members list (must be called before any early return)
   const availableMembers = useMemo(() => {
     if (members && members.length > 0) return members;
     if (currentUser) {
@@ -144,6 +130,20 @@ export default function ConvertToActionItemModal({
       },
     ];
   }, [members, currentUser]);
+
+  if (!isOpen || !card) return null;
+
+  const cardText = card.content || card.text || 'Catatan Retrospective';
+  const authorName =
+    card.author?.name || card.authorName || (typeof card.author === 'string' ? card.author : 'Anggota Tim');
+  const authorTime =
+    card.time ||
+    (card.createdAt
+      ? new Date(card.createdAt).toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : '10:20 AM');
 
   const handleSubmit = (e) => {
     e.preventDefault();
