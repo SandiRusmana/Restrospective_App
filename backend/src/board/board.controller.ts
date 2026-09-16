@@ -3,6 +3,7 @@ import { GetUser } from '../auth/decorators/get-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { BoardService } from './board.service';
 import { CreateBoardDto } from './dto/create-board.dto';
+import { UpdateBoardDto } from './dto/update-board.dto';
 import { UpdateAnonymousDto } from './dto/update-anonymous.dto';
 import { GetBoardsQueryDto } from './dto/get-boards-query.dto';
 import { StartPresentationDto } from './dto/start-presentation.dto';
@@ -41,6 +42,15 @@ export class BoardController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
   ) {
     return this.boardService.getBoardById(userId, boardId);
+  }
+
+  @Patch('boards/:id')
+  async updateBoard(
+    @GetUser('id') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) boardId: string,
+    @Body() updateBoardDto: UpdateBoardDto,
+  ) {
+    return this.boardService.updateBoard(userId, boardId, updateBoardDto);
   }
 
   @Patch('boards/:id/anonymous')

@@ -417,6 +417,51 @@ export class BoardService {
   }
 
   /**
+   * Update Detail Board (Nama / Judul)
+   */
+  async updateBoard(userId: string, boardId: string, updateData: { name?: string; title?: string }) {
+    const { board } = await this.getBoardWithFacilitatorCheck(userId, boardId);
+
+    const newName = updateData.name?.trim() || updateData.title?.trim();
+    if (!newName) {
+      throw new BadRequestException('Nama board wajib diisi');
+    }
+
+    const updatedBoard = await this.prisma.board.update({
+      where: { id: boardId },
+      data: { name: newName },
+    });
+
+    const channels = [
+      `board-${boardId}`,
+      `private-board-${boardId}`,
+      `presence-board-${boardId}`,
+      `workspace-${board.workspaceId}`,
+    ];
+
+    const payload = {
+      boardId,
+      name: newName,
+      title: newName,
+      updatedBy: userId,
+    };
+
+    try {
+      await this.pusher.trigger(channels, 'board.updated', payload);
+    } catch (err) {
+      console.warn(`[Pusher Warn] Gagal broadcast board.updated:`, err.message);
+    }
+
+    return {
+      message: 'Nama board berhasil diperbarui',
+      board: {
+        ...updatedBoard,
+        title: updatedBoard.name,
+      },
+    };
+  }
+
+  /**
    * Update Status Board (Aktif / Selesai)
    * Hanya fasilitator / owner / admin yang dapat mengubah status board
    */

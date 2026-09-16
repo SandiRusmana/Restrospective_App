@@ -11,7 +11,8 @@ import {
   Info,
   Layers,
   Sparkles,
-  Lightbulb
+  Lightbulb,
+  Pencil
 } from 'lucide-react';
 import RocketIllustration from '../common/RocketIllustration';
 
@@ -199,6 +200,9 @@ export default function BuatRetroWizardModal({
     ];
   }, [workspace, currentUser]);
 
+  const defaultTitle = `Sprint ${(workspace?.boards?.length || 0) + 16} Retrospective`;
+  const [boardTitleInput, setBoardTitleInput] = useState(defaultTitle);
+
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -207,10 +211,11 @@ export default function BuatRetroWizardModal({
       setSearchMemberQuery('');
       setIsLoading(false);
       setLoadingProgress(0);
+      setBoardTitleInput(`Sprint ${(workspace?.boards?.length || 0) + 16} Retrospective`);
       // Preselect first 4 members (matching the screenshot)
       setSelectedMemberIds(allWorkspaceMembers.slice(0, 4).map(m => m.id));
     }
-  }, [isOpen, allWorkspaceMembers]);
+  }, [isOpen, allWorkspaceMembers, workspace]);
 
   // Loading progress effect when Mulai Retro is clicked
   useEffect(() => {
@@ -265,9 +270,11 @@ export default function BuatRetroWizardModal({
   // Final Action: Create Board
   const handleExecuteCreateBoard = async () => {
     const nextSprintNum = (workspace?.boards?.length || 0) + 16;
+    const finalTitle = boardTitleInput.trim() || `Sprint ${nextSprintNum} Retrospective`;
     const newBoard = {
       id: `board_${Date.now()}`,
-      title: `Sprint ${nextSprintNum} Retrospective`,
+      title: finalTitle,
+      name: finalTitle,
       description: `Evaluasi sprint dan refleksi capaian kinerja tim ${workspace?.name || 'Mobile Team'}.`,
       workspaceId: workspace?.id,
       membersCount: selectedMembers.length || 8,
@@ -576,7 +583,7 @@ export default function BuatRetroWizardModal({
             <div className="retro-wizard-step-body center-step">
               <div className="retro-wizard-mulai-center">
                 {/* Rocket Illustration */}
-                <RocketIllustration size={135} />
+                <RocketIllustration size={75} />
 
                 <h3 className="retro-wizard-mulai-title">Siap memulai retro?</h3>
                 <p className="retro-wizard-mulai-subtitle">
@@ -585,6 +592,31 @@ export default function BuatRetroWizardModal({
 
                 {/* Summary Rows */}
                 <div className="retro-wizard-summary-card">
+                  {/* Row 0: Nama Board (Dapat diubah) */}
+                  <div className="retro-wizard-summary-row" style={{ padding: '6px 14px' }}>
+                    <div className="summary-icon-box" style={{ background: '#ede9fe', color: '#7c3aed' }}>
+                      <Pencil size={15} />
+                    </div>
+                    <span className="summary-label" style={{ width: '85px' }}>Nama Board</span>
+                    <input
+                      type="text"
+                      value={boardTitleInput}
+                      onChange={(e) => setBoardTitleInput(e.target.value)}
+                      placeholder="Contoh: Sprint 16 Retrospective"
+                      style={{
+                        flex: 1,
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '8px',
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        color: '#0f172a',
+                        background: '#ffffff',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+
                   {/* Row 1: Template */}
                   <div className="retro-wizard-summary-row">
                     <div className="summary-icon-box template-icon">

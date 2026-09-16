@@ -180,6 +180,13 @@ export const api = {
     });
   },
 
+  async updateBoard(boardId, data) {
+    return request(`/boards/${boardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
   async deleteBoard(boardId) {
     return request(`/boards/${boardId}`, {
       method: 'DELETE',

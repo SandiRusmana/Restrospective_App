@@ -27,6 +27,8 @@ import Avatar from '../common/Avatar';
 import Badge from '../common/Badge';
 import BoardHistoryPage from '../board/BoardHistoryPage';
 import NotificationBell from '../common/NotificationBell';
+import EditBoardModal from '../modals/EditBoardModal';
+import { api } from '../../services/api';
 
 export default function WorkspaceBoardsView({
   workspace,
@@ -39,6 +41,7 @@ export default function WorkspaceBoardsView({
   onDeleteWorkspace,
   onUpdateWorkspace,
   onDeleteBoard,
+  onUpdateBoard,
   onShowToast,
   currentUser,
   onNavigateAllWorkspaces,
@@ -48,6 +51,33 @@ export default function WorkspaceBoardsView({
   const [activeTab, setActiveTab] = useState('board'); // 'overview' | 'anggota' | 'board' | 'pengaturan'
   const [copied, setCopied] = useState(false);
   const [activeDropdownBoardId, setActiveDropdownBoardId] = useState(null);
+  const [editingBoard, setEditingBoard] = useState(null);
+
+  const handleSaveBoardEdit = async (updatedData) => {
+    try {
+      await api.updateBoard(updatedData.id, {
+        name: updatedData.name,
+        title: updatedData.title,
+        description: updatedData.description,
+      });
+      if (onUpdateBoard) {
+        onUpdateBoard({
+          id: updatedData.id,
+          name: updatedData.name,
+          title: updatedData.title,
+          description: updatedData.description,
+        });
+      }
+      if (onShowToast) {
+        onShowToast(`Nama board berhasil diubah menjadi "${updatedData.title}"`);
+      }
+    } catch (err) {
+      if (onShowToast) {
+        onShowToast(err?.message || 'Gagal mengubah nama board');
+      }
+      throw err;
+    }
+  };
 
   // Settings tab form states
   const [editWsName, setEditWsName] = useState(workspace?.name || '');
@@ -320,6 +350,16 @@ export default function WorkspaceBoardsView({
                             >
                               <ArrowRight size={14} />
                               <span>Buka Board</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveDropdownBoardId(null);
+                                setEditingBoard(board);
+                              }}
+                            >
+                              <Edit2 size={14} />
+                              <span>Ubah Nama Board</span>
                             </button>
                             <button
                               type="button"
@@ -772,6 +812,14 @@ export default function WorkspaceBoardsView({
           </button>
         </div>
       </aside>
+
+      {/* Edit Board Modal */}
+      <EditBoardModal
+        isOpen={Boolean(editingBoard)}
+        onClose={() => setEditingBoard(null)}
+        board={editingBoard}
+        onSave={handleSaveBoardEdit}
+      />
     </div>
   );
 }

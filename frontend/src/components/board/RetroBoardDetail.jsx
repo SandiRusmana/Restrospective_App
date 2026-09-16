@@ -41,6 +41,7 @@ import DashboardSummaryView from './DashboardSummaryView';
 import CardDetailModal from '../modals/CardDetailModal';
 import SessionTimerModal from '../modals/SessionTimerModal';
 import SessionTimerEndedModal from '../modals/SessionTimerEndedModal';
+import EditBoardModal from '../modals/EditBoardModal';
 import { playChime } from '../../utils/sound';
 import { getUserAvatar } from '../../utils/avatar';
 import BoardSettingsModal from '../modals/BoardSettingsModal';
@@ -122,6 +123,34 @@ export default function RetroBoardDetail({
   const [currentBoardTitle, setCurrentBoardTitle] = useState(
     board?.title || board?.name || 'Sprint 16 Retrospective'
   );
+  const [isEditBoardModalOpen, setIsEditBoardModalOpen] = useState(false);
+
+  const handleSaveBoardTitle = async (updatedData) => {
+    try {
+      await api.updateBoard(boardId, {
+        name: updatedData.name,
+        title: updatedData.title,
+        description: updatedData.description,
+      });
+      setCurrentBoardTitle(updatedData.title);
+      if (onUpdateBoard) {
+        onUpdateBoard({
+          id: boardId,
+          name: updatedData.name,
+          title: updatedData.title,
+          description: updatedData.description,
+        });
+      }
+      if (onShowToast) {
+        onShowToast(`Nama board berhasil diubah menjadi "${updatedData.title}"`);
+      }
+    } catch (err) {
+      if (onShowToast) {
+        onShowToast(err?.message || 'Gagal mengubah nama board');
+      }
+      throw err;
+    }
+  };
 
   // ── Board Status (Aktif / Selesai) ──
   const [boardStatus, setBoardStatus] = useState(() => board?.status || 'aktif');
@@ -2396,7 +2425,38 @@ export default function RetroBoardDetail({
           </div>
 
           <div className="retro-board-header-info">
-            <h1 className="retro-board-header-title">{boardTitle}</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h1 className="retro-board-header-title">{boardTitle}</h1>
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditBoardModalOpen(true)}
+                  title="Ubah Nama Board"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = '#5956e9';
+                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = '#94a3b8';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <Edit size={16} />
+                </button>
+              )}
+            </div>
             <div className="retro-board-header-meta">
               <span className="retro-meta-ws">{wsName}</span>
               <span className="retro-meta-sep">·</span>
@@ -3021,6 +3081,14 @@ export default function RetroBoardDetail({
           </div>
         </div>
       )}
+
+      {/* Edit Board Modal */}
+      <EditBoardModal
+        isOpen={isEditBoardModalOpen}
+        onClose={() => setIsEditBoardModalOpen(false)}
+        board={{ id: boardId, title: currentBoardTitle, name: currentBoardTitle, description: board?.description }}
+        onSave={handleSaveBoardTitle}
+      />
     </div>
   );
 }
