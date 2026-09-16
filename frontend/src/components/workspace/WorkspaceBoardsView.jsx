@@ -19,8 +19,6 @@ import {
   Users,
   Activity,
   ChevronRight,
-  Sun,
-  Moon,
   Layers
 } from 'lucide-react';
 import Avatar from '../common/Avatar';
@@ -44,9 +42,7 @@ export default function WorkspaceBoardsView({
   onUpdateBoard,
   onShowToast,
   currentUser,
-  onNavigateAllWorkspaces,
-  isDarkMode,
-  onToggleDarkMode
+  onNavigateAllWorkspaces
 }) {
   const [activeTab, setActiveTab] = useState('board'); // 'overview' | 'anggota' | 'board' | 'pengaturan'
   const [copied, setCopied] = useState(false);
@@ -189,18 +185,6 @@ export default function WorkspaceBoardsView({
               }}
               onOpenBoard={onOpenBoard}
             />
-
-            {onToggleDarkMode && (
-              <button
-                type="button"
-                className="btn-icon-top"
-                title={isDarkMode ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap'}
-                onClick={onToggleDarkMode}
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-            )}
 
             <div className="top-user-avatar-wrapper" title={currentUser?.name}>
               <img
