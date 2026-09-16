@@ -6,7 +6,9 @@ import {
   Clock, 
   FileText, 
   Settings, 
-  LogOut 
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 
 const iconMap = {
@@ -25,16 +27,30 @@ export default function Sidebar({
   activeWorkspaceId, 
   onSelectWorkspace,
   currentUser,
-  onLogout 
+  onLogout,
+  isCollapsed = false,
+  onToggleCollapse
 }) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Brand / Logo */}
-      <div className="sidebar-brand">
-        <div className="brand-icon-wrapper">
-          <Zap size={22} fill="#ffffff" />
+      <div className="sidebar-brand-row">
+        <div className="sidebar-brand" onClick={() => onSelectNav && onSelectNav('workspace')}>
+          <div className="brand-icon-wrapper">
+            <Zap size={20} fill="#ffffff" />
+          </div>
+          {!isCollapsed && <span className="brand-title">RetroNerve</span>}
         </div>
-        <span className="brand-title">RetroNerve</span>
+        {onToggleCollapse && (
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={onToggleCollapse}
+            title={isCollapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
+          >
+            {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
+        )}
       </div>
 
       {/* Main Navigation Items */}
@@ -47,18 +63,21 @@ export default function Sidebar({
               key={item.id}
               className={`nav-item ${isActive ? 'active' : ''}`}
               onClick={() => onSelectNav(item.id)}
+              title={item.label}
             >
               <IconComponent size={19} />
-              <span>{item.label}</span>
+              {!isCollapsed && <span>{item.label}</span>}
             </button>
           );
         })}
       </nav>
 
       {/* Section: Terakhir Dibuka */}
-      <div className="sidebar-section-title">
-        Terakhir Dibuka
-      </div>
+      {!isCollapsed && (
+        <div className="sidebar-section-title">
+          Terakhir Dibuka
+        </div>
+      )}
 
       {/* Recent Workspaces List */}
       <div className="sidebar-recent-list">
@@ -69,6 +88,7 @@ export default function Sidebar({
               key={ws.id}
               className={`recent-item ${activeWorkspaceId === ws.id ? 'active' : ''}`}
               onClick={() => onSelectWorkspace(ws.id)}
+              title={ws.name}
             >
               <div 
                 className="recent-badge"
@@ -79,7 +99,7 @@ export default function Sidebar({
               >
                 {ws.initial}
               </div>
-              <span className="recent-name">{ws.name}</span>
+              {!isCollapsed && <span className="recent-name">{ws.name}</span>}
             </button>
           );
         })}
@@ -89,7 +109,7 @@ export default function Sidebar({
       <div className="sidebar-footer">
         <div className="user-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="user-info-wrapper" style={{ flex: 1, minWidth: 0 }}>
-            <div className="user-avatar-container">
+            <div className="user-avatar-container" title={currentUser?.name || currentUser?.email}>
               <img 
                 src={currentUser?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.email || 'user'}&mouth=smile,twinkle&eyes=default,happy,wink`} 
                 alt={currentUser?.name || 'User'} 
@@ -97,10 +117,12 @@ export default function Sidebar({
               />
               <span className="user-status-dot" />
             </div>
-            <div className="user-details" style={{ minWidth: 0 }}>
-              <span className="user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser?.name || 'User'}</span>
-              <span className="user-email" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser?.email || ''}</span>
-            </div>
+            {!isCollapsed && (
+              <div className="user-details" style={{ minWidth: 0 }}>
+                <span className="user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser?.name || 'User'}</span>
+                <span className="user-email" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentUser?.email || ''}</span>
+              </div>
+            )}
           </div>
           {onLogout && (
             <button 

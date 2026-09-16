@@ -2241,7 +2241,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 28px;
+  padding: 8px 20px;
   background-color: #f8fafc;
   border-bottom: 1px solid #e8ecf2;
   position: sticky;
@@ -2253,14 +2253,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 .retro-crumb-btn {
   background: none;
   border: none;
   color: #64748b;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   padding: 0;
@@ -2273,20 +2273,20 @@
 
 .retro-crumb-chevron {
   color: #94a3b8;
-  font-size: 13px;
+  font-size: 12px;
   margin: 0 2px;
 }
 
 .retro-crumb-active {
   color: #111827;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .retro-full-topbar-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 /* ── Board Header Banner ── */
@@ -2294,7 +2294,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 28px;
+  padding: 10px 20px;
   background-color: #ffffff;
   border-bottom: 1px solid #e8ecf2;
 }
@@ -2302,13 +2302,13 @@
 .retro-board-header-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .retro-board-icon-box {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2321,18 +2321,18 @@
 }
 
 .retro-board-header-title {
-  font-size: 18px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
   color: #111827;
-  margin: 0 0 4px 0;
-  letter-spacing: -0.3px;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.2px;
 }
 
 .retro-board-header-meta {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: #64748b;
 }
 
@@ -2721,14 +2721,16 @@
 .btn-export-board {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 15px;
+  gap: 6px;
+  padding: 5px 12px;
+  height: 32px;
+  box-sizing: border-box;
   background-color: #ffffff;
   color: #5956e9;
   border: 1.5px solid #c7d2fe;
   border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -2756,7 +2758,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 28px;
+  padding: 0 20px;
   background-color: #ffffff;
   border-bottom: 1px solid #e8ecf2;
 }
@@ -2775,8 +2777,8 @@
   color: #16a34a;
   border: 1px solid #bbf7d0;
   border-radius: 6px;
-  padding: 4px 12px;
-  font-size: 12px;
+  padding: 3px 10px;
+  font-size: 11.5px;
   font-weight: 600;
 }
 
@@ -2816,10 +2818,10 @@
 .retro-board-tab-btn {
   background: none;
   border: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #64748b;
-  padding: 12px 20px;
+  padding: 9px 16px;
   cursor: pointer;
   position: relative;
   transition: color 0.15s ease;
@@ -2840,14 +2842,14 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 2.5px;
+  height: 2px;
   background-color: var(--primary);
   border-radius: 2px 2px 0 0;
 }
 
 /* ── Retro Board Columns Canvas (3 Columns Horizontal Layout) ── */
 .retro-board-columns-container {
-  padding: 24px 28px 48px 28px;
+  padding: 14px 20px 36px 20px;
   width: 100%;
   box-sizing: border-box;
   background-color: #ffffff;
@@ -2879,7 +2881,7 @@
 .retro-board-columns-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
+  gap: 14px;
   align-items: flex-start;
   min-width: min-content;
 }
@@ -2892,12 +2894,12 @@
 
 /* ── Column Box (START, STOP, CONTINUE) ── */
 .retro-board-column {
-  border-radius: 14px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 12px 10px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-height: 520px;
+  gap: 10px;
+  min-height: 460px;
   box-sizing: border-box;
 }
 
@@ -2927,12 +2929,13 @@
 .retro-column-header-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .retro-col-icon-circle {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -2956,11 +2959,14 @@
 }
 
 .retro-column-name {
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
   margin: 0;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .retro-column-start .retro-column-name {
@@ -2976,9 +2982,9 @@
 }
 
 .retro-column-count-badge {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 2px 9px;
+  padding: 1px 7px;
   border-radius: 9999px;
   line-height: 1.2;
 }
@@ -3001,11 +3007,11 @@
 /* ── "+ Tambah Catatan" Button ── */
 .btn-column-add-note {
   width: 100%;
-  padding: 10px 16px;
+  padding: 7px 12px;
   background-color: #ffffff;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 700;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   text-align: center;
   transition: all 0.15s ease;
@@ -3124,13 +3130,13 @@
 /* ── Sticky Note Card ── */
 .retro-sticky-card {
   background-color: #ffffff;
-  border-radius: 12px;
-  padding: 14px 14px 12px 14px;
+  border-radius: 10px;
+  padding: 10px 11px 9px 11px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
   border: 1.5px solid #f1f5f9;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -3157,10 +3163,10 @@
   gap: 4px;
   background: linear-gradient(135deg, #ef4444 0%, #ea580c 100%);
   color: #ffffff;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 2px 7px;
+  border-radius: 5px;
   letter-spacing: 0.5px;
   width: fit-content;
   box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
@@ -3185,7 +3191,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .retro-card-body {
@@ -3194,10 +3200,10 @@
 
 .retro-card-text {
   margin: 0;
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   color: #111827;
-  line-height: 1.45;
+  line-height: 1.4;
   word-break: break-word;
 }
 
@@ -3205,19 +3211,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 .retro-card-author-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .retro-card-avatar {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -3226,17 +3232,17 @@
 .retro-card-author-meta {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .retro-card-author-name {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #1e293b;
 }
 
 .retro-card-time {
-  font-size: 10.5px;
+  font-size: 10px;
   color: #94a3b8;
   font-weight: 500;
 }
@@ -5262,14 +5268,16 @@
 .retro-mulai-timer-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   background-color: #ffffff;
   border: 1.5px solid #5956e9;
   color: #5956e9;
   border-radius: 8px;
-  padding: 6px 16px;
-  font-size: 13.5px;
-  font-weight: 700;
+  padding: 5px 12px;
+  height: 32px;
+  box-sizing: border-box;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 2px rgba(89, 86, 233, 0.06);

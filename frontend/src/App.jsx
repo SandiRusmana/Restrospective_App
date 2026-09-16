@@ -97,6 +97,25 @@ export default function App() {
     }
   });
 
+  // Collapsible Sidebar State
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     try {
       if (isDarkMode) {
@@ -1034,6 +1053,8 @@ export default function App() {
             onSelectWorkspace={handleSelectWorkspace}
             currentUser={user}
             onLogout={handleLogout}
+            isCollapsed={isSidebarCollapsed}
+            onToggleCollapse={handleToggleSidebar}
           />
 
           <ErrorBoundary onReset={handleBackToWorkspace}>
