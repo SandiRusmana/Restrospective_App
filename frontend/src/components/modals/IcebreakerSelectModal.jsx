@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, Brain, Music, Clapperboard, HelpCircle, Laugh } from 'lucide-react';
 import '../../styles/icebreaker.css';
 
 export default function IcebreakerSelectModal({ isOpen, onClose, onStartGame }) {
@@ -16,35 +16,40 @@ export default function IcebreakerSelectModal({ isOpen, onClose, onStartGame }) 
   const games = [
     {
       id: 'fakta-hoaks',
-      emoji: '🧠',
+      icon: Brain,
+      iconColor: '#6366f1',
       title: 'Fakta atau Hoaks?',
       desc: 'Tebak apakah sebuah pernyataan fakta nyata atau hoaks belaka.',
       pill: '2 pilihan',
     },
     {
       id: 'tebak-lagu',
-      emoji: '🎵',
+      icon: Music,
+      iconColor: '#ec4899',
       title: 'Tebak Lagu & Artis',
       desc: 'Tebak lagu & artis dari lirik hits populer Indonesia & luar negeri.',
       pill: '4 pilihan',
     },
     {
       id: 'tebak-film',
-      emoji: '🎬',
+      icon: Clapperboard,
+      iconColor: '#f59e0b',
       title: 'Tebak Film dari Emoji',
       desc: 'Pecahkan judul film populer dari rangkaian emoji petunjuk.',
       pill: '4 pilihan',
     },
     {
       id: 'would-you-rather',
-      emoji: '🤔',
+      icon: HelpCircle,
+      iconColor: '#3b82f6',
       title: 'Would You Rather?',
       desc: 'Pilih salah satu dari dua pilihan dilema yang seru.',
       pill: '2 pilihan',
     },
     {
       id: 'tebakan-receh',
-      emoji: '🤣',
+      icon: Laugh,
+      iconColor: '#10b981',
       title: 'Tebakan Receh',
       desc: 'Asah otak dengan tebak-tebakan receh dan jokes bapak-bapak.',
       pill: '4 pilihan',
@@ -81,7 +86,9 @@ export default function IcebreakerSelectModal({ isOpen, onClose, onStartGame }) 
               }`}
               onClick={() => setSelectedGame(g.id)}
             >
-              <div className="icebreaker-game-emoji">{g.emoji}</div>
+              <div className="icebreaker-game-emoji" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {g.icon ? <g.icon size={26} color={g.iconColor} /> : null}
+              </div>
               <h4 className="icebreaker-game-title">{g.title}</h4>
               <p className="icebreaker-game-desc">{g.desc}</p>
               <span className="icebreaker-game-pill">{g.pill}</span>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Calendar, Check, MoreVertical, Trash2, ChevronUp, Info, Layout, Edit2 } from 'lucide-react';
+import { Clock, Calendar, Check, MoreVertical, Trash2, ChevronUp, Info, Layout, Edit2, CheckCircle2 } from 'lucide-react';
 import { getUserAvatar } from '../../utils/avatar';
 
 // ── Status Pill (reusable untuk sesi sebelumnya) ──
@@ -333,8 +333,9 @@ export default function PreviousSessionActionItems({
               {pendingCount} Belum Selesai
             </span>
           ) : (
-            <span className="prev-session-badge prev-session-badge-done">
-              Semua Selesai 🎉 (Menutup...)
+            <span className="prev-session-badge prev-session-badge-done" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircle2 size={13} />
+              <span>Semua Selesai (Menutup...)</span>
             </span>
           )}
         </div>
@@ -369,8 +370,9 @@ export default function PreviousSessionActionItems({
                   {pendingCount} Belum Selesai
                 </span>
               ) : (
-                <span className="prev-session-badge prev-session-badge-done">
-                  Semua Selesai 🎉 (Menutup...)
+                <span className="prev-session-badge prev-session-badge-done" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <CheckCircle2 size={13} />
+                  <span>Semua Selesai (Menutup...)</span>
                 </span>
               )}
             </div>

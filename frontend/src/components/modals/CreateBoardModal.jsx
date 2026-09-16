@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronDown, Check } from 'lucide-react';
+import { X, ChevronDown, Check, RotateCw, SmilePlus, Layers, Scale } from 'lucide-react';
 
 const RETRO_TEMPLATES = [
   {
     id: 'start-stop-continue',
     name: 'Start Stop Continue',
     desc: 'Fokus pada tindakan nyata yang perlu dimulai, dihentikan, dan dilanjutkan.',
-    emoji: '🔄',
+    icon: RotateCw,
     color: '#6366f1',
     bg: '#eef2ff',
     columns: ['Start', 'Stop', 'Continue'],
@@ -15,7 +15,7 @@ const RETRO_TEMPLATES = [
     id: 'mad-sad-glad',
     name: 'Mad Sad Glad',
     desc: 'Eksplorasi emosi dan dinamika tim melalui tiga sudut pandang perasaan.',
-    emoji: '😤',
+    icon: SmilePlus,
     color: '#ef4444',
     bg: '#fef2f2',
     columns: ['Mad', 'Sad', 'Glad'],
@@ -24,7 +24,7 @@ const RETRO_TEMPLATES = [
     id: '4ls',
     name: '4Ls',
     desc: 'Refleksi mendalam: Liked, Learned, Lacked, dan Longed for.',
-    emoji: '💎',
+    icon: Layers,
     color: '#8b5cf6',
     bg: '#f5f3ff',
     columns: ['Liked', 'Learned', 'Lacked', 'Longed for'],
@@ -33,7 +33,7 @@ const RETRO_TEMPLATES = [
     id: 'went-well-wrong',
     name: 'Went Well / Went Wrong',
     desc: 'Template klasik untuk evaluasi hal positif dan perlu diperbaiki.',
-    emoji: '⚖️',
+    icon: Scale,
     color: '#10b981',
     bg: '#ecfdf5',
     columns: ['What Went Well', 'What Went Wrong', 'Action Items'],
@@ -267,9 +267,9 @@ export default function CreateBoardModal({
                     <div className="cbm-template-card-left">
                       <div
                         className="cbm-template-icon"
-                        style={{ backgroundColor: tmpl.bg, color: tmpl.color }}
+                        style={{ backgroundColor: tmpl.bg, color: tmpl.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
-                        {tmpl.emoji}
+                        {tmpl.icon ? <tmpl.icon size={20} /> : tmpl.name.charAt(0)}
                       </div>
                       <div className="cbm-template-info">
                         <span className="cbm-template-name">{tmpl.name}</span>
@@ -293,7 +293,12 @@ export default function CreateBoardModal({
                       style={isSelected ? { backgroundColor: tmpl.color, borderColor: tmpl.color, color: '#fff' } : {}}
                       onClick={(e) => { e.stopPropagation(); handleSelectTemplate(tmpl); }}
                     >
-                      {isSelected ? 'Dipilih ✓' : 'Preview'}
+                      {isSelected ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Check size={13} strokeWidth={2.5} />
+                          <span>Dipilih</span>
+                        </span>
+                      ) : 'Preview'}
                     </button>
                   </div>
                 );

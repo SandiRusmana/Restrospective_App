@@ -9,6 +9,11 @@ import {
   X,
   Layers,
   Zap,
+  RotateCw,
+  SmilePlus,
+  Scale,
+  Compass,
+  Star,
 } from 'lucide-react';
 
 export const TEMPLATES_CATALOG = [
@@ -17,7 +22,7 @@ export const TEMPLATES_CATALOG = [
     name: 'Start Stop Continue',
     category: 'agile',
     categoryLabel: 'Agile & Sprint',
-    emoji: '🔄',
+    icon: RotateCw,
     color: '#5956e9',
     bg: '#f3f0ff',
     desc: 'Format paling populer untuk mengevaluasi kebiasaan kerja tim dan menetapkan komitmen baru.',
@@ -33,7 +38,7 @@ export const TEMPLATES_CATALOG = [
     name: 'Mad Sad Glad',
     category: 'morale',
     categoryLabel: 'Emosi & Moril Tim',
-    emoji: '😤',
+    icon: SmilePlus,
     color: '#ef4444',
     bg: '#fef2f2',
     desc: 'Fokus mendalam pada sisi emosional, kepuasan kerja, dan kelelahan mental tim selama sprint.',
@@ -49,7 +54,7 @@ export const TEMPLATES_CATALOG = [
     name: '4Ls Retrospective',
     category: 'comprehensive',
     categoryLabel: 'Refleksi Menyeluruh',
-    emoji: '💎',
+    icon: Layers,
     color: '#8b5cf6',
     bg: '#f5f3ff',
     desc: 'Template 4 dimensi seimbang untuk mengukur apresiasi, pembelajaran, dan harapan masa depan.',
@@ -66,7 +71,7 @@ export const TEMPLATES_CATALOG = [
     name: 'Went Well / Went Wrong',
     category: 'action',
     categoryLabel: 'Fokus Aksi Nyata',
-    emoji: '⚖️',
+    icon: Scale,
     color: '#10b981',
     bg: '#ecfdf5',
     desc: 'Format ringkas yang langsung menghubungkan evaluasi sprint dengan Action Items konkret.',
@@ -82,7 +87,7 @@ export const TEMPLATES_CATALOG = [
     name: 'Sailboat Retrospective',
     category: 'agile',
     categoryLabel: 'Metafora & Kreatif',
-    emoji: '⛵',
+    icon: Compass,
     color: '#0284c7',
     bg: '#f0f9ff',
     desc: 'Menggunakan metafora kapal layar untuk memetakan dorongan angin, jangkar penahan, dan karang ancaman.',
@@ -99,7 +104,7 @@ export const TEMPLATES_CATALOG = [
     name: 'Starfish Retrospective',
     category: 'comprehensive',
     categoryLabel: 'Gradasi Tindakan',
-    emoji: '⭐',
+    icon: Star,
     color: '#d97706',
     bg: '#fffbeb',
     desc: 'Memberikan 5 level penyesuaian porsi kerja tim: Mempertahankan, Menghentikan, Memulai, Menambah, dan Mengurangi.',
@@ -192,8 +197,8 @@ export default function TemplatesView({
         {filteredTemplates.map((tpl) => (
           <div key={tpl.id} className="template-card">
             <div className="template-card-header">
-              <div className="template-emoji-box" style={{ backgroundColor: tpl.bg }}>
-                <span>{tpl.emoji}</span>
+              <div className="template-emoji-box" style={{ backgroundColor: tpl.bg, color: tpl.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {tpl.icon ? <tpl.icon size={22} /> : null}
               </div>
               <div className="template-card-title-wrap">
                 <span className="template-card-category">{tpl.categoryLabel}</span>
@@ -257,7 +262,9 @@ export default function TemplatesView({
           <div className="template-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="template-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '28px' }}>{previewTemplate.emoji}</span>
+                <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: previewTemplate.bg, color: previewTemplate.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {previewTemplate.icon ? <previewTemplate.icon size={24} /> : null}
+                </div>
                 <div>
                   <h2 className="template-modal-title">{previewTemplate.name}</h2>
                   <span className="template-modal-subtitle">{previewTemplate.categoryLabel}</span>

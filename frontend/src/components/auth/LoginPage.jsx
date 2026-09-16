@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, Zap } from 'lucide-react';
 import AuthHero from './AuthHero';
 
 import { api } from '../../services/api';
@@ -53,6 +53,19 @@ export default function LoginPage({ onLoginSuccess, onNavigateRegister, onNaviga
 
         {/* Sisi Kanan: Formulir Login */}
         <div className="auth-form-panel">
+          {/* Brand Header Khusus Mobile Screen */}
+          <div 
+            className="auth-mobile-brand" 
+            onClick={onNavigateLanding} 
+            style={onNavigateLanding ? { cursor: 'pointer' } : {}}
+            title={onNavigateLanding ? 'Kembali ke Beranda' : undefined}
+          >
+            <div className="auth-brand-icon">
+              <Zap size={20} fill="#ffffff" />
+            </div>
+            <span className="auth-brand-name">RetroNerve</span>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <div className="auth-form-badge">Workspace</div>
             {onNavigateLanding && (
@@ -81,7 +94,7 @@ export default function LoginPage({ onLoginSuccess, onNavigateRegister, onNaviga
               fontSize: '13px',
               lineHeight: '1.4'
             }}>
-              <span style={{ fontSize: '18px' }}>✉️</span>
+              <Mail size={18} color="#1d4ed8" style={{ flexShrink: 0 }} />
               <div>
                 Masuk untuk otomatis bergabung ke workspace <strong>{activePendingInvite.workspaceName || 'tim Anda'}</strong>.
               </div>
