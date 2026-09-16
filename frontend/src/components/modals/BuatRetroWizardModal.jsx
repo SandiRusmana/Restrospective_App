@@ -12,11 +12,14 @@ import {
   Layers,
   Sparkles,
   Lightbulb,
-  Pencil
+  Pencil,
+  Compass,
+  Star,
+  Scale
 } from 'lucide-react';
 import RocketIllustration from '../common/RocketIllustration';
 
-// Template Definitions exactly as shown in Screenshots
+// Template Definitions (6 complete templates matching catalog)
 const RETRO_TEMPLATES = [
   {
     id: 'start-stop-continue',
@@ -44,8 +47,8 @@ const RETRO_TEMPLATES = [
   },
   {
     id: '4ls',
-    name: '4Ls',
-    desc: 'Refleksi mendalam dengan mencari tahu apa yang disukai, dipelajari, kurang, dan diharapkan',
+    name: '4Ls Retrospective',
+    desc: 'Refleksi mendalam: apa yang disukai, dipelajari, kurang, dan diharapkan',
     badge: null,
     badgeType: null,
     iconBg: '#e0f2fe',
@@ -57,12 +60,36 @@ const RETRO_TEMPLATES = [
   {
     id: 'went-well-wrong',
     name: 'Went Well / Went Wrong',
-    desc: 'Evaluasi apa yang berjalan baik, jadi masalah, dan rencana perbaikannya',
+    desc: 'Evaluasi apa yang berjalan baik, jadi kendala, dan tindak lanjutnya',
     badge: 'Baru',
     badgeType: 'new',
     iconBg: '#fef3c7',
     iconColor: '#d97706',
     columns: ['What Went Well', 'What Went Wrong', 'Action Items'],
+    color: '#d97706',
+    bg: '#fffbeb',
+  },
+  {
+    id: 'sailboat',
+    name: 'Sailboat Retrospective',
+    desc: 'Metafora kapal layar: angin pendorong, jangkar beban, karang bahaya, dan pulau tujuan',
+    badge: null,
+    badgeType: null,
+    iconBg: '#e0f2fe',
+    iconColor: '#0284c7',
+    columns: ['Wind (Angin)', 'Anchor (Jangkar)', 'Rocks (Karang)', 'Island (Pulau)'],
+    color: '#0284c7',
+    bg: '#f0f9ff',
+  },
+  {
+    id: 'starfish',
+    name: 'Starfish Retrospective',
+    desc: 'Optimasi porsi kebiasaan tim: Keep Doing, Less Of, More Of, Stop Doing, Start Doing',
+    badge: null,
+    badgeType: null,
+    iconBg: '#fef3c7',
+    iconColor: '#d97706',
+    columns: ['Keep Doing', 'Less Of', 'More Of', 'Stop Doing', 'Start Doing'],
     color: '#d97706',
     bg: '#fffbeb',
   },
@@ -73,7 +100,6 @@ function TemplateIcon({ id, iconBg, iconColor }) {
   if (id === 'start-stop-continue') {
     return (
       <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
-        {/* Plant / Sprout Icon */}
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M7 20h10" />
           <path d="M10 20c0-4 1.5-7 5-8" />
@@ -87,17 +113,13 @@ function TemplateIcon({ id, iconBg, iconColor }) {
   if (id === 'mad-sad-glad') {
     return (
       <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
-        {/* 3 Faces Icon */}
         <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          {/* Top Face (Sad / Worried) */}
           <circle cx="13" cy="7" r="4.5" />
           <path d="M11.5 6h.01M14.5 6h.01" strokeWidth="2" />
           <path d="M11.5 8.5c.5-.5 2.5-.5 3 0" />
-          {/* Bottom Left Face (Mad / Angry) */}
           <circle cx="7" cy="18" r="4.5" />
           <path d="M5.5 16.5l1 .5M8.5 17l-1-.5" />
           <path d="M6 19.5h2" />
-          {/* Bottom Right Face (Glad / Happy) */}
           <circle cx="19" cy="18" r="4.5" />
           <path d="M17.5 17h.01M20.5 17h.01" strokeWidth="2" />
           <path d="M17.5 19c.5.8 2.5.8 3 0" />
@@ -109,30 +131,31 @@ function TemplateIcon({ id, iconBg, iconColor }) {
   if (id === '4ls') {
     return (
       <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
-        {/* 4 Rounded Squares Grid */}
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="7.5" height="7.5" rx="2.5" fill={iconColor} />
-          <rect x="13.5" y="3" width="7.5" height="7.5" rx="2.5" fill={iconColor} />
-          <rect x="3" y="13.5" width="7.5" height="7.5" rx="2.5" fill={iconColor} />
-          <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.5" fill={iconColor} />
-        </svg>
+        <Layers size={22} color={iconColor} />
       </div>
     );
   }
 
-  // Went Well / Went Wrong (Lightbulb)
+  if (id === 'sailboat') {
+    return (
+      <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
+        <Compass size={22} color={iconColor} />
+      </div>
+    );
+  }
+
+  if (id === 'starfish') {
+    return (
+      <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
+        <Star size={22} color={iconColor} />
+      </div>
+    );
+  }
+
+  // Went Well / Went Wrong (Scale)
   return (
     <div className="retro-wizard-template-icon-circle" style={{ backgroundColor: iconBg }}>
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 18h6" />
-        <path d="M10 22h4" />
-        <path d="M12 2v1" />
-        <path d="M12 7a5 5 0 0 0-3 9h6a5 5 0 0 0-3-9Z" />
-        <path d="M4.9 4.9l.7.7" />
-        <path d="M19.1 4.9l-.7.7" />
-        <path d="M2 12h1" />
-        <path d="M21 12h1" />
-      </svg>
+      <Scale size={22} color={iconColor} />
     </div>
   );
 }
@@ -150,55 +173,33 @@ export default function BuatRetroWizardModal({
   const [selectedTemplateId, setSelectedTemplateId] = useState('start-stop-continue');
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+  const [customInvitedMembers, setCustomInvitedMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   // Available Workspace Members
   const allWorkspaceMembers = useMemo(() => {
+    let list = [];
     const rawMembers = workspace?.members || [];
     if (rawMembers.length > 0) {
-      return rawMembers.map((m, idx) => ({
-        id: m.id || `mem-${idx}`,
-        name: m.name || m.fullName || 'Member',
+      list = rawMembers.map((m, idx) => ({
+        id: m.id || m.userId || `mem-${idx}`,
+        name: m.name || m.user?.name || m.fullName || 'Member',
         team: workspace?.name || 'Mobile Team',
-        avatarUrl: m.avatarUrl || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80`,
+        avatarUrl: m.avatarUrl || m.user?.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name || m.user?.name || 'Member')}`,
       }));
+    } else if (currentUser) {
+      list = [
+        {
+          id: currentUser.id || 'current-user',
+          name: currentUser.name || currentUser.fullName || 'Anda',
+          team: workspace?.name || 'Mobile Team',
+          avatarUrl: currentUser.avatarUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.name || 'Anda')}`,
+        }
+      ];
     }
-
-    // Default mock list matching the Afrizal screenshot
-    return [
-      {
-        id: 'mem-1',
-        name: currentUser?.name || 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'mem-2',
-        name: 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'mem-3',
-        name: 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'mem-4',
-        name: 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&auto=format&fit=crop&q=80',
-      },
-      {
-        id: 'mem-5',
-        name: 'Afrizal',
-        team: workspace?.name || 'Mobile Team',
-        avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&auto=format&fit=crop&q=80',
-      }
-    ];
-  }, [workspace, currentUser]);
+    return [...list, ...customInvitedMembers];
+  }, [workspace, currentUser, customInvitedMembers]);
 
   const defaultTitle = `Sprint ${(workspace?.boards?.length || 0) + 16} Retrospective`;
   const [boardTitleInput, setBoardTitleInput] = useState(defaultTitle);
@@ -209,13 +210,15 @@ export default function BuatRetroWizardModal({
       setStep(1);
       setSelectedTemplateId('start-stop-continue');
       setSearchMemberQuery('');
+      setCustomInvitedMembers([]);
       setIsLoading(false);
       setLoadingProgress(0);
       setBoardTitleInput(`Sprint ${(workspace?.boards?.length || 0) + 16} Retrospective`);
-      // Preselect first 4 members (matching the screenshot)
-      setSelectedMemberIds(allWorkspaceMembers.slice(0, 4).map(m => m.id));
+      // Preselect current user / first members
+      const initialIds = (workspace?.members || []).slice(0, 4).map(m => m.id || m.userId);
+      setSelectedMemberIds(initialIds.length > 0 ? initialIds : (currentUser?.id ? [currentUser.id] : []));
     }
-  }, [isOpen, allWorkspaceMembers, workspace]);
+  }, [isOpen, workspace, currentUser]);
 
   // Loading progress effect when Mulai Retro is clicked
   useEffect(() => {
@@ -466,11 +469,70 @@ export default function BuatRetroWizardModal({
                     <input 
                       type="text"
                       className="search-input"
-                      placeholder="Cari anggota atau masukkan email..."
+                      placeholder="Cari anggota atau masukkan nama/email..."
                       value={searchMemberQuery}
                       onChange={(e) => setSearchMemberQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && searchMemberQuery.trim()) {
+                          e.preventDefault();
+                          const query = searchMemberQuery.trim();
+                          const exists = allWorkspaceMembers.find(m => m.name.toLowerCase() === query.toLowerCase());
+                          if (exists) {
+                            if (!selectedMemberIds.includes(exists.id)) {
+                              setSelectedMemberIds(prev => [...prev, exists.id]);
+                            }
+                          } else {
+                            const newM = {
+                              id: `custom-${Date.now()}`,
+                              name: query,
+                              team: workspace?.name || 'Tim',
+                              avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(query)}`,
+                            };
+                            setCustomInvitedMembers(prev => [...prev, newM]);
+                            setSelectedMemberIds(prev => [...prev, newM.id]);
+                          }
+                          setSearchMemberQuery('');
+                        }
+                      }}
                     />
                   </div>
+
+                  {searchMemberQuery.trim() && !allWorkspaceMembers.some(m => m.name.toLowerCase() === searchMemberQuery.trim().toLowerCase()) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const query = searchMemberQuery.trim();
+                        const newM = {
+                          id: `custom-${Date.now()}`,
+                          name: query,
+                          team: workspace?.name || 'Tim',
+                          avatarUrl: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(query)}`,
+                        };
+                        setCustomInvitedMembers(prev => [...prev, newM]);
+                        setSelectedMemberIds(prev => [...prev, newM.id]);
+                        setSearchMemberQuery('');
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '7px 10px',
+                        backgroundColor: '#f3f0ff',
+                        border: '1px dashed #7c3aed',
+                        borderRadius: '8px',
+                        color: '#7c3aed',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        margin: '6px 0 10px 0',
+                        width: '100%',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <Plus size={14} />
+                      <span>Tambahkan "{searchMemberQuery.trim()}" ke sesi ini</span>
+                    </button>
+                  )}
 
                   <h4 className="retro-wizard-group-title">
                     Anggota dipilih ({selectedMembers.length})

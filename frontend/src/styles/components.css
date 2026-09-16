@@ -10213,12 +10213,24 @@
   margin: 0;
 }
 
-/* Step 1: Templates Grid */
+/* Step 1: Templates Grid (Displays all 6 templates in 3x2 grid) */
 .retro-wizard-templates-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .retro-wizard-templates-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .retro-wizard-templates-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .retro-wizard-template-card {
