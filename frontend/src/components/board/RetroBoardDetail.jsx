@@ -496,11 +496,25 @@ export default function RetroBoardDetail({
     }
 
     setTimerRemaining((prev) => {
-      // Jika timer sedang aktif berjalan dan selisih waktu server dengan lokal hanya 1-2 detik,
-      // biarkan timer lokal berjalan mulus tanpa melompat/reset mundur
-      if (t.isRunning && prev > 0 && Math.abs(prev - rem) <= 2) {
-        return prev;
+      // 1. Jika user baru saja menekan Start/Resume dalam 6 detik terakhir,
+      // biarkan timer lokal berjalan mulus tanpa di-reset mundur oleh response server/Pusher
+      if (Date.now() - lastStartActionTimeRef.current < 6000 && prev > 0 && t.isRunning) {
+        return Math.min(prev, rem);
       }
+
+      // 2. Jika timer sedang berjalan dan selisih waktu server dengan timer lokal wajar (misal akibat latency/clock skew),
+      // jangan biarkan timer melompat kembali ke waktu awal
+      if (t.isRunning && prev > 0) {
+        // Jika server rem lebih besar atau sama dengan timer lokal (rem >= prev), jangan melompat mundur
+        if (rem >= prev && rem - prev <= 5) {
+          return prev;
+        }
+        // Jika selisih kecil (1-2 detik), pertahankan timer lokal agar tidak stuttering
+        if (Math.abs(prev - rem) <= 2) {
+          return prev;
+        }
+      }
+
       return rem;
     });
 
@@ -596,7 +610,7 @@ export default function RetroBoardDetail({
     };
   }, [timerStatus]);
 
-  const handleStartTimer = async (durationMinutes) => {
+  const handleStartTimer = useCallback(async (durationMinutes) => {
     const totalSecs = Math.max(1, durationMinutes) * 60;
     lastStartActionTimeRef.current = Date.now();
     lastResetActionTimeRef.current = 0;
@@ -615,9 +629,9 @@ export default function RetroBoardDetail({
     } catch (err) {
       console.warn('Gagal start timer di server:', err);
     }
-  };
+  }, [boardId, currentUser, onShowToast, applyTimerState]);
 
-  const handlePauseTimer = async () => {
+  const handlePauseTimer = useCallback(async () => {
     lastStartActionTimeRef.current = 0;
     lastResetActionTimeRef.current = 0;
     setTimerStatus('paused');
@@ -629,9 +643,9 @@ export default function RetroBoardDetail({
     } catch (err) {
       console.warn('Gagal pause timer di server:', err);
     }
-  };
+  }, [boardId, onShowToast, applyTimerState]);
 
-  const handleResumeTimer = async () => {
+  const handleResumeTimer = useCallback(async () => {
     lastStartActionTimeRef.current = Date.now();
     lastResetActionTimeRef.current = 0;
     setTimerStatus('running');
@@ -643,9 +657,9 @@ export default function RetroBoardDetail({
     } catch (err) {
       console.warn('Gagal resume timer di server:', err);
     }
-  };
+  }, [boardId, onShowToast, applyTimerState]);
 
-  const handleResetTimer = async () => {
+  const handleResetTimer = useCallback(async () => {
     lastResetActionTimeRef.current = Date.now();
     lastStartActionTimeRef.current = 0;
     setTimerStatus('idle');
@@ -658,7 +672,7 @@ export default function RetroBoardDetail({
     } catch (err) {
       console.warn('Gagal reset timer di server:', err);
     }
-  };
+  }, [boardId, timerTotal, onShowToast, applyTimerState]);
 
   const handleChangeFacilitator = (name) => {
     setTimerFacilitator(name);
