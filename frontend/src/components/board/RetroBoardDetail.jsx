@@ -2890,8 +2890,14 @@ export default function RetroBoardDetail({
               className="retro-board-columns-grid"
               style={{
                 display: 'grid',
-                gridTemplateColumns: `repeat(${activeColumns.length}, minmax(260px, 1fr))`,
+                gridTemplateColumns:
+                  activeColumns.length <= 3
+                    ? `repeat(${activeColumns.length}, minmax(0, 1fr))`
+                    : activeColumns.length === 4
+                    ? `repeat(4, minmax(210px, 1fr))`
+                    : `repeat(${activeColumns.length}, minmax(240px, 1fr))`,
                 gap: '16px',
+                width: '100%',
               }}
             >
               {activeColumns.map((col) => {

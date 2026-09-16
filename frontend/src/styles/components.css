@@ -2852,6 +2852,28 @@
   box-sizing: border-box;
   background-color: #ffffff;
   min-height: calc(100vh - 145px);
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.retro-board-columns-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.retro-board-columns-container::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.retro-board-columns-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.retro-board-columns-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .retro-board-columns-grid {
@@ -2859,6 +2881,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
   align-items: flex-start;
+  min-width: min-content;
 }
 
 @media (max-width: 960px) {
