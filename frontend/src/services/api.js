@@ -419,10 +419,10 @@ export const api = {
   },
 
   // Icebreaker API
-  async startIcebreaker(boardId, gameType = 'fakta-hoaks', totalQuestions = 5) {
+  async startIcebreaker(boardId, gameType = 'fakta-hoaks', totalQuestions = 5, questionDuration = 20) {
     return request(`/boards/${boardId}/icebreaker/start`, {
       method: 'POST',
-      body: JSON.stringify({ gameType, totalQuestions }),
+      body: JSON.stringify({ gameType, totalQuestions, questionDuration }),
     });
   },
 

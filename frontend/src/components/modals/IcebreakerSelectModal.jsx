@@ -1,16 +1,37 @@
 import React, { useState } from 'react';
-import { Gamepad2, Brain, Music, Clapperboard, HelpCircle, Laugh } from 'lucide-react';
+import { Gamepad2, Brain, Music, Clapperboard, HelpCircle, Laugh, Clock } from 'lucide-react';
 import '../../styles/icebreaker.css';
 
 export default function IcebreakerSelectModal({ isOpen, onClose, onStartGame }) {
   const [selectedGame, setSelectedGame] = useState('fakta-hoaks');
   const [selectedQuestions, setSelectedQuestions] = useState(5);
+  const [selectedDuration, setSelectedDuration] = useState(20);
+  const [customDuration, setCustomDuration] = useState('20');
 
   if (!isOpen) return null;
 
+  const handleSelectPresetDuration = (secs) => {
+    setSelectedDuration(secs);
+    setCustomDuration(String(secs));
+  };
+
+  const handleCustomDurationChange = (e) => {
+    const val = e.target.value;
+    if (val === '' || /^[0-9\b]+$/.test(val)) {
+      setCustomDuration(val);
+      const parsed = parseInt(val, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        setSelectedDuration(parsed);
+      } else {
+        setSelectedDuration(0);
+      }
+    }
+  };
+
   const handleStart = () => {
     if (!selectedGame) return;
-    onStartGame(selectedGame, selectedQuestions);
+    const finalDuration = selectedDuration > 0 ? selectedDuration : parseInt(customDuration, 10) || 20;
+    onStartGame(selectedGame, selectedQuestions, finalDuration);
   };
 
   const games = [
@@ -113,6 +134,50 @@ export default function IcebreakerSelectModal({ isOpen, onClose, onStartGame }) 
                 <span className="icebreaker-count-label">Soal</span>
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Section: Waktu per Pertanyaan */}
+        <div className="icebreaker-duration-section">
+          <div className="icebreaker-duration-header">
+            <div className="icebreaker-select-section-label" style={{ marginBottom: 0 }}>
+              Waktu per Pertanyaan
+            </div>
+            <span className="icebreaker-duration-current-badge">
+              <Clock size={12} />
+              <span>{selectedDuration > 0 ? selectedDuration : customDuration || 20}s / soal</span>
+            </span>
+          </div>
+
+          <div className="icebreaker-duration-presets">
+            {[15, 20, 30, 45, 60].map((secs) => (
+              <button
+                key={secs}
+                type="button"
+                className={`icebreaker-duration-btn ${
+                  selectedDuration === secs ? 'selected' : ''
+                }`}
+                onClick={() => handleSelectPresetDuration(secs)}
+              >
+                {secs} Detik
+              </button>
+            ))}
+          </div>
+
+          <div className="icebreaker-custom-duration-row">
+            <span className="icebreaker-custom-duration-label">Atau custom:</span>
+            <div className="icebreaker-custom-duration-input-wrap">
+              <input
+                type="number"
+                min="5"
+                max="180"
+                className="icebreaker-custom-duration-input"
+                value={customDuration}
+                onChange={handleCustomDurationChange}
+                placeholder="20"
+              />
+              <span className="icebreaker-custom-duration-unit">Detik</span>
+            </div>
           </div>
         </div>
 

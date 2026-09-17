@@ -216,6 +216,114 @@
   color: #5956e9;
 }
 
+/* Question Duration Selector Section */
+.icebreaker-duration-section {
+  margin-bottom: 24px;
+  padding: 14px 16px;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.icebreaker-duration-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.icebreaker-duration-current-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #ede9fe;
+  color: #5956e9;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  border: 1px solid rgba(89, 86, 233, 0.2);
+}
+
+.icebreaker-duration-presets {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.icebreaker-duration-btn {
+  padding: 9px 8px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background-color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.icebreaker-duration-btn:hover {
+  border-color: #cbd5e1;
+  background-color: #fafbfc;
+}
+
+.icebreaker-duration-btn.selected {
+  border-color: #5956e9;
+  background-color: #f5f3ff;
+  color: #5956e9;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(89, 86, 233, 0.18);
+}
+
+.icebreaker-custom-duration-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icebreaker-custom-duration-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.icebreaker-custom-duration-input-wrap {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  gap: 6px;
+  width: 140px;
+  transition: all 0.15s ease;
+}
+
+.icebreaker-custom-duration-input-wrap:focus-within {
+  border-color: #5956e9;
+  box-shadow: 0 0 0 2px rgba(89, 86, 233, 0.15);
+}
+
+.icebreaker-custom-duration-input {
+  border: none;
+  outline: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  width: 50px;
+  background: transparent;
+}
+
+.icebreaker-custom-duration-unit {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
 /* Modal Action Buttons */
 .icebreaker-modal-actions {
   display: flex;

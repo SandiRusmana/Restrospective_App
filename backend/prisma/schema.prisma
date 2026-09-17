@@ -69,6 +69,7 @@ model Board {
   columns   BoardColumn[]
   cards     Card[]
   timer     BoardTimer?
+  icebreaker BoardIcebreaker?
   actionItems ActionItem[]
 }
 
@@ -81,6 +82,15 @@ model BoardTimer {
   startedAt   DateTime?
   pausedAt    DateTime?
   startedById String?
+
+  board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
+}
+
+model BoardIcebreaker {
+  id          String   @id @default(uuid())
+  boardId     String   @unique
+  sessionData String   @db.Text
+  updatedAt   DateTime @updatedAt
 
   board Board @relation(fields: [boardId], references: [id], onDelete: Cascade)
 }
