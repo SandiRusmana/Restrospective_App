@@ -317,28 +317,11 @@ export default function IcebreakerOverlay({
 
                 <span className="icebreaker-option-label">{opt.label}</span>
 
-                {/* Voters Avatars Stack */}
-                {voters.length > 0 && (
-                  <div className="icebreaker-option-voters">
-                    {voters.slice(0, 5).map((v, vIdx) => (
-                      <img
-                        key={v.userId || vIdx}
-                        src={
-                          v.avatarUrl ||
-                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${
-                            v.userName || v.userId
-                          }`
-                        }
-                        alt={v.userName}
-                        title={v.userName}
-                        className="icebreaker-voter-avatar"
-                      />
-                    ))}
-                    {voters.length > 5 && (
-                      <span className="icebreaker-voter-more">
-                        +{voters.length - 5}
-                      </span>
-                    )}
+                {/* Anonymous Vote Count (Hanya muncul setelah jawaban dibuka / voting selesai) */}
+                {(isRevealed || (!isTrivia && (countdown !== null || questionTimer === 0 || answeredCount >= safeTotalMembers))) && voters.length > 0 && (
+                  <div className="icebreaker-option-anon-votes">
+                    <Users size={12} />
+                    <span>{voters.length} suara</span>
                   </div>
                 )}
               </button>
