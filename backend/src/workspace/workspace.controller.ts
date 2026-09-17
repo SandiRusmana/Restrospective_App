@@ -46,4 +46,32 @@ export class WorkspaceController {
   ) {
     return this.workspaceService.deleteWorkspace(userId, workspaceId);
   }
+
+  @Get(':id/members')
+  async getWorkspaceMembers(
+    @GetUser('id') userId: string,
+    @Param('id') workspaceId: string,
+  ) {
+    return this.workspaceService.getWorkspaceMembers(userId, workspaceId);
+  }
+
+  @Patch(':id/members/:targetUserId/role')
+  async updateMemberRole(
+    @GetUser('id') userId: string,
+    @Param('id') workspaceId: string,
+    @Param('targetUserId') targetUserId: string,
+    @Body() body: { role: string },
+  ) {
+    return this.workspaceService.updateMemberRole(userId, workspaceId, targetUserId, body.role);
+  }
+
+  @Delete(':id/members/:targetUserId')
+  async removeMember(
+    @GetUser('id') userId: string,
+    @Param('id') workspaceId: string,
+    @Param('targetUserId') targetUserId: string,
+  ) {
+    return this.workspaceService.removeMember(userId, workspaceId, targetUserId);
+  }
 }
+

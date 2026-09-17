@@ -1541,8 +1541,40 @@
   background: #ffffff;
   border: 1px solid #e8ecf2;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
 }
+
+.retro-dropdown-popup.member-dropdown-menu {
+  min-width: 200px;
+  z-index: 60;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+}
+
+.retro-dropdown-popup .dropdown-header-info {
+  padding: 6px 10px 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+.retro-dropdown-popup .dropdown-divider {
+  height: 1px;
+  background-color: #f1f5f9;
+  margin: 4px 0;
+}
+
+.retro-dropdown-popup .dropdown-info-note {
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 
 .members-table {
   width: 100%;

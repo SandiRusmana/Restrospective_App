@@ -1170,6 +1170,25 @@ export default function App() {
               }}
               onShowToast={showToast}
               onNavigateAllWorkspaces={handleNavigateAllWorkspaces}
+              onUpdateMembers={(updatedMembers) => {
+                setWorkspaces((prevWs) =>
+                  prevWs.map((ws) =>
+                    ws.id === activeWorkspace.id
+                      ? { ...ws, members: updatedMembers, memberCount: updatedMembers.length }
+                      : ws
+                  )
+                );
+              }}
+              onLeaveWorkspace={(wsId) => {
+                const remaining = workspaces.filter((w) => w.id !== wsId);
+                setWorkspaces(remaining);
+                if (remaining.length > 0) {
+                  setActiveWorkspaceId(remaining[0].id);
+                } else {
+                  setActiveWorkspaceId(null);
+                  setDashboardView('workspaces');
+                }
+              }}
             />
           )}
 

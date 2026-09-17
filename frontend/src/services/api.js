@@ -148,6 +148,20 @@ export const api = {
     });
   },
 
+  async updateMemberRole(workspaceId, memberId, role) {
+    return request(`/workspaces/${workspaceId}/members/${memberId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
+  },
+
+  async removeWorkspaceMember(workspaceId, memberId) {
+    return request(`/workspaces/${workspaceId}/members/${memberId}`, {
+      method: 'DELETE',
+    });
+  },
+
+
   async getInviteInfo(token) {
     return request(`/invites/${token}`, {
       method: 'GET',
