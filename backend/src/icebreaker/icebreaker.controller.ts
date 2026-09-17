@@ -23,11 +23,12 @@ export class IcebreakerController {
   async startIcebreaker(
     @GetUser('id') userId: string,
     @Param('id') boardId: string,
-    @Body() body: { gameType: IcebreakerGameType; totalQuestions?: number },
+    @Body() body: { gameType: IcebreakerGameType; totalQuestions?: number; questionDuration?: number },
   ) {
     const gameType = body?.gameType || 'fakta-hoaks';
     const totalQuestions = body?.totalQuestions || 5;
-    return this.icebreakerService.startIcebreaker(userId, boardId, gameType, totalQuestions);
+    const questionDuration = body?.questionDuration || 20;
+    return this.icebreakerService.startIcebreaker(userId, boardId, gameType, totalQuestions, questionDuration);
   }
 
   /**

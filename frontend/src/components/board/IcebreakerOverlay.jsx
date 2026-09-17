@@ -24,6 +24,7 @@ export default function IcebreakerOverlay({
   const [countdown, setCountdown] = useState(null);
   const autoRevealTriggeredRef = useRef(false);
   const skipTriggeredRef = useRef(false);
+  const isSkippingRef = useRef(false);
 
   // Reset pilihan ketika pertanyaan berganti atau ronde di-skip (votes dikosongkan)
   useEffect(() => {
@@ -58,37 +59,43 @@ export default function IcebreakerOverlay({
     Math.round((answeredCount / safeTotalMembers) * 100)
   );
 
-  const QUESTION_TIME_LIMIT = 20;
+  const QUESTION_TIME_LIMIT = session?.questionDuration || 20;
   const [questionTimer, setQuestionTimer] = useState(QUESTION_TIME_LIMIT);
 
-  // Synchronized 20s question timer per soal
+  // Synchronized question timer per soal
   useEffect(() => {
     if (isEnded || isRevealed) return;
 
-    const updateRemaining = () => {
-      if (!session?.startedAt) {
-        setQuestionTimer((prev) => Math.max(0, prev - 1));
-        return;
-      }
+    let initialRemaining = QUESTION_TIME_LIMIT;
+    if (session?.startedAt) {
       const elapsed = Math.floor(
         (Date.now() - new Date(session.startedAt).getTime()) / 1000
       );
-      const remaining = Math.max(0, QUESTION_TIME_LIMIT - elapsed);
-      setQuestionTimer(remaining);
-    };
+      if (elapsed >= 0 && elapsed < QUESTION_TIME_LIMIT) {
+        initialRemaining = QUESTION_TIME_LIMIT - elapsed;
+      }
+    }
+    setQuestionTimer(initialRemaining);
 
-    updateRemaining();
-    const interval = setInterval(updateRemaining, 1000);
+    const interval = setInterval(() => {
+      setQuestionTimer((prev) => {
+        if (prev <= 1) {
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
     return () => clearInterval(interval);
-  }, [session?.startedAt, session?.roundNumber, session?.question, isEnded, isRevealed]);
+  }, [session?.startedAt, session?.roundNumber, session?.currentQuestionIndex, QUESTION_TIME_LIMIT, isEnded, isRevealed]);
 
   // Reset auto-reveal flag and countdown when round/question changes
   useEffect(() => {
     autoRevealTriggeredRef.current = false;
     skipTriggeredRef.current = false;
+    isSkippingRef.current = false;
     setCountdown(null);
     setQuestionTimer(QUESTION_TIME_LIMIT);
-  }, [session?.currentQuestionIndex, session?.roundNumber, session?.question]);
+  }, [session?.currentQuestionIndex, session?.roundNumber, session?.question, QUESTION_TIME_LIMIT]);
 
   // 1. Auto Buka Jawaban ketika 100% anggota sudah menjawab ATAU waktu 20 detik habis
   useEffect(() => {
@@ -129,15 +136,16 @@ export default function IcebreakerOverlay({
 
     // Mulai hitung mundur 5 detik jika belum aktif dan belum pernah di-skip
     if (countdown === null) {
-      if (skipTriggeredRef.current) return; // Jangan restart setelah skip
+      if (skipTriggeredRef.current || isSkippingRef.current) return;
       setCountdown(5);
       return;
     }
 
     // Ketika countdown mencapai 0, fasilitator otomatis memicu skip ke pertanyaan berikutnya
     if (countdown <= 0) {
-      if (isFacilitator && onSkip && !skipTriggeredRef.current) {
+      if (isFacilitator && onSkip && !skipTriggeredRef.current && !isSkippingRef.current) {
         skipTriggeredRef.current = true;
+        isSkippingRef.current = true;
         onSkip();
       }
       setCountdown(null);
@@ -162,6 +170,8 @@ export default function IcebreakerOverlay({
   ]);
 
   const handleManualSkip = () => {
+    if (isSkippingRef.current) return;
+    isSkippingRef.current = true;
     setCountdown(null);
     if (onSkip) {
       onSkip();
@@ -220,16 +230,6 @@ export default function IcebreakerOverlay({
   return (
     <div className="icebreaker-overlay-backdrop">
       <div className="icebreaker-overlay-card">
-        {/* Close Button */}
-        <button
-          type="button"
-          className="icebreaker-overlay-close-btn"
-          onClick={onClose}
-          title="Tutup overlay"
-        >
-          <X size={18} />
-        </button>
-
         {/* Header Badges Row */}
         <div className="icebreaker-header-badges-row">
           <span className="icebreaker-pill-badge">

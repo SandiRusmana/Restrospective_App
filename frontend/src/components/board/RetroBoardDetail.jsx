@@ -1209,13 +1209,13 @@ export default function RetroBoardDetail({
   }, [boardId]);
 
   // Handler: Start Icebreaker Game
-  const handleStartIcebreaker = async (gameType, totalQuestions = 5) => {
+  const handleStartIcebreaker = async (gameType, totalQuestions = 5, questionDuration = 20) => {
     setIsIcebreakerSelectModalOpen(false);
     try {
-      const session = await api.startIcebreaker(boardId, gameType, totalQuestions);
+      const session = await api.startIcebreaker(boardId, gameType, totalQuestions, questionDuration);
       setActiveIcebreaker(session);
       if (onShowToast) {
-        onShowToast(`Icebreaker "${session.title}" dimulai (${totalQuestions} soal)!`);
+        onShowToast(`Icebreaker "${session.title}" dimulai (${totalQuestions} soal, ${questionDuration}s/soal)!`);
       }
     } catch (err) {
       console.error('Gagal memulai icebreaker:', err);

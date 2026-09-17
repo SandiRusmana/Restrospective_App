@@ -29,6 +29,7 @@ export interface IcebreakerSession {
   isRevealed?: boolean;
   roundNumber?: number;
   totalQuestions?: number;
+  questionDuration?: number;
   startedById: string;
   startedByName: string;
   startedAt: string;
@@ -1771,6 +1772,54 @@ export class IcebreakerService {
     };
   }
 
+  private async getSession(boardId: string): Promise<IcebreakerSession | null> {
+    const mem = this.activeSessions.get(boardId);
+    if (mem && mem.status === 'active') return mem;
+
+    try {
+      const record = await (this.prisma as any).boardIcebreaker.findUnique({
+        where: { boardId },
+      });
+      if (record?.sessionData) {
+        const parsed = JSON.parse(record.sessionData) as IcebreakerSession;
+        this.activeSessions.set(boardId, parsed);
+        return parsed;
+      }
+    } catch (e) {
+      console.warn('[Icebreaker] Failed to read from DB:', e.message);
+    }
+    return mem || null;
+  }
+
+  private async saveSession(boardId: string, session: IcebreakerSession) {
+    this.activeSessions.set(boardId, session);
+    try {
+      await (this.prisma as any).boardIcebreaker.upsert({
+        where: { boardId },
+        create: {
+          boardId,
+          sessionData: JSON.stringify(session),
+        },
+        update: {
+          sessionData: JSON.stringify(session),
+        },
+      });
+    } catch (e) {
+      console.warn('[Icebreaker] Failed to persist to DB:', e.message);
+    }
+  }
+
+  private async removeSession(boardId: string) {
+    this.activeSessions.delete(boardId);
+    try {
+      await (this.prisma as any).boardIcebreaker.deleteMany({
+        where: { boardId },
+      });
+    } catch (e) {
+      console.warn('[Icebreaker] Failed to delete from DB:', e.message);
+    }
+  }
+
   /**
    * Memulai Sesi Icebreaker (Hanya Facilitator)
    */
@@ -1779,6 +1828,7 @@ export class IcebreakerService {
     boardId: string,
     gameType: IcebreakerGameType,
     totalQuestions: number = 5,
+    questionDuration: number = 20,
   ) {
     const { isFacilitator } = await this.checkFacilitatorAccess(userId, boardId);
     if (!isFacilitator) {
@@ -1795,6 +1845,7 @@ export class IcebreakerService {
     const initialIndex = Math.floor(Math.random() * 50);
     const gameData = this.getGameData(gameType, initialIndex);
     const safeTotalQuestions = Math.max(1, Math.min(20, Number(totalQuestions) || 5));
+    const safeQuestionDuration = Math.max(5, Math.min(180, Number(questionDuration) || 20));
 
     const session: IcebreakerSession = {
       boardId,
@@ -1807,6 +1858,7 @@ export class IcebreakerService {
       isRevealed: false,
       roundNumber: 1,
       totalQuestions: safeTotalQuestions,
+      questionDuration: safeQuestionDuration,
       startedById: userId,
       startedByName: userName,
       startedAt: new Date().toISOString(),
@@ -1815,7 +1867,7 @@ export class IcebreakerService {
       currentQuestionIndex: initialIndex,
     };
 
-    this.activeSessions.set(boardId, session);
+    await this.saveSession(boardId, session);
 
     // Broadcast ke Pusher Channels
     const channels = [
@@ -1841,7 +1893,7 @@ export class IcebreakerService {
     boardId: string,
     optionId: string,
   ) {
-    const session = this.activeSessions.get(boardId);
+    const session = await this.getSession(boardId);
     if (!session || session.status !== 'active') {
       throw new NotFoundException('Tidak ada sesi icebreaker yang sedang aktif di board ini');
     }
@@ -1859,6 +1911,8 @@ export class IcebreakerService {
       avatarUrl: user?.avatarUrl || undefined,
       optionId,
     };
+
+    await this.saveSession(boardId, session);
 
     const channels = [
       `board-${boardId}`,
@@ -1894,12 +1948,13 @@ export class IcebreakerService {
       throw new ForbiddenException('Hanya fasilitator yang dapat membuka jawaban');
     }
 
-    const session = this.activeSessions.get(boardId);
+    const session = await this.getSession(boardId);
     if (!session || session.status !== 'active') {
       throw new NotFoundException('Tidak ada sesi icebreaker yang sedang aktif');
     }
 
     session.isRevealed = true;
+    await this.saveSession(boardId, session);
 
     const channels = [
       `board-${boardId}`,
@@ -1925,7 +1980,7 @@ export class IcebreakerService {
       throw new ForbiddenException('Hanya fasilitator yang dapat melakukan skip');
     }
 
-    const session = this.activeSessions.get(boardId);
+    const session = await this.getSession(boardId);
     if (!session || session.status !== 'active') {
       throw new NotFoundException('Tidak ada sesi icebreaker yang sedang aktif');
     }
@@ -1952,6 +2007,8 @@ export class IcebreakerService {
     session.votes = {};
     session.startedAt = new Date().toISOString();
 
+    await this.saveSession(boardId, session);
+
     const channels = [
       `board-${boardId}`,
       `presence-board-${boardId}`,
@@ -1976,10 +2033,10 @@ export class IcebreakerService {
       throw new ForbiddenException('Hanya fasilitator yang dapat mengakhiri icebreaker');
     }
 
-    const session = this.activeSessions.get(boardId);
+    const session = await this.getSession(boardId);
     if (session) {
       session.status = 'ended';
-      this.activeSessions.delete(boardId);
+      await this.removeSession(boardId);
     }
 
     const channels = [
@@ -2008,7 +2065,7 @@ export class IcebreakerService {
    */
   async getIcebreakerState(userId: string, boardId: string) {
     await this.checkFacilitatorAccess(userId, boardId);
-    const session = this.activeSessions.get(boardId);
+    const session = await this.getSession(boardId);
     if (!session || session.status !== 'active') {
       return { active: false, session: null };
     }
