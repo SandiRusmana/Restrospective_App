@@ -41,9 +41,10 @@ export default function MembersListCard({
               </div>
             </div>
             <button 
+              type="button"
               className="btn-ghost-icon"
-              onClick={() => alert(`Opsi untuk anggota: ${member.name}`)}
-              title="Opsi anggota"
+              onClick={onViewAllMembers}
+              title="Kelola anggota"
             >
               <MoreVertical size={16} />
             </button>

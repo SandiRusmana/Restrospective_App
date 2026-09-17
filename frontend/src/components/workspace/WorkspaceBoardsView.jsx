@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Plus,
   User,
@@ -19,7 +19,12 @@ import {
   Users,
   Activity,
   ChevronRight,
-  Layers
+  Layers,
+  Shield,
+  ShieldCheck,
+  UserMinus,
+  Crown,
+  LogOut
 } from 'lucide-react';
 import Avatar from '../common/Avatar';
 import Badge from '../common/Badge';
@@ -42,12 +47,203 @@ export default function WorkspaceBoardsView({
   onUpdateBoard,
   onShowToast,
   currentUser,
-  onNavigateAllWorkspaces
+  onNavigateAllWorkspaces,
+  onUpdateMembers,
+  onLeaveWorkspace
 }) {
   const [activeTab, setActiveTab] = useState('board'); // 'overview' | 'anggota' | 'board' | 'pengaturan'
   const [copied, setCopied] = useState(false);
   const [activeDropdownBoardId, setActiveDropdownBoardId] = useState(null);
+  const [activeDropdownMemberId, setActiveDropdownMemberId] = useState(null);
   const [editingBoard, setEditingBoard] = useState(null);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setActiveDropdownBoardId(null);
+      setActiveDropdownMemberId(null);
+    };
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, []);
+
+  const handleUpdateMemberRole = async (member, newRole) => {
+    setActiveDropdownMemberId(null);
+    const targetUserId = member.userId || member.id;
+    try {
+      const res = await api.updateMemberRole(workspace.id, targetUserId, newRole);
+      onShowToast && onShowToast(res.message || `Role ${member.name} berhasil diubah ke ${newRole}`);
+      if (onUpdateMembers) {
+        const updated = (workspace.members || []).map((m) => {
+          const mId = m.userId || m.id;
+          if (mId === targetUserId) {
+            return { ...m, role: newRole };
+          }
+          if (newRole === 'owner' && (m.role?.toLowerCase() === 'owner')) {
+            return { ...m, role: 'admin' };
+          }
+          return m;
+        });
+        onUpdateMembers(updated);
+      }
+    } catch (err) {
+      onShowToast && onShowToast(err.message || 'Gagal mengubah role anggota');
+    }
+  };
+
+  const handleTransferOwnership = async (member) => {
+    setActiveDropdownMemberId(null);
+    const confirmTransfer = window.confirm(
+      `Apakah Anda yakin ingin mentransfer kepemilikan workspace ini kepada "${member.name}"?\n\nSetelah ditransfer, Anda akan menjadi Admin dan ${member.name} menjadi Pemilik (Owner).`
+    );
+    if (!confirmTransfer) return;
+
+    await handleUpdateMemberRole(member, 'owner');
+  };
+
+  const handleRemoveMember = async (member) => {
+    setActiveDropdownMemberId(null);
+    const targetUserId = member.userId || member.id;
+    const confirmRemove = window.confirm(
+      `Apakah Anda yakin ingin mengeluarkan "${member.name}" dari workspace ini?`
+    );
+    if (!confirmRemove) return;
+
+    try {
+      const res = await api.removeWorkspaceMember(workspace.id, targetUserId);
+      onShowToast && onShowToast(res.message || `${member.name} berhasil dikeluarkan dari workspace`);
+
+      if (onUpdateMembers) {
+        const updated = (workspace.members || []).filter((m) => (m.userId || m.id) !== targetUserId);
+        onUpdateMembers(updated);
+      }
+    } catch (err) {
+      onShowToast && onShowToast(err.message || 'Gagal mengeluarkan anggota');
+    }
+  };
+
+  const handleLeaveWorkspace = async (member) => {
+    setActiveDropdownMemberId(null);
+    const targetUserId = member.userId || member.id;
+    const confirmLeave = window.confirm(
+      `Apakah Anda yakin ingin keluar dari workspace "${workspace.name}"?`
+    );
+    if (!confirmLeave) return;
+
+    try {
+      const res = await api.removeWorkspaceMember(workspace.id, targetUserId);
+      onShowToast && onShowToast(res.message || 'Anda telah keluar dari workspace');
+      if (onLeaveWorkspace) {
+        onLeaveWorkspace(workspace.id);
+      }
+    } catch (err) {
+      onShowToast && onShowToast(err.message || 'Gagal keluar dari workspace');
+    }
+  };
+
+  const renderMemberDropdown = (member) => {
+    const isMe = Boolean(
+      (currentUser?.id && (member.id === currentUser.id || member.userId === currentUser.id)) ||
+      (currentUser?.email && member.email === currentUser.email)
+    );
+    const memberRole = (member.role || 'member').toLowerCase();
+    const isMemberOwner = memberRole === 'owner';
+    const isMemberAdmin = memberRole === 'admin';
+
+    // Current user's role in this workspace
+    const myMember = (workspace?.members || []).find((m) =>
+      Boolean(
+        (currentUser?.id && (m.id === currentUser.id || m.userId === currentUser.id)) ||
+        (currentUser?.email && m.email === currentUser.email)
+      )
+    );
+    const myRole = (workspace?.role || myMember?.role || (workspace?.ownerId === currentUser?.id ? 'owner' : 'member')).toLowerCase();
+    const amIOwner = myRole === 'owner' || workspace?.ownerId === currentUser?.id;
+    const amIAdmin = myRole === 'admin';
+
+    return (
+      <div
+        className="retro-dropdown-popup member-dropdown-menu"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="dropdown-header-info">
+          {member.name.replace(' (Anda)', '')} • {memberRole.toUpperCase()}
+        </div>
+        <div className="dropdown-divider" />
+
+        {isMe ? (
+          isMemberOwner ? (
+            <div className="dropdown-info-note">
+              <Crown size={13} color="#f59e0b" />
+              <span>Pemilik Utama Workspace</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="danger"
+              onClick={() => handleLeaveWorkspace(member)}
+            >
+              <LogOut size={14} />
+              <span>Keluar dari Workspace</span>
+            </button>
+          )
+        ) : (
+          <>
+            {amIOwner && (
+              <>
+                {isMemberAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateMemberRole(member, 'member')}
+                  >
+                    <User size={14} />
+                    <span>Ubah ke Member Biasa</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateMemberRole(member, 'admin')}
+                  >
+                    <ShieldCheck size={14} color="#10b981" />
+                    <span>Jadikan Admin</span>
+                  </button>
+                )}
+
+                {!isMemberOwner && (
+                  <button
+                    type="button"
+                    onClick={() => handleTransferOwnership(member)}
+                  >
+                    <Crown size={14} color="#f59e0b" />
+                    <span>Jadikan Pemilik (Owner)</span>
+                  </button>
+                )}
+                <div className="dropdown-divider" />
+              </>
+            )}
+
+            {!isMemberOwner && (amIOwner || (amIAdmin && !isMemberAdmin)) ? (
+              <button
+                type="button"
+                className="danger"
+                onClick={() => handleRemoveMember(member)}
+              >
+                <UserMinus size={14} />
+                <span>Keluarkan dari Tim</span>
+              </button>
+            ) : (
+              !amIOwner && !amIAdmin && (
+                <div className="dropdown-info-note">
+                  <span>Tidak ada aksi tersedia</span>
+                </div>
+              )
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
 
   const handleSaveBoardEdit = async (updatedData) => {
     try {
@@ -553,14 +749,23 @@ export default function WorkspaceBoardsView({
                           <span className="online-dot"></span> Aktif
                         </span>
                       </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn-ghost-icon"
-                          onClick={() => onShowToast && onShowToast(`Pengaturan akses untuk ${member.name}`)}
-                        >
-                          <MoreVertical size={16} />
-                        </button>
+                      <td style={{ position: 'relative' }}>
+                        <div className="retro-dropdown-container">
+                          <button
+                            type="button"
+                            className="btn-ghost-icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveDropdownBoardId(null);
+                              setActiveDropdownMemberId(activeDropdownMemberId === member.id ? null : member.id);
+                            }}
+                            title="Opsi anggota"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+
+                          {activeDropdownMemberId === member.id && renderMemberDropdown(member)}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -725,14 +930,22 @@ export default function WorkspaceBoardsView({
                     <div className="member-role">{member.role}</div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn-ghost-icon"
-                  onClick={() => onShowToast && onShowToast(`Opsi untuk ${member.name}`)}
-                  title="Opsi anggota"
-                >
-                  <MoreVertical size={16} />
-                </button>
+                <div className="retro-dropdown-container">
+                  <button
+                    type="button"
+                    className="btn-ghost-icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveDropdownBoardId(null);
+                      setActiveDropdownMemberId(activeDropdownMemberId === member.id ? null : member.id);
+                    }}
+                    title="Opsi anggota"
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+
+                  {activeDropdownMemberId === member.id && renderMemberDropdown(member)}
+                </div>
               </div>
             ))}
           </div>
