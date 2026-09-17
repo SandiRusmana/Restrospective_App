@@ -652,6 +652,41 @@
   line-height: 1.4;
 }
 
+/* Anonymous Vote Count Pill under chosen option */
+.icebreaker-option-anon-votes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  background-color: #f1f5f9;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  margin-top: 6px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+}
+
+.icebreaker-option-card.correct .icebreaker-option-anon-votes {
+  background-color: #dcfce7;
+  color: #15803d;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.icebreaker-option-card.wrong .icebreaker-option-anon-votes {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.icebreaker-option-card.selected .icebreaker-option-anon-votes {
+  background-color: #ede9fe;
+  color: #5956e9;
+  border-color: rgba(89, 86, 233, 0.3);
+}
+
 /* Avatar Stack under chosen option */
 .icebreaker-option-voters {
   display: flex;
