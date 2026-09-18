@@ -1210,7 +1210,31 @@ export default function RetroBoardDetail({
 
   // Handler: Start Icebreaker Game
   const handleStartIcebreaker = async (gameType, totalQuestions = 5, questionDuration = 20) => {
+    const gameTitles = {
+      'fakta-hoaks': 'Fakta atau Hoaks?',
+      'tebak-lagu': 'Tebak Lagu & Artis',
+      'tebak-film': 'Tebak Film dari Emoji',
+      'would-you-rather': 'Would You Rather?',
+      'tebakan-receh': 'Tebak-tebakan Receh',
+    };
+
     setIsIcebreakerSelectModalOpen(false);
+
+    // Optimistic UI: langsung tampilkan overlay icebreaker secara instan (0 milidetik!)
+    setActiveIcebreaker({
+      boardId,
+      gameType,
+      title: gameTitles[gameType] || 'Icebreaker',
+      question: 'Menyiapkan pertanyaan...',
+      options: [],
+      isRevealed: false,
+      roundNumber: 1,
+      totalQuestions,
+      questionDuration,
+      status: 'active',
+      isOptimisticLoading: true,
+    });
+
     try {
       const session = await api.startIcebreaker(boardId, gameType, totalQuestions, questionDuration);
       setActiveIcebreaker(session);
@@ -1219,6 +1243,7 @@ export default function RetroBoardDetail({
       }
     } catch (err) {
       console.error('Gagal memulai icebreaker:', err);
+      setActiveIcebreaker(null);
       if (onShowToast) onShowToast(err.message || 'Gagal memulai icebreaker');
     }
   };

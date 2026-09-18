@@ -44,6 +44,22 @@ export default function IcebreakerOverlay({
 
   if (!session) return null;
 
+  if (session.isOptimisticLoading) {
+    return (
+      <div className="icebreaker-overlay-backdrop">
+        <div className="icebreaker-card icebreaker-loading-card">
+          <div className="icebreaker-loading-spinner" />
+          <h3 className="icebreaker-loading-title">
+            Memulai {session.title}...
+          </h3>
+          <p className="icebreaker-loading-subtitle">
+            Sedang menyiapkan pertanyaan seru untuk seluruh tim...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const isEnded = session.status === 'ended';
   const isRevealed = Boolean(session.isRevealed);
   const isTrivia = Boolean(session.correctOptionId);
