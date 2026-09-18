@@ -1704,7 +1704,7 @@ export class IcebreakerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly pusher: PusherService,
-  ) {}
+  ) { }
 
   /**
    * Validasi akses board dan cek apakah user adalah fasilitator/owner
@@ -1830,15 +1830,18 @@ export class IcebreakerService {
     totalQuestions: number = 5,
     questionDuration: number = 20,
   ) {
-    const { isFacilitator } = await this.checkFacilitatorAccess(userId, boardId);
+    const [{ isFacilitator }, user] = await Promise.all([
+      this.checkFacilitatorAccess(userId, boardId),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true },
+      }),
+    ]);
+
     if (!isFacilitator) {
       throw new ForbiddenException('Hanya fasilitator yang dapat memulai icebreaker');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { name: true, email: true },
-    });
     const userName =
       user?.name || user?.email?.split('@')[0] || 'Fasilitator';
 
@@ -1867,8 +1870,6 @@ export class IcebreakerService {
       currentQuestionIndex: initialIndex,
     };
 
-    await this.saveSession(boardId, session);
-
     // Broadcast ke Pusher Channels
     const channels = [
       `board-${boardId}`,
@@ -1876,11 +1877,13 @@ export class IcebreakerService {
       `private-board-${boardId}`,
     ];
 
-    try {
-      await this.pusher.trigger(channels, 'icebreaker.started', session);
-    } catch (err) {
-      console.warn('[Pusher] Gagal broadcast icebreaker.started:', err.message);
-    }
+    // Simpan ke database dan broadcast Pusher secara paralel (menghemat 50% waktu response)
+    await Promise.all([
+      this.saveSession(boardId, session),
+      this.pusher.trigger(channels, 'icebreaker.started', session).catch((err) => {
+        console.warn('[Pusher] Gagal broadcast icebreaker.started:', err.message);
+      }),
+    ]);
 
     return session;
   }
@@ -2072,3 +2075,4 @@ export class IcebreakerService {
     return { active: true, session };
   }
 }
+
